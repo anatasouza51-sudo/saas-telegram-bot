@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
@@ -11,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Bot, Loader2 } from "lucide-react"
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
@@ -29,8 +27,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       if (isSignUp) {
         const { error } = await authClient.signUp.email({ email, password, name })
         if (error) throw new Error(error.message || "Falha ao criar conta")
-        // Ensure a session exists right after signup so the user goes
-        // straight into their dashboard without a separate login step.
+        // Better Auth auto-signs-in on signup, but we sign in explicitly as a
+        // fallback to guarantee a session cookie exists before redirecting.
         const { error: signInError } = await authClient.signIn.email({
           email,
           password,
@@ -41,8 +39,9 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         const { error } = await authClient.signIn.email({ email, password })
         if (error) throw new Error(error.message || "Credenciais inválidas")
       }
-      router.push("/")
-      router.refresh()
+      // Hard navigation guarantees the just-set session cookie is sent with the
+      // request for the dashboard, avoiding a redirect loop back to sign-in.
+      window.location.assign("/")
     } catch (err) {
       setError((err as Error).message)
       setLoading(false)
