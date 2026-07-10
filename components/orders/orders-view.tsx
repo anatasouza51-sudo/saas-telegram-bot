@@ -28,15 +28,47 @@ import {
   PaymentStatusBadge,
   DeliveryStatusBadge,
 } from "@/components/status-badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from "lucide-react"
+import { toast } from "sonner"
 import { formatCurrency, formatDateTime } from "@/lib/format"
 import type { OrderRow } from "@/lib/queries/records"
+import {
+  approveAndDeliver,
+  refuseOrder,
+  cancelOrder,
+} from "@/app/actions/orders"
+import { useTransition } from "react"
 
 const PAGE_SIZE = 10
 
-export function OrdersView({ orders }: { orders: OrderRow[] }) {
+export function OrdersView({
+  orders,
+  canManage = false,
+}: {
+  orders: OrderRow[]
+  canManage?: boolean
+}) {
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState("all")
   const [page, setPage] = useState(1)
+  const [isPending, startTransition] = useTransition()
+
+  function runAction(fn: () => Promise<unknown>, success: string) {
+    startTransition(async () => {
+      try {
+        await fn()
+        toast.success(success)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro na operação")
+      }
+    })
+  }
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -110,13 +142,14 @@ export function OrdersView({ orders }: { orders: OrderRow[] }) {
                 <TableHead>Entrega</TableHead>
                 <TableHead>Gateway</TableHead>
                 <TableHead>Data</TableHead>
+                {canManage && <TableHead className="w-10" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageItems.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={canManage ? 9 : 8}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Nenhum pedido encontrado.
@@ -154,6 +187,59 @@ export function OrdersView({ orders }: { orders: OrderRow[] }) {
                     <TableCell className="text-xs text-muted-foreground">
                       {formatDateTime(o.createdAt)}
                     </TableCell>
+                    {canManage && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={isPending}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Ações</span>
+                              </Button>
+                            }
+                          />
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              disabled={o.deliveryStatus === "delivered"}
+                              onClick={() =>
+                                runAction(
+                                  () => approveAndDeliver(o.id),
+                                  `Pedido #${o.id} aprovado e entregue`,
+                                )
+                              }
+                            >
+                              Aprovar e entregar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                runAction(
+                                  () => refuseOrder(o.id),
+                                  `Pedido #${o.id} recusado`,
+                                )
+                              }
+                            >
+                              Recusar pagamento
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() =>
+                                runAction(
+                                  () => cancelOrder(o.id),
+                                  `Pedido #${o.id} cancelado`,
+                                )
+                              }
+                            >
+                              Cancelar pedido
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

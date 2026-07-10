@@ -1,10 +1,12 @@
 import { requireCapability } from "@/lib/session"
+import { can } from "@/lib/roles"
 import { PageHeader } from "@/components/page-header"
 import { OrdersView } from "@/components/orders/orders-view"
 import { getOrders } from "@/lib/queries/records"
 
 export default async function OrdersPage() {
-  await requireCapability("orders.view")
+  const user = await requireCapability("orders.view")
+  const canManage = can(user.role, "orders.manage")
   const orders = await getOrders()
 
   return (
@@ -13,7 +15,7 @@ export default async function OrdersPage() {
         title="Pedidos"
         description="Acompanhe todos os pedidos e o status de pagamento e entrega."
       />
-      <OrdersView orders={orders} />
+      <OrdersView orders={orders} canManage={canManage} />
     </div>
   )
 }
