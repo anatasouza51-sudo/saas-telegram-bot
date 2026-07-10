@@ -1,12 +1,16 @@
 import crypto from "crypto"
-import { veopagConfig } from "@/lib/integrations"
 
 /**
- * Thin wrapper around the VeoPag gateway. Endpoints are structured for a
- * typical PIX/checkout gateway; adjust the base URL / field names to match
- * VeoPag's live API contract when going to production.
+ * Thin wrapper around the VeoPag gateway. Credentials are per-store, loaded
+ * from the settings table and passed in explicitly. Adjust the base URL /
+ * field names to match VeoPag's live API contract when going to production.
  */
 const VEOPAG_BASE = process.env.VEOPAG_BASE_URL ?? "https://api.veopag.com"
+
+export type VeoPagCredentials = {
+  publicKey: string
+  secretKey: string
+}
 
 export type CreateChargeInput = {
   amount: number
@@ -25,9 +29,10 @@ export type CreateChargeResult =
   | { ok: false; error: string }
 
 export async function createCharge(
+  credentials: VeoPagCredentials,
   input: CreateChargeInput,
 ): Promise<CreateChargeResult> {
-  if (!veopagConfig.isConfigured) {
+  if (!credentials.publicKey || !credentials.secretKey) {
     return { ok: false, error: "Credenciais da VeoPag não configuradas" }
   }
   try {
@@ -35,8 +40,8 @@ export async function createCharge(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-public-key": veopagConfig.publicKey,
-        "x-secret-key": veopagConfig.secretKey,
+        "x-public-key": credentials.publicKey,
+        "x-secret-key": credentials.secretKey,
       },
       body: JSON.stringify({
         amount: input.amount,
@@ -66,24 +71,23 @@ export async function createCharge(
 
 /**
  * Validates the webhook signature using HMAC-SHA256 over the raw body with the
- * secret key. VeoPag sends the signature in the `x-veopag-signature` header.
+ * store's secret key. VeoPag sends the signature in the `x-veopag-signature`
+ * header.
  */
 export function verifyWebhookSignature(
+  secretKey: string | null | undefined,
   rawBody: string,
   signature: string | null,
 ): boolean {
-  if (!veopagConfig.secretKey) return false
+  if (!secretKey) return false
   if (!signature) return false
   const expected = crypto
-    .createHmac("sha256", veopagConfig.secretKey)
+    .createHmac("sha256", secretKey)
     .update(rawBody)
     .digest("hex")
   // Constant-time comparison.
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected),
-      Buffer.from(signature),
-    )
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
   } catch {
     return false
   }

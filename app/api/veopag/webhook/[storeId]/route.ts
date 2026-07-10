@@ -1,17 +1,31 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { orders } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { orders, settings } from "@/lib/db/schema"
+import { and, eq } from "drizzle-orm"
 import { verifyWebhookSignature, mapPaymentStatus } from "@/lib/veopag"
 import { fulfillOrder } from "@/lib/fulfillment"
 import { logActivity } from "@/lib/log"
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ storeId: string }> },
+) {
+  const { storeId } = await params
   const rawBody = await req.text()
   const signature = req.headers.get("x-veopag-signature")
 
-  if (!verifyWebhookSignature(rawBody, signature)) {
+  // Load this store's VeoPag secret key to validate the signature.
+  const [secretRow] = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(
+      and(eq(settings.ownerId, storeId), eq(settings.key, "veopag.secretKey")),
+    )
+  const secretKey = secretRow?.value
+
+  if (!verifyWebhookSignature(secretKey, rawBody, signature)) {
     await logActivity({
+      storeId,
       action: "Webhook VeoPag rejeitado (assinatura inválida)",
       category: "security",
     })
@@ -36,18 +50,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "external_id ausente" }, { status: 400 })
   }
 
-  const [order] = await db.select().from(orders).where(eq(orders.id, orderId))
+  // Scope the order to this store so webhooks can't touch other tenants.
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, storeId)))
   if (!order) {
     return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 })
   }
 
-  // Persist the payment status + gateway id.
   await db
     .update(orders)
     .set({ paymentStatus: status, paymentId, updatedAt: new Date() })
-    .where(eq(orders.id, orderId))
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, storeId)))
 
   await logActivity({
+    storeId,
     action: `Webhook VeoPag: pedido #${orderId} → ${status}`,
     category: "payment",
     details: `paymentId=${paymentId} status_bruto=${rawStatus}`,
@@ -58,11 +76,16 @@ export async function POST(req: Request) {
     const result = await fulfillOrder(orderId)
     if (!result.ok) {
       await logActivity({
+        storeId,
         action: `Falha na entrega automática do pedido #${orderId}`,
         category: "delivery",
         details: result.reason,
       })
-      return NextResponse.json({ received: true, delivered: false, reason: result.reason })
+      return NextResponse.json({
+        received: true,
+        delivered: false,
+        reason: result.reason,
+      })
     }
     return NextResponse.json({ received: true, delivered: true })
   }
