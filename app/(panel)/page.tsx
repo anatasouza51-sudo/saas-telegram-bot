@@ -1,0 +1,202 @@
+import { PageHeader } from "@/components/page-header"
+import { StatCard } from "@/components/stat-card"
+import { SalesChart } from "@/components/sales-chart"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  PaymentStatusBadge,
+  DeliveryStatusBadge,
+} from "@/components/status-badge"
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
+import {
+  getDashboardStats,
+  getRecentOrders,
+  getSalesChart,
+} from "@/lib/queries/dashboard"
+import {
+  DollarSign,
+  ShoppingCart,
+  CalendarClock,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Users,
+  Package,
+  AlertTriangle,
+  TrendingUp,
+} from "lucide-react"
+
+export default async function DashboardPage() {
+  const [stats, recentOrders, salesData] = await Promise.all([
+    getDashboardStats(),
+    getRecentOrders(),
+    getSalesChart(14),
+  ])
+
+  return (
+    <>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral das vendas, pagamentos e estoque."
+      />
+      <div className="flex flex-col gap-6 p-4 md:p-6">
+        {/* Primary metrics */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Receita total"
+            value={formatCurrency(stats.totalRevenue)}
+            icon={DollarSign}
+            tone="success"
+            hint="Pagamentos aprovados"
+          />
+          <StatCard
+            title="Total de vendas"
+            value={formatNumber(stats.totalSales)}
+            icon={ShoppingCart}
+            tone="primary"
+          />
+          <StatCard
+            title="Vendas do dia"
+            value={formatNumber(stats.salesToday)}
+            icon={CalendarClock}
+            tone="default"
+          />
+          <StatCard
+            title="Conversão"
+            value={`${stats.conversionRate.toFixed(1)}%`}
+            icon={TrendingUp}
+            tone="primary"
+            hint="Aprovados / total de pedidos"
+          />
+        </div>
+
+        {/* Payment & catalog metrics */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
+          <StatCard
+            title="Pendentes"
+            value={formatNumber(stats.pendingPayments)}
+            icon={Clock}
+            tone="warning"
+          />
+          <StatCard
+            title="Aprovados"
+            value={formatNumber(stats.approvedPayments)}
+            icon={CheckCircle2}
+            tone="success"
+          />
+          <StatCard
+            title="Recusados"
+            value={formatNumber(stats.refusedPayments)}
+            icon={XCircle}
+            tone="destructive"
+          />
+          <StatCard
+            title="Clientes"
+            value={formatNumber(stats.totalCustomers)}
+            icon={Users}
+          />
+          <StatCard
+            title="Produtos"
+            value={formatNumber(stats.totalProducts)}
+            icon={Package}
+          />
+          <StatCard
+            title="Estoque baixo"
+            value={formatNumber(stats.lowStockCount)}
+            icon={AlertTriangle}
+            tone={stats.lowStockCount > 0 ? "destructive" : "default"}
+          />
+        </div>
+
+        {/* Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Vendas dos últimos 14 dias</CardTitle>
+            <CardDescription>
+              Receita diária de pagamentos aprovados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SalesChart data={salesData} />
+          </CardContent>
+        </Card>
+
+        {/* Recent orders */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Últimos pedidos</CardTitle>
+            <CardDescription>
+              Pedidos mais recentes recebidos via Telegram.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-0">
+            {recentOrders.length === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-muted-foreground">
+                Nenhum pedido registrado ainda.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Pagamento</TableHead>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead className="text-right">Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentOrders.map((o) => (
+                      <TableRow key={o.id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {o.id}
+                        </TableCell>
+                        <TableCell>
+                          {o.customerName ||
+                            (o.customerUsername
+                              ? `@${o.customerUsername}`
+                              : "—")}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {o.productName || "—"}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(o.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={o.paymentStatus} />
+                        </TableCell>
+                        <TableCell>
+                          <DeliveryStatusBadge status={o.deliveryStatus} />
+                        </TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {formatDateTime(o.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  )
+}
