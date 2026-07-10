@@ -7,8 +7,8 @@ import { formatCurrency } from "@/lib/format"
 import { CircleDollarSign, CheckCircle2, Clock, XCircle } from "lucide-react"
 
 export default async function PaymentsPage() {
-  await requireCapability("payments.view")
-  const orders = await getOrders()
+  const user = await requireCapability("payments.view")
+  const orders = await getOrders(user.storeId)
 
   const approved = orders.filter((o) => o.paymentStatus === "approved")
   const pending = orders.filter((o) => o.paymentStatus === "pending")

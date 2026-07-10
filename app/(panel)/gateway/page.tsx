@@ -7,59 +7,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { SecretRow } from "@/components/settings/secret-row"
 import { GatewayForm } from "@/components/settings/gateway-form"
 import { getSettings } from "@/app/actions/settings"
-import { veopagConfig, maskSecret } from "@/lib/integrations"
+import { getAppBaseUrl } from "@/lib/urls"
 
 export default async function GatewayPage() {
-  await requireCapability("gateway.manage")
-  const saved = await getSettings(["veopag.webhookUrl", "veopag.callbackUrl"])
+  const user = await requireCapability("gateway.manage")
+  const saved = await getSettings(user.storeId, [
+    "veopag.publicKey",
+    "veopag.secretKey",
+  ])
+  const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}`
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <PageHeader
         title="Gateway de Pagamento — VeoPag"
-        description="Configure a integração com a VeoPag para gerar cobranças e receber confirmações automáticas."
+        description="Conecte sua conta VeoPag para gerar cobranças PIX e receber confirmações automáticas."
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Credenciais (variáveis de ambiente)</CardTitle>
+          <CardTitle>Credenciais da VeoPag</CardTitle>
           <CardDescription>
-            As chaves da API são armazenadas exclusivamente como variáveis de
-            ambiente seguras e nunca ficam expostas no código ou no navegador.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <SecretRow
-            label="Public Key"
-            envVar="VEOPAG_PUBLIC_KEY"
-            masked={maskSecret(veopagConfig.publicKey)}
-            configured={Boolean(veopagConfig.publicKey)}
-          />
-          <SecretRow
-            label="Secret Key"
-            envVar="VEOPAG_SECRET_KEY"
-            masked={maskSecret(veopagConfig.secretKey)}
-            configured={Boolean(veopagConfig.secretKey)}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>URLs de integração</CardTitle>
-          <CardDescription>
-            Configure estas URLs no painel da VeoPag.
+            Informe as chaves da sua conta VeoPag e configure o webhook exclusivo
+            da sua loja.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <GatewayForm
             initial={{
-              webhookUrl: saved["veopag.webhookUrl"] ?? "",
-              callbackUrl: saved["veopag.callbackUrl"] ?? "",
+              publicKey: saved["veopag.publicKey"] ?? "",
+              secretKey: saved["veopag.secretKey"] ?? "",
             }}
+            webhookUrl={webhookUrl}
           />
         </CardContent>
       </Card>

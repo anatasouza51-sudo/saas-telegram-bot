@@ -16,6 +16,7 @@ type LogCategory =
   | "system"
 
 export async function logActivity(params: {
+  storeId: string
   action: string
   category: LogCategory
   actor?: { id: string; name: string } | null
@@ -25,6 +26,7 @@ export async function logActivity(params: {
 }) {
   try {
     await db.insert(activityLogs).values({
+      ownerId: params.storeId,
       action: params.action,
       category: params.category,
       actorId: params.actor?.id ?? params.actorId ?? null,

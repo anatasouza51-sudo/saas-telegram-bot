@@ -6,9 +6,10 @@ import {
   stockItems,
   deliveries,
 } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
-import { sendMessage } from "@/lib/telegram"
+import { TelegramClient } from "@/lib/telegram"
+import { settings } from "@/lib/db/schema"
 
 type FulfillResult =
   | { ok: true; delivered: string; orderId: number }
@@ -44,13 +45,14 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
     }
 
     // Claim one available stock item without racing other transactions.
+    // Scoped to the order's store so items never cross tenants.
     const stockRes = await client.query(
       `SELECT id, content FROM stock_items
-       WHERE "productId" = $1 AND status = 'available'
+       WHERE "productId" = $1 AND "ownerId" = $2 AND status = 'available'
        ORDER BY id ASC
        LIMIT 1
        FOR UPDATE SKIP LOCKED`,
-      [order.productId],
+      [order.productId, order.ownerId],
     )
     const item = stockRes.rows[0]
     if (!item) {
@@ -76,9 +78,9 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
 
     // Record the delivery.
     await client.query(
-      `INSERT INTO deliveries ("orderId", "productId", "customerId", "stockItemId", "deliveredContent", status)
-       VALUES ($1, $2, $3, $4, $5, 'delivered')`,
-      [orderId, order.productId, order.customerId, item.id, item.content],
+      `INSERT INTO deliveries ("ownerId", "orderId", "productId", "customerId", "stockItemId", "deliveredContent", status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'delivered')`,
+      [order.ownerId, orderId, order.productId, order.customerId, item.id, item.content],
     )
 
     // Update customer aggregates.
@@ -95,10 +97,12 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
 
     await client.query("COMMIT")
 
-    // Deliver via Telegram (outside the transaction).
+    // Deliver via Telegram (outside the transaction), using this store's bot.
     await deliverToCustomer(order, item.content)
+    // (order carries ownerId, customerId, productName — used below)
 
     await logActivity({
+      storeId: order.ownerId,
       action: `Pedido #${orderId} entregue automaticamente (item de estoque #${item.id})`,
       category: "delivery",
     })
@@ -116,7 +120,11 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
 }
 
 async function deliverToCustomer(
-  order: { customerId: number | null; productName: string | null },
+  order: {
+    ownerId: string
+    customerId: number | null
+    productName: string | null
+  },
   content: string,
 ) {
   if (!order.customerId) return
@@ -125,6 +133,19 @@ async function deliverToCustomer(
     .from(customers)
     .where(eq(customers.id, order.customerId))
   if (!customer?.telegramId) return
+
+  // Load this store's bot token.
+  const [tokenRow] = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(
+      and(
+        eq(settings.ownerId, order.ownerId),
+        eq(settings.key, "telegram.botToken"),
+      ),
+    )
+  const token = tokenRow?.value
+  if (!token) return
 
   const message = [
     `<b>✅ Pagamento aprovado!</b>`,
@@ -136,5 +157,6 @@ async function deliverToCustomer(
     `Obrigado pela compra! Use /suporte se precisar de ajuda.`,
   ].join("\n")
 
-  await sendMessage(customer.telegramId, message)
+  const client = new TelegramClient(token)
+  await client.sendMessage(customer.telegramId, message)
 }

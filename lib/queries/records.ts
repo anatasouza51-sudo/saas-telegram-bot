@@ -1,7 +1,7 @@
 import "server-only"
 import { db } from "@/lib/db"
 import { orders, customers, deliveries, products } from "@/lib/db/schema"
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 
 export type OrderRow = {
   id: number
@@ -17,7 +17,7 @@ export type OrderRow = {
   customerTelegramId: string | null
 }
 
-export async function getOrders(): Promise<OrderRow[]> {
+export async function getOrders(storeId: string): Promise<OrderRow[]> {
   const rows = await db
     .select({
       id: orders.id,
@@ -34,14 +34,19 @@ export async function getOrders(): Promise<OrderRow[]> {
     })
     .from(orders)
     .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(eq(orders.ownerId, storeId))
     .orderBy(desc(orders.createdAt))
   return rows
 }
 
 export type CustomerRow = typeof customers.$inferSelect
 
-export async function getCustomers(): Promise<CustomerRow[]> {
-  return db.select().from(customers).orderBy(desc(customers.createdAt))
+export async function getCustomers(storeId: string): Promise<CustomerRow[]> {
+  return db
+    .select()
+    .from(customers)
+    .where(eq(customers.ownerId, storeId))
+    .orderBy(desc(customers.createdAt))
 }
 
 export type DeliveryRow = {
@@ -55,7 +60,7 @@ export type DeliveryRow = {
   customerTelegramId: string | null
 }
 
-export async function getDeliveries(): Promise<DeliveryRow[]> {
+export async function getDeliveries(storeId: string): Promise<DeliveryRow[]> {
   const rows = await db
     .select({
       id: deliveries.id,
@@ -70,6 +75,19 @@ export async function getDeliveries(): Promise<DeliveryRow[]> {
     .from(deliveries)
     .leftJoin(products, eq(deliveries.productId, products.id))
     .leftJoin(customers, eq(deliveries.customerId, customers.id))
+    .where(eq(deliveries.ownerId, storeId))
     .orderBy(desc(deliveries.createdAt))
   return rows
+}
+
+export type LogRow = typeof import("@/lib/db/schema").activityLogs.$inferSelect
+
+export async function getLogs(storeId: string, limit = 200) {
+  const { activityLogs } = await import("@/lib/db/schema")
+  return db
+    .select()
+    .from(activityLogs)
+    .where(eq(activityLogs.ownerId, storeId))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit)
 }

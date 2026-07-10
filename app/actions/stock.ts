@@ -8,7 +8,7 @@ import { and, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export async function listStockSummary() {
-  await requireCapability("stock.manage")
+  const { storeId } = await requireCapability("stock.manage")
   const rows = await db
     .select({
       productId: products.id,
@@ -21,14 +21,18 @@ export async function listStockSummary() {
     })
     .from(products)
     .leftJoin(stockItems, eq(stockItems.productId, products.id))
+    .where(eq(products.ownerId, storeId))
     .groupBy(products.id)
     .orderBy(desc(products.createdAt))
   return rows
 }
 
 export async function listStockItems(productId: number, status?: string) {
-  await requireCapability("stock.manage")
-  const conditions = [eq(stockItems.productId, productId)]
+  const { storeId } = await requireCapability("stock.manage")
+  const conditions = [
+    eq(stockItems.productId, productId),
+    eq(stockItems.ownerId, storeId),
+  ]
   if (status && status !== "all") {
     conditions.push(eq(stockItems.status, status))
   }
@@ -39,8 +43,17 @@ export async function listStockItems(productId: number, status?: string) {
     .orderBy(desc(stockItems.createdAt))
 }
 
+async function assertOwnsProduct(productId: number, storeId: string) {
+  const [product] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(and(eq(products.id, productId), eq(products.ownerId, storeId)))
+  if (!product) throw new Error("Produto não encontrado")
+}
+
 export async function addStockItems(productId: number, raw: string) {
   const user = await requireCapability("stock.manage")
+  await assertOwnsProduct(productId, user.storeId)
   const lines = raw
     .split("\n")
     .map((l) => l.trim())
@@ -50,6 +63,7 @@ export async function addStockItems(productId: number, raw: string) {
 
   await db.insert(stockItems).values(
     lines.map((content) => ({
+      ownerId: user.storeId,
       productId,
       content,
       status: "available" as const,
@@ -57,6 +71,7 @@ export async function addStockItems(productId: number, raw: string) {
   )
 
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Adicionou ${lines.length} item(ns) de estoque ao produto #${productId}`,
     category: "stock",
@@ -67,12 +82,19 @@ export async function addStockItems(productId: number, raw: string) {
 
 export async function deleteStockItem(id: number) {
   const user = await requireCapability("stock.manage")
-  const [item] = await db.select().from(stockItems).where(eq(stockItems.id, id))
-  if (item?.status === "sold") {
+  const [item] = await db
+    .select()
+    .from(stockItems)
+    .where(and(eq(stockItems.id, id), eq(stockItems.ownerId, user.storeId)))
+  if (!item) throw new Error("Item não encontrado")
+  if (item.status === "sold") {
     throw new Error("Não é possível remover um item já vendido")
   }
-  await db.delete(stockItems).where(eq(stockItems.id, id))
+  await db
+    .delete(stockItems)
+    .where(and(eq(stockItems.id, id), eq(stockItems.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Removeu o item de estoque #${id}`,
     category: "stock",
@@ -85,9 +107,14 @@ export async function clearAvailableStock(productId: number) {
   await db
     .delete(stockItems)
     .where(
-      and(eq(stockItems.productId, productId), eq(stockItems.status, "available")),
+      and(
+        eq(stockItems.productId, productId),
+        eq(stockItems.ownerId, user.storeId),
+        eq(stockItems.status, "available"),
+      ),
     )
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Limpou o estoque disponível do produto #${productId}`,
     category: "stock",
@@ -96,10 +123,16 @@ export async function clearAvailableStock(productId: number) {
 }
 
 export async function exportStock(productId: number, status = "available") {
-  await requireCapability("stock.manage")
+  const { storeId } = await requireCapability("stock.manage")
   const items = await db
     .select({ content: stockItems.content })
     .from(stockItems)
-    .where(and(eq(stockItems.productId, productId), eq(stockItems.status, status)))
+    .where(
+      and(
+        eq(stockItems.productId, productId),
+        eq(stockItems.ownerId, storeId),
+        eq(stockItems.status, status),
+      ),
+    )
   return items.map((i) => i.content).join("\n")
 }

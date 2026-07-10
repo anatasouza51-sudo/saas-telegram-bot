@@ -5,8 +5,16 @@ import { orders } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { fulfillOrder } from "@/lib/fulfillment"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+
+async function requireOwnedOrder(orderId: number, storeId: string) {
+  const [order] = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, storeId)))
+  if (!order) throw new Error("Pedido não encontrado")
+}
 
 /**
  * Manually approve + deliver an order from the admin panel. Uses the same
@@ -14,11 +22,13 @@ import { revalidatePath } from "next/cache"
  */
 export async function approveAndDeliver(orderId: number) {
   const user = await requireCapability("orders.manage")
+  await requireOwnedOrder(orderId, user.storeId)
   const result = await fulfillOrder(orderId)
   if (!result.ok) {
     throw new Error(result.reason)
   }
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Aprovou e entregou manualmente o pedido #${orderId}`,
     category: "order",
@@ -31,11 +41,13 @@ export async function approveAndDeliver(orderId: number) {
 
 export async function refuseOrder(orderId: number) {
   const user = await requireCapability("orders.manage")
+  await requireOwnedOrder(orderId, user.storeId)
   await db
     .update(orders)
     .set({ paymentStatus: "refused", updatedAt: new Date() })
-    .where(eq(orders.id, orderId))
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Recusou o pagamento do pedido #${orderId}`,
     category: "order",
@@ -46,11 +58,17 @@ export async function refuseOrder(orderId: number) {
 
 export async function cancelOrder(orderId: number) {
   const user = await requireCapability("orders.manage")
+  await requireOwnedOrder(orderId, user.storeId)
   await db
     .update(orders)
-    .set({ paymentStatus: "cancelled", deliveryStatus: "cancelled", updatedAt: new Date() })
-    .where(eq(orders.id, orderId))
+    .set({
+      paymentStatus: "cancelled",
+      deliveryStatus: "cancelled",
+      updatedAt: new Date(),
+    })
+    .where(and(eq(orders.id, orderId), eq(orders.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Cancelou o pedido #${orderId}`,
     category: "order",

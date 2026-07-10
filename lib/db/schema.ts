@@ -19,6 +19,9 @@ export const user = pgTable("user", {
   image: text("image"),
   // Application role: admin | products | finance | support
   role: text("role").notNull().default("support"),
+  // Store owner. NULL means this user IS the store owner (self-owned tenant).
+  // Team members inherit their owner's id here.
+  ownerId: text("ownerId"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
@@ -68,6 +71,7 @@ export const verification = pgTable("verification", {
  * ------------------------------------------------------------------------- */
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   description: text("description"),
@@ -76,6 +80,7 @@ export const categories = pgTable("categories", {
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   categoryId: integer("categoryId"),
@@ -92,6 +97,7 @@ export const products = pgTable("products", {
 
 export const stockItems = pgTable("stock_items", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   productId: integer("productId").notNull(),
   content: text("content").notNull(),
   // available | reserved | sold
@@ -103,7 +109,8 @@ export const stockItems = pgTable("stock_items", {
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
-  telegramId: text("telegramId").notNull().unique(),
+  ownerId: text("ownerId").notNull(),
+  telegramId: text("telegramId").notNull(),
   username: text("username"),
   name: text("name"),
   totalSpent: numeric("totalSpent", { precision: 12, scale: 2 })
@@ -117,6 +124,7 @@ export const customers = pgTable("customers", {
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   customerId: integer("customerId"),
   productId: integer("productId"),
   productName: text("productName"),
@@ -133,6 +141,7 @@ export const orders = pgTable("orders", {
 
 export const deliveries = pgTable("deliveries", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   orderId: integer("orderId").notNull(),
   productId: integer("productId"),
   customerId: integer("customerId"),
@@ -143,13 +152,16 @@ export const deliveries = pgTable("deliveries", {
 })
 
 export const settings = pgTable("settings", {
-  key: text("key").primaryKey(),
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  key: text("key").notNull(),
   value: text("value"),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
 
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
   actorId: text("actorId"),
   actorName: text("actorName"),
   action: text("action").notNull(),
