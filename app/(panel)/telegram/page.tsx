@@ -38,12 +38,6 @@ export default async function TelegramPage() {
             masked={maskSecret(telegramConfig.botToken)}
             configured={telegramConfig.isConfigured}
           />
-          <SecretRow
-            label="Segredo do Webhook"
-            envVar="TELEGRAM_WEBHOOK_SECRET"
-            masked={maskSecret(telegramConfig.webhookSecret)}
-            configured={Boolean(telegramConfig.webhookSecret)}
-          />
         </CardContent>
       </Card>
 

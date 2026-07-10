@@ -9,23 +9,20 @@ export const telegramConfig = {
   get botToken() {
     return process.env.TELEGRAM_BOT_TOKEN ?? ""
   },
-  get webhookSecret() {
-    return process.env.TELEGRAM_WEBHOOK_SECRET ?? ""
-  },
   get isConfigured() {
     return Boolean(process.env.TELEGRAM_BOT_TOKEN)
   },
 }
 
 export const veopagConfig = {
-  get apiKey() {
-    return process.env.VEOPAG_API_KEY ?? ""
+  get publicKey() {
+    return process.env.VEOPAG_PUBLIC_KEY ?? ""
   },
   get secretKey() {
     return process.env.VEOPAG_SECRET_KEY ?? ""
   },
   get isConfigured() {
-    return Boolean(process.env.VEOPAG_API_KEY && process.env.VEOPAG_SECRET_KEY)
+    return Boolean(process.env.VEOPAG_PUBLIC_KEY && process.env.VEOPAG_SECRET_KEY)
   },
 }
 
