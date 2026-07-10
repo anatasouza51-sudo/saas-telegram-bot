@@ -1,44 +1,64 @@
 import { db } from "@/lib/db"
-import {
-  products,
-  customers,
-  orders,
-  deliveries,
-} from "@/lib/db/schema"
+import { products, customers, orders, deliveries, settings } from "@/lib/db/schema"
 import { and, desc, eq, sql } from "drizzle-orm"
 import {
-  sendMessage,
-  sendPhoto,
-  answerCallbackQuery,
+  TelegramClient,
   buildInlineKeyboard,
   type TelegramUpdate,
 } from "@/lib/telegram"
-import { getSetting } from "@/app/actions/settings"
-import { createCharge } from "@/lib/veopag"
+import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import { formatCurrency } from "@/lib/format"
 
-async function getAdminIds(): Promise<string[]> {
-  const raw = (await getSetting("telegram.adminIds")) ?? ""
-  return raw
+// Everything the router needs for one store, loaded once per update.
+type StoreContext = {
+  storeId: string
+  tg: TelegramClient
+  adminIds: string[]
+  veopag: VeoPagCredentials
+}
+
+async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
+  const rows = await db
+    .select({ key: settings.key, value: settings.value })
+    .from(settings)
+    .where(eq(settings.ownerId, storeId))
+
+  const map: Record<string, string> = {}
+  for (const r of rows) map[r.key] = r.value ?? ""
+
+  const token = map["telegram.botToken"]
+  if (!token) return null
+
+  const adminIds = (map["telegram.adminIds"] ?? "")
     .split(/[,\n]/)
     .map((s) => s.trim())
     .filter(Boolean)
+
+  return {
+    storeId,
+    tg: new TelegramClient(token),
+    adminIds,
+    veopag: {
+      publicKey: map["veopag.publicKey"] ?? "",
+      secretKey: map["veopag.secretKey"] ?? "",
+    },
+  }
 }
 
-async function upsertCustomer(from: {
-  id: number
-  username?: string
-  first_name?: string
-}) {
+async function upsertCustomer(
+  storeId: string,
+  from: { id: number; username?: string; first_name?: string },
+) {
   const telegramId = String(from.id)
   const [existing] = await db
     .select()
     .from(customers)
-    .where(eq(customers.telegramId, telegramId))
+    .where(and(eq(customers.ownerId, storeId), eq(customers.telegramId, telegramId)))
   if (existing) return existing
   const [created] = await db
     .insert(customers)
     .values({
+      ownerId: storeId,
       telegramId,
       username: from.username ?? null,
       name: from.first_name ?? null,
@@ -50,19 +70,19 @@ async function upsertCustomer(from: {
 
 // ---------- Customer bot ----------
 
-async function showCatalog(chatId: number) {
+async function showCatalog(ctx: StoreContext, chatId: number) {
   const items = await db
     .select()
     .from(products)
-    .where(eq(products.status, "active"))
+    .where(and(eq(products.ownerId, ctx.storeId), eq(products.status, "active")))
     .orderBy(desc(products.createdAt))
 
   if (items.length === 0) {
-    await sendMessage(chatId, "Nenhum produto disponível no momento.")
+    await ctx.tg.sendMessage(chatId, "Nenhum produto disponível no momento.")
     return
   }
 
-  await sendMessage(chatId, "<b>🛒 Catálogo</b>\nEscolha um produto:", {
+  await ctx.tg.sendMessage(chatId, "<b>🛒 Catálogo</b>\nEscolha um produto:", {
     replyMarkup: buildInlineKeyboard(
       items.map((p) => [
         {
@@ -74,20 +94,22 @@ async function showCatalog(chatId: number) {
   })
 }
 
-async function showProduct(chatId: number, productId: number) {
+async function showProduct(ctx: StoreContext, chatId: number, productId: number) {
   const [product] = await db
     .select()
     .from(products)
-    .where(eq(products.id, productId))
+    .where(and(eq(products.ownerId, ctx.storeId), eq(products.id, productId)))
   if (!product) {
-    await sendMessage(chatId, "Produto não encontrado.")
+    await ctx.tg.sendMessage(chatId, "Produto não encontrado.")
     return
   }
 
   const available = await db
     .select({ count: sql<number>`COUNT(*)::int` })
     .from(sql`stock_items`)
-    .where(sql`"productId" = ${productId} AND status = 'available'`)
+    .where(
+      sql`"productId" = ${productId} AND "ownerId" = ${ctx.storeId} AND status = 'available'`,
+    )
 
   const inStock = Number(available[0]?.count ?? 0) > 0
   const caption = [
@@ -106,13 +128,14 @@ async function showProduct(chatId: number, productId: number) {
   )
 
   if (product.imageUrl) {
-    await sendPhoto(chatId, product.imageUrl, caption, keyboard)
+    await ctx.tg.sendPhoto(chatId, product.imageUrl, caption, keyboard)
   } else {
-    await sendMessage(chatId, caption, { replyMarkup: keyboard })
+    await ctx.tg.sendMessage(chatId, caption, { replyMarkup: keyboard })
   }
 }
 
 async function startPurchase(
+  ctx: StoreContext,
   chatId: number,
   productId: number,
   from: { id: number; username?: string; first_name?: string },
@@ -120,14 +143,15 @@ async function startPurchase(
   const [product] = await db
     .select()
     .from(products)
-    .where(eq(products.id, productId))
+    .where(and(eq(products.ownerId, ctx.storeId), eq(products.id, productId)))
   if (!product) return
 
-  const customer = await upsertCustomer(from)
+  const customer = await upsertCustomer(ctx.storeId, from)
 
   const [order] = await db
     .insert(orders)
     .values({
+      ownerId: ctx.storeId,
       customerId: customer.id,
       productId: product.id,
       productName: product.name,
@@ -138,7 +162,7 @@ async function startPurchase(
     })
     .returning()
 
-  const charge = await createCharge({
+  const charge = await createCharge(ctx.veopag, {
     amount: Number(product.price),
     externalId: String(order.id),
     description: product.name,
@@ -146,7 +170,7 @@ async function startPurchase(
   })
 
   if (!charge.ok) {
-    await sendMessage(
+    await ctx.tg.sendMessage(
       chatId,
       `⚠️ Não foi possível gerar o pagamento agora.\n<code>${charge.error}</code>\n\nO pedido #${order.id} ficou pendente.`,
     )
@@ -156,7 +180,7 @@ async function startPurchase(
   await db
     .update(orders)
     .set({ paymentId: charge.paymentId })
-    .where(eq(orders.id, order.id))
+    .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
 
   const lines = [
     `<b>Pedido #${order.id}</b> criado!`,
@@ -173,27 +197,27 @@ async function startPurchase(
     ? buildInlineKeyboard([[{ text: "💳 Abrir checkout", url: charge.checkoutUrl }]])
     : undefined
 
-  await sendMessage(chatId, lines.join("\n"), { replyMarkup: keyboard })
+  await ctx.tg.sendMessage(chatId, lines.join("\n"), { replyMarkup: keyboard })
 }
 
-async function showHistory(chatId: number, telegramId: string) {
+async function showHistory(ctx: StoreContext, chatId: number, telegramId: string) {
   const [customer] = await db
     .select()
     .from(customers)
-    .where(eq(customers.telegramId, telegramId))
+    .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.telegramId, telegramId)))
   if (!customer) {
-    await sendMessage(chatId, "Você ainda não tem compras.")
+    await ctx.tg.sendMessage(chatId, "Você ainda não tem compras.")
     return
   }
   const rows = await db
     .select()
     .from(orders)
-    .where(eq(orders.customerId, customer.id))
+    .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.customerId, customer.id)))
     .orderBy(desc(orders.createdAt))
     .limit(10)
 
   if (rows.length === 0) {
-    await sendMessage(chatId, "Você ainda não tem compras.")
+    await ctx.tg.sendMessage(chatId, "Você ainda não tem compras.")
     return
   }
 
@@ -207,12 +231,13 @@ async function showHistory(chatId: number, telegramId: string) {
         }`,
     ),
   ].join("\n")
-  await sendMessage(chatId, text)
+  await ctx.tg.sendMessage(chatId, text)
 }
 
 // ---------- Admin bot ----------
 
-async function handleAdminCommand(chatId: number, command: string) {
+async function handleAdminCommand(ctx: StoreContext, chatId: number, command: string) {
+  const store = eq(orders.ownerId, ctx.storeId)
   switch (command) {
     case "/dashboard": {
       const [rev] = await db
@@ -222,7 +247,8 @@ async function handleAdminCommand(chatId: number, command: string) {
           pending: sql<number>`COUNT(*) FILTER (WHERE ${orders.paymentStatus} = 'pending')::int`,
         })
         .from(orders)
-      await sendMessage(
+        .where(store)
+      await ctx.tg.sendMessage(
         chatId,
         [
           `<b>📊 Dashboard</b>`,
@@ -234,37 +260,59 @@ async function handleAdminCommand(chatId: number, command: string) {
       break
     }
     case "/products": {
-      const rows = await db.select().from(products).orderBy(desc(products.createdAt)).limit(15)
-      await sendMessage(
+      const rows = await db
+        .select()
+        .from(products)
+        .where(eq(products.ownerId, ctx.storeId))
+        .orderBy(desc(products.createdAt))
+        .limit(15)
+      await ctx.tg.sendMessage(
         chatId,
-        [`<b>📦 Produtos</b>`, ...rows.map((p) => `#${p.id} ${p.name} — ${formatCurrency(Number(p.price))} (${p.status})`)].join("\n"),
+        [
+          `<b>📦 Produtos</b>`,
+          ...rows.map(
+            (p) => `#${p.id} ${p.name} — ${formatCurrency(Number(p.price))} (${p.status})`,
+          ),
+        ].join("\n"),
       )
       break
     }
     case "/orders": {
-      const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(10)
-      await sendMessage(
+      const rows = await db
+        .select()
+        .from(orders)
+        .where(store)
+        .orderBy(desc(orders.createdAt))
+        .limit(10)
+      await ctx.tg.sendMessage(
         chatId,
-        [`<b>🧾 Últimos pedidos</b>`, ...rows.map((o) => `#${o.id} ${o.productName} — ${o.paymentStatus}/${o.deliveryStatus}`)].join("\n"),
+        [
+          `<b>🧾 Últimos pedidos</b>`,
+          ...rows.map(
+            (o) => `#${o.id} ${o.productName} — ${o.paymentStatus}/${o.deliveryStatus}`,
+          ),
+        ].join("\n"),
       )
       break
     }
     case "/customers": {
-      const [c] = await db.select({ count: sql<number>`COUNT(*)::int` }).from(customers)
-      await sendMessage(chatId, `👥 Total de clientes: <b>${c.count}</b>`)
+      const [c] = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(customers)
+        .where(eq(customers.ownerId, ctx.storeId))
+      await ctx.tg.sendMessage(chatId, `👥 Total de clientes: <b>${c.count}</b>`)
       break
     }
     case "/statistics": {
       const [d] = await db
-        .select({
-          delivered: sql<number>`COUNT(*)::int`,
-        })
+        .select({ delivered: sql<number>`COUNT(*)::int` })
         .from(deliveries)
-      await sendMessage(chatId, `📈 Entregas realizadas: <b>${d.delivered}</b>`)
+        .where(eq(deliveries.ownerId, ctx.storeId))
+      await ctx.tg.sendMessage(chatId, `📈 Entregas realizadas: <b>${d.delivered}</b>`)
       break
     }
     default:
-      await sendMessage(
+      await ctx.tg.sendMessage(
         chatId,
         [
           `<b>Painel Admin</b>`,
@@ -280,21 +328,25 @@ async function handleAdminCommand(chatId: number, command: string) {
 
 // ---------- Router ----------
 
-export async function handleUpdate(update: TelegramUpdate) {
-  const adminIds = await getAdminIds()
+export async function handleUpdate(storeId: string, update: TelegramUpdate) {
+  const ctx = await loadStoreContext(storeId)
+  if (!ctx) {
+    // Store has no bot token configured; nothing we can send.
+    return
+  }
 
   if (update.callback_query) {
     const cq = update.callback_query
     const chatId = cq.message?.chat.id
     const data = cq.data ?? ""
-    await answerCallbackQuery(cq.id)
+    await ctx.tg.answerCallbackQuery(cq.id)
     if (!chatId) return
 
-    if (data === "catalog") await showCatalog(chatId)
+    if (data === "catalog") await showCatalog(ctx, chatId)
     else if (data.startsWith("product:"))
-      await showProduct(chatId, Number(data.split(":")[1]))
+      await showProduct(ctx, chatId, Number(data.split(":")[1]))
     else if (data.startsWith("buy:"))
-      await startPurchase(chatId, Number(data.split(":")[1]), cq.from)
+      await startPurchase(ctx, chatId, Number(data.split(":")[1]), cq.from)
     return
   }
 
@@ -303,41 +355,34 @@ export async function handleUpdate(update: TelegramUpdate) {
   const chatId = msg.chat.id
   const text = msg.text.trim()
   const senderId = String(msg.from.id)
-  const isAdmin = adminIds.includes(senderId)
+  const isAdmin = ctx.adminIds.includes(senderId)
 
   // Admin commands (only for authorized IDs).
   if (isAdmin && text.startsWith("/") && text !== "/start") {
-    await handleAdminCommand(chatId, text.split(" ")[0])
+    await handleAdminCommand(ctx, chatId, text.split(" ")[0])
     return
   }
 
   // Customer flows.
   if (text === "/start") {
-    await upsertCustomer(msg.from)
-    await sendMessage(
+    await upsertCustomer(ctx.storeId, msg.from)
+    await ctx.tg.sendMessage(
       chatId,
-      [
-        `👋 Bem-vindo(a) à nossa loja!`,
-        ``,
-        `Use os botões abaixo para navegar.`,
-      ].join("\n"),
-      {
-        replyMarkup: buildInlineKeyboard([
-          [{ text: "🛒 Ver catálogo", callback_data: "catalog" }],
-        ]),
-      },
+      [`👋 Bem-vindo(a) à nossa loja!`, ``, `Confira nossos produtos abaixo:`].join("\n"),
     )
+    // Show the catalog immediately so the first screen is actionable.
+    await showCatalog(ctx, chatId)
   } else if (text === "/catalogo" || text.toLowerCase() === "catálogo") {
-    await showCatalog(chatId)
+    await showCatalog(ctx, chatId)
   } else if (text === "/historico" || text === "/compras") {
-    await showHistory(chatId, senderId)
+    await showHistory(ctx, chatId, senderId)
   } else if (text === "/suporte") {
-    await sendMessage(
+    await ctx.tg.sendMessage(
       chatId,
-      "💬 Descreva sua dúvida e nossa equipe entrará em contato. Você também pode falar diretamente com o suporte.",
+      "💬 Descreva sua dúvida e nossa equipe entrará em contato.",
     )
   } else {
-    await sendMessage(
+    await ctx.tg.sendMessage(
       chatId,
       [
         `Comandos disponíveis:`,

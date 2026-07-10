@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { settings } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { TelegramClient } from "@/lib/telegram"
+import { getAppBaseUrl } from "@/lib/urls"
 import { and, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -79,5 +81,31 @@ export async function saveGatewaySettings(input: {
     actor: user,
   })
   revalidatePath("/gateway")
+  return { ok: true }
+}
+
+// Registers this store's webhook URL with the Telegram Bot API using the
+// store's saved token, so the bot starts receiving updates.
+export async function registerTelegramWebhook(): Promise<{
+  ok: boolean
+  error?: string
+}> {
+  const user = await requireCapability("telegram.manage")
+  const token = await getSetting(user.storeId, "telegram.botToken")
+  if (!token) {
+    return { ok: false, error: "Configure o token do bot antes de conectar." }
+  }
+  const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+  const client = new TelegramClient(token)
+  const res = await client.setWebhook(url)
+  if (!res.ok) {
+    return { ok: false, error: res.description ?? "Falha ao registrar webhook" }
+  }
+  await logActivity({
+    storeId: user.storeId,
+    action: "Webhook do Telegram registrado",
+    category: "settings",
+    actor: user,
+  })
   return { ok: true }
 }
