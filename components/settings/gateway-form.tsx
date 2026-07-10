@@ -40,25 +40,26 @@ export function GatewayForm({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="veo-public">Public Key</Label>
+        <Label htmlFor="veo-public">Client ID</Label>
         <Input
           id="veo-public"
-          placeholder="pk_..."
+          placeholder="minhaloja_ABCD1234"
           value={publicKey}
           onChange={(e) => setPublicKey(e.target.value)}
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="veo-secret">Secret Key</Label>
+        <Label htmlFor="veo-secret">Client Secret</Label>
         <Input
           id="veo-secret"
           type="password"
-          placeholder="sk_..."
+          placeholder="seu client_secret da VeoPag"
           value={secretKey}
           onChange={(e) => setSecretKey(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Chaves fornecidas pela VeoPag. Cada loja usa a sua própria conta.
+          Gere o <strong>client_id</strong> e o <strong>client_secret</strong> em
+          dashboard.veopag.com/credentials. Cada loja usa a sua própria conta.
         </p>
       </div>
 

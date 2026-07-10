@@ -84,6 +84,23 @@ export async function saveGatewaySettings(input: {
   return { ok: true }
 }
 
+export async function saveStoreCustomization(input: {
+  welcomeMessage: string
+  welcomeImageUrl: string
+}) {
+  const user = await requireCapability("telegram.manage")
+  await saveSetting(user.storeId, "store.welcomeMessage", input.welcomeMessage)
+  await saveSetting(user.storeId, "store.welcomeImageUrl", input.welcomeImageUrl)
+  await logActivity({
+    storeId: user.storeId,
+    action: "Personalização da loja atualizada",
+    category: "settings",
+    actor: user,
+  })
+  revalidatePath("/telegram")
+  return { ok: true }
+}
+
 // Registers this store's webhook URL with the Telegram Bot API using the
 // store's saved token, so the bot starts receiving updates.
 export async function registerTelegramWebhook(): Promise<{
