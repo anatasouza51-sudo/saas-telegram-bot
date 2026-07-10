@@ -2,7 +2,12 @@ import { NextResponse } from "next/server"
 import type { TelegramUpdate } from "@/lib/telegram"
 import { handleUpdate } from "@/lib/bot"
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ storeId: string }> },
+) {
+  const { storeId } = await params
+
   let update: TelegramUpdate
   try {
     update = (await req.json()) as TelegramUpdate
@@ -11,7 +16,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    await handleUpdate(update)
+    await handleUpdate(storeId, update)
   } catch (err) {
     console.log("[v0] telegram webhook error:", err)
   }
