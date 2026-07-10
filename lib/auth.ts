@@ -16,6 +16,12 @@ const trustedOrigins = [
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : undefined,
   process.env.NODE_ENV === "development" ? "http://localhost:3000" : undefined,
+  // Wildcards cover v0 preview and Vercel preview/production domains, which
+  // change per deployment and would otherwise trigger "Invalid origin".
+  "https://*.vercel.app",
+  "https://*.vusercontent.net",
+  "https://*.v0.dev",
+  "https://*.v0.app",
 ].filter(Boolean) as string[]
 
 export const auth = betterAuth({
