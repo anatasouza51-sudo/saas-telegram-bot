@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { TelegramForm } from "@/components/settings/telegram-form"
+import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
 import { getSettings } from "@/app/actions/settings"
 import { getAppBaseUrl } from "@/lib/urls"
 
@@ -16,6 +17,8 @@ export default async function TelegramPage() {
   const saved = await getSettings(user.storeId, [
     "telegram.botToken",
     "telegram.adminIds",
+    "store.welcomeMessage",
+    "store.welcomeImageUrl",
   ])
   const webhookUrl = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
   const botConfigured = Boolean(saved["telegram.botToken"])
@@ -43,6 +46,24 @@ export default async function TelegramPage() {
             }}
             webhookUrl={webhookUrl}
             botConfigured={botConfigured}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Personalização da loja</CardTitle>
+          <CardDescription>
+            Edite a mensagem de &quot;bem-vindo à loja&quot; e adicione uma
+            imagem que o cliente vê ao iniciar o bot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StoreCustomizationForm
+            initial={{
+              welcomeMessage: saved["store.welcomeMessage"] ?? "",
+              welcomeImageUrl: saved["store.welcomeImageUrl"] ?? "",
+            }}
           />
         </CardContent>
       </Card>

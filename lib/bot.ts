@@ -8,6 +8,7 @@ import {
 } from "@/lib/telegram"
 import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import { formatCurrency } from "@/lib/format"
+import { getAppBaseUrl } from "@/lib/urls"
 
 // Everything the router needs for one store, loaded once per update.
 type StoreContext = {
@@ -15,6 +16,8 @@ type StoreContext = {
   tg: TelegramClient
   adminIds: string[]
   veopag: VeoPagCredentials
+  welcomeMessage: string
+  welcomeImageUrl: string
 }
 
 async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
@@ -42,6 +45,8 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
       publicKey: map["veopag.publicKey"] ?? "",
       secretKey: map["veopag.secretKey"] ?? "",
     },
+    welcomeMessage: map["store.welcomeMessage"] ?? "",
+    welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",
   }
 }
 
@@ -167,6 +172,10 @@ async function startPurchase(
     externalId: String(order.id),
     description: product.name,
     customerName: customer.name ?? undefined,
+    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}`,
+    payer: {
+      name: customer.name ?? customer.username ?? "Cliente",
+    },
   })
 
   if (!charge.ok) {
@@ -366,10 +375,19 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   // Customer flows.
   if (text === "/start") {
     await upsertCustomer(ctx.storeId, msg.from)
-    await ctx.tg.sendMessage(
-      chatId,
-      [`👋 Bem-vindo(a) à nossa loja!`, ``, `Confira nossos produtos abaixo:`].join("\n"),
-    )
+    const firstName = msg.from.first_name ?? "cliente"
+    // Store owners can customize this via the panel; {nome} is replaced with
+    // the customer's first name. Falls back to a friendly default.
+    const welcome = (
+      ctx.welcomeMessage.trim() ||
+      "👋 Bem-vindo(a) à nossa loja!\n\nConfira nossos produtos abaixo:"
+    ).replace(/\{nome\}/gi, firstName)
+
+    if (ctx.welcomeImageUrl.trim()) {
+      await ctx.tg.sendPhoto(chatId, ctx.welcomeImageUrl.trim(), welcome)
+    } else {
+      await ctx.tg.sendMessage(chatId, welcome)
+    }
     // Show the catalog immediately so the first screen is actionable.
     await showCatalog(ctx, chatId)
   } else if (text === "/catalogo" || text.toLowerCase() === "catálogo") {
