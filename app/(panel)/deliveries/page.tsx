@@ -4,8 +4,8 @@ import { DeliveriesView } from "@/components/deliveries/deliveries-view"
 import { getDeliveries } from "@/lib/queries/records"
 
 export default async function DeliveriesPage() {
-  await requireCapability("orders.view")
-  const deliveries = await getDeliveries()
+  const user = await requireCapability("orders.view")
+  const deliveries = await getDeliveries(user.storeId)
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">

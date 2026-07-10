@@ -1,8 +1,6 @@
 import { betterAuth } from "better-auth"
 import { Pool } from "pg"
 
-const hookPool = new Pool({ connectionString: process.env.DATABASE_URL })
-
 function getBaseURL() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
@@ -32,7 +30,13 @@ export const auth = betterAuth({
       role: {
         type: "string",
         required: false,
-        defaultValue: "support",
+        defaultValue: "admin",
+        input: false,
+      },
+      ownerId: {
+        type: "string",
+        required: false,
+        defaultValue: null,
         input: false,
       },
     },
@@ -41,13 +45,14 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (userData) => {
-          // The very first registered account becomes the principal admin.
-          const { rows } = await hookPool.query('SELECT COUNT(*)::int AS count FROM "user"')
-          const isFirst = (rows[0]?.count ?? 0) === 0
+          // Every direct signup is the owner (admin) of their own store.
+          // Team members are created server-side with an explicit ownerId/role,
+          // so we only default self-service signups here.
           return {
             data: {
               ...userData,
-              role: isFirst ? "admin" : "support",
+              role: "admin",
+              ownerId: null,
             },
           }
         },

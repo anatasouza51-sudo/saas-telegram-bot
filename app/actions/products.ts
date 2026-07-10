@@ -23,7 +23,7 @@ export async function listProducts(opts?: {
   status?: string
   categoryId?: number
 }) {
-  await requireCapability("products.manage")
+  const { storeId } = await requireCapability("products.manage")
 
   const rows = await db
     .select({
@@ -46,6 +46,7 @@ export async function listProducts(opts?: {
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
+    .where(eq(products.ownerId, storeId))
     .orderBy(desc(products.createdAt))
 
   let filtered = rows
@@ -63,8 +64,11 @@ export async function listProducts(opts?: {
 }
 
 export async function getProduct(id: number) {
-  await requireCapability("products.manage")
-  const [row] = await db.select().from(products).where(eq(products.id, id))
+  const { storeId } = await requireCapability("products.manage")
+  const [row] = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.id, id), eq(products.ownerId, storeId)))
   return row ?? null
 }
 
@@ -73,6 +77,7 @@ export async function createProduct(input: ProductInput) {
   const [row] = await db
     .insert(products)
     .values({
+      ownerId: user.storeId,
       name: input.name,
       description: input.description ?? null,
       categoryId: input.categoryId ?? null,
@@ -84,6 +89,7 @@ export async function createProduct(input: ProductInput) {
     })
     .returning()
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Criou o produto "${input.name}"`,
     category: "product",
@@ -107,8 +113,9 @@ export async function updateProduct(id: number, input: ProductInput) {
       lowStockThreshold: input.lowStockThreshold ?? 5,
       updatedAt: new Date(),
     })
-    .where(eq(products.id, id))
+    .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Atualizou o produto "${input.name}"`,
     category: "product",
@@ -121,8 +128,9 @@ export async function setProductStatus(id: number, status: "active" | "inactive"
   await db
     .update(products)
     .set({ status, updatedAt: new Date() })
-    .where(eq(products.id, id))
+    .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `${status === "active" ? "Ativou" : "Desativou"} o produto #${id}`,
     category: "product",
@@ -132,11 +140,15 @@ export async function setProductStatus(id: number, status: "active" | "inactive"
 
 export async function duplicateProduct(id: number) {
   const user = await requireCapability("products.manage")
-  const [original] = await db.select().from(products).where(eq(products.id, id))
+  const [original] = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
   if (!original) throw new Error("Produto não encontrado")
   const [row] = await db
     .insert(products)
     .values({
+      ownerId: user.storeId,
       name: `${original.name} (cópia)`,
       description: original.description,
       categoryId: original.categoryId,
@@ -148,6 +160,7 @@ export async function duplicateProduct(id: number) {
     })
     .returning()
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Duplicou o produto "${original.name}"`,
     category: "product",
@@ -158,9 +171,16 @@ export async function duplicateProduct(id: number) {
 
 export async function deleteProduct(id: number) {
   const user = await requireCapability("products.manage")
-  await db.delete(stockItems).where(eq(stockItems.productId, id))
-  await db.delete(products).where(eq(products.id, id))
+  await db
+    .delete(stockItems)
+    .where(
+      and(eq(stockItems.productId, id), eq(stockItems.ownerId, user.storeId)),
+    )
+  await db
+    .delete(products)
+    .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Excluiu o produto #${id}`,
     category: "product",
@@ -171,8 +191,12 @@ export async function deleteProduct(id: number) {
 // ---- Categories ----
 
 export async function listCategories() {
-  await requireCapability("products.manage")
-  return db.select().from(categories).orderBy(desc(categories.createdAt))
+  const { storeId } = await requireCapability("products.manage")
+  return db
+    .select()
+    .from(categories)
+    .where(eq(categories.ownerId, storeId))
+    .orderBy(desc(categories.createdAt))
 }
 
 export async function createCategory(name: string, description?: string) {
@@ -185,9 +209,10 @@ export async function createCategory(name: string, description?: string) {
     .replace(/(^-|-$)/g, "")
   const [row] = await db
     .insert(categories)
-    .values({ name, slug, description: description ?? null })
+    .values({ ownerId: user.storeId, name, slug, description: description ?? null })
     .returning()
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Criou a categoria "${name}"`,
     category: "product",
@@ -201,9 +226,12 @@ export async function deleteCategory(id: number) {
   await db
     .update(products)
     .set({ categoryId: null })
-    .where(eq(products.categoryId, id))
-  await db.delete(categories).where(eq(categories.id, id))
+    .where(and(eq(products.categoryId, id), eq(products.ownerId, user.storeId)))
+  await db
+    .delete(categories)
+    .where(and(eq(categories.id, id), eq(categories.ownerId, user.storeId)))
   await logActivity({
+    storeId: user.storeId,
     actor: user,
     action: `Excluiu a categoria #${id}`,
     category: "product",

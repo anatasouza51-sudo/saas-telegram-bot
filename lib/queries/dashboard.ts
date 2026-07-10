@@ -16,7 +16,9 @@ export type DashboardStats = {
   conversionRate: number
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(
+  storeId: string,
+): Promise<DashboardStats> {
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 
@@ -33,16 +35,21 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     db
       .select({ total: sql<number>`coalesce(sum(${orders.amount}), 0)::float` })
       .from(orders)
-      .where(eq(orders.paymentStatus, "approved")),
+      .where(
+        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
-      .where(eq(orders.paymentStatus, "approved")),
+      .where(
+        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
       .where(
         and(
+          eq(orders.ownerId, storeId),
           eq(orders.paymentStatus, "approved"),
           gte(orders.createdAt, startOfToday),
         ),
@@ -50,17 +57,29 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
-      .where(eq(orders.paymentStatus, "pending")),
+      .where(
+        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "pending")),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
-      .where(eq(orders.paymentStatus, "approved")),
+      .where(
+        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
-      .where(eq(orders.paymentStatus, "refused")),
-    db.select({ count: sql<number>`count(*)::int` }).from(customers),
-    db.select({ count: sql<number>`count(*)::int` }).from(products),
+      .where(
+        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "refused")),
+      ),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(customers)
+      .where(eq(customers.ownerId, storeId)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(products)
+      .where(eq(products.ownerId, storeId)),
   ])
 
   // Low stock: products with fewer available stock items than their threshold
@@ -72,7 +91,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     })
     .from(products)
     .leftJoin(stockItems, eq(stockItems.productId, products.id))
-    .where(and(eq(products.status, "active"), eq(products.deliveryType, "stock")))
+    .where(
+      and(
+        eq(products.ownerId, storeId),
+        eq(products.status, "active"),
+        eq(products.deliveryType, "stock"),
+      ),
+    )
     .groupBy(products.id, products.lowStockThreshold)
 
   const lowStockCount = lowStock.filter(
@@ -100,7 +125,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 }
 
-export async function getRecentOrders(limit = 8) {
+export async function getRecentOrders(storeId: string, limit = 8) {
   return db
     .select({
       id: orders.id,
@@ -114,13 +139,17 @@ export async function getRecentOrders(limit = 8) {
     })
     .from(orders)
     .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(eq(orders.ownerId, storeId))
     .orderBy(desc(orders.createdAt))
     .limit(limit)
 }
 
 export type SalesPoint = { date: string; revenue: number; sales: number }
 
-export async function getSalesChart(days = 14): Promise<SalesPoint[]> {
+export async function getSalesChart(
+  storeId: string,
+  days = 14,
+): Promise<SalesPoint[]> {
   const start = new Date()
   start.setDate(start.getDate() - (days - 1))
   start.setHours(0, 0, 0, 0)
@@ -133,7 +162,11 @@ export async function getSalesChart(days = 14): Promise<SalesPoint[]> {
     })
     .from(orders)
     .where(
-      and(eq(orders.paymentStatus, "approved"), gte(orders.createdAt, start)),
+      and(
+        eq(orders.ownerId, storeId),
+        eq(orders.paymentStatus, "approved"),
+        gte(orders.createdAt, start),
+      ),
     )
     .groupBy(sql`date_trunc('day', ${orders.createdAt})`)
 

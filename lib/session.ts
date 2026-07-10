@@ -11,6 +11,9 @@ export type SessionUser = {
   name: string
   email: string
   role: Role
+  ownerId: string | null
+  /** The tenant/store this user belongs to. Owners are their own store. */
+  storeId: string
 }
 
 /**
@@ -19,12 +22,18 @@ export type SessionUser = {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) return null
-  const u = session.user as typeof session.user & { role?: string }
+  const u = session.user as typeof session.user & {
+    role?: string
+    ownerId?: string | null
+  }
+  const ownerId = u.ownerId ?? null
   return {
     id: u.id,
     name: u.name,
     email: u.email,
     role: (u.role as Role) || "support",
+    ownerId,
+    storeId: ownerId ?? u.id,
   }
 }
 

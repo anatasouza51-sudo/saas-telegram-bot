@@ -7,53 +7,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { SecretRow } from "@/components/settings/secret-row"
 import { TelegramForm } from "@/components/settings/telegram-form"
 import { getSettings } from "@/app/actions/settings"
-import { telegramConfig, maskSecret } from "@/lib/integrations"
+import { getAppBaseUrl } from "@/lib/urls"
 
 export default async function TelegramPage() {
-  await requireCapability("telegram.manage")
-  const saved = await getSettings(["telegram.webhookUrl", "telegram.adminIds"])
+  const user = await requireCapability("telegram.manage")
+  const saved = await getSettings(user.storeId, [
+    "telegram.botToken",
+    "telegram.adminIds",
+  ])
+  const webhookUrl = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+  const botConfigured = Boolean(saved["telegram.botToken"])
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <PageHeader
         title="Telegram Bot"
-        description="Configure a integração com a Telegram Bot API para o bot cliente e administrativo."
+        description="Conecte o bot da sua loja para vender e entregar produtos automaticamente no Telegram."
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Credenciais (variáveis de ambiente)</CardTitle>
-          <CardDescription>
-            Tokens são armazenados exclusivamente como variáveis de ambiente
-            seguras e nunca ficam expostos no código ou no navegador.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <SecretRow
-            label="Token do Bot"
-            envVar="TELEGRAM_BOT_TOKEN"
-            masked={maskSecret(telegramConfig.botToken)}
-            configured={telegramConfig.isConfigured}
-          />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Configurações do bot</CardTitle>
           <CardDescription>
-            Defina o webhook e os administradores autorizados.
+            Informe o token do seu bot (@BotFather), defina os administradores e
+            registre o webhook exclusivo da sua loja.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <TelegramForm
             initial={{
-              webhookUrl: saved["telegram.webhookUrl"] ?? "",
+              botToken: saved["telegram.botToken"] ?? "",
               adminIds: saved["telegram.adminIds"] ?? "",
             }}
+            webhookUrl={webhookUrl}
+            botConfigured={botConfigured}
           />
         </CardContent>
       </Card>

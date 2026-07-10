@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       if (isSignUp) {
         const { error } = await authClient.signUp.email({ email, password, name })
         if (error) throw new Error(error.message || "Falha ao criar conta")
+        // Ensure a session exists right after signup so the user goes
+        // straight into their dashboard without a separate login step.
+        const { error: signInError } = await authClient.signIn.email({
+          email,
+          password,
+        })
+        if (signInError)
+          throw new Error(signInError.message || "Falha ao iniciar sessão")
       } else {
         const { error } = await authClient.signIn.email({ email, password })
         if (error) throw new Error(error.message || "Credenciais inválidas")
@@ -47,12 +56,12 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <Bot className="h-6 w-6" />
         </div>
         <h1 className="text-2xl font-semibold text-foreground">
-          {isSignUp ? "Criar conta administrativa" : "Painel Administrativo"}
+          {isSignUp ? "Crie sua loja" : "Bem-vindo de volta"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground text-balance">
           {isSignUp
-            ? "Configure o primeiro acesso ao painel de gerenciamento."
-            : "Entre com suas credenciais para acessar o painel."}
+            ? "Crie sua conta e comece a vender produtos digitais no Telegram em minutos."
+            : "Entre com suas credenciais para acessar o seu painel."}
         </p>
       </div>
 
@@ -108,6 +117,16 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isSignUp ? "Criar conta" : "Entrar"}
         </Button>
+
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          {isSignUp ? "Já tem uma conta? " : "Ainda não tem uma conta? "}
+          <Link
+            href={isSignUp ? "/sign-in" : "/sign-up"}
+            className="font-medium text-primary hover:underline"
+          >
+            {isSignUp ? "Entrar" : "Criar conta"}
+          </Link>
+        </p>
       </form>
     </div>
   )

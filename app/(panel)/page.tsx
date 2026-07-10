@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/session"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { SalesChart } from "@/components/sales-chart"
@@ -40,10 +41,11 @@ import {
 } from "lucide-react"
 
 export default async function DashboardPage() {
+  const user = await requireUser()
   const [stats, recentOrders, salesData] = await Promise.all([
-    getDashboardStats(),
-    getRecentOrders(),
-    getSalesChart(14),
+    getDashboardStats(user.storeId),
+    getRecentOrders(user.storeId),
+    getSalesChart(user.storeId, 14),
   ])
 
   return (
