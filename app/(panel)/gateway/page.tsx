@@ -33,10 +33,10 @@ export default async function GatewayPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <SecretRow
-            label="API Key"
-            envVar="VEOPAG_API_KEY"
-            masked={maskSecret(veopagConfig.apiKey)}
-            configured={Boolean(veopagConfig.apiKey)}
+            label="Public Key"
+            envVar="VEOPAG_PUBLIC_KEY"
+            masked={maskSecret(veopagConfig.publicKey)}
+            configured={Boolean(veopagConfig.publicKey)}
           />
           <SecretRow
             label="Secret Key"
