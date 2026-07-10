@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { NAV_ITEMS, canSee } from "@/lib/nav"
-import { ROLE_LABELS, type Role } from "@/lib/session"
+import { ROLE_LABELS, type Role } from "@/lib/roles"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -93,12 +93,15 @@ export function AppSidebar({
                     : pathname.startsWith(item.href)
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active}>
-                      <Link href={item.href}>
-                        <Icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <SidebarMenuButton
+                      isActive={active}
+                      render={
+                        <Link href={item.href}>
+                          <Icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      }
+                    />
                   </SidebarMenuItem>
                 )
               })}
@@ -116,12 +119,15 @@ export function AppSidebar({
                   const active = pathname.startsWith(item.href)
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={active}>
-                        <Link href={item.href}>
-                          <Icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
+                      <SidebarMenuButton
+                        isActive={active}
+                        render={
+                          <Link href={item.href}>
+                            <Icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        }
+                      />
                     </SidebarMenuItem>
                   )
                 })}
