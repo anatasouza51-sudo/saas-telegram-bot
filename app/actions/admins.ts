@@ -1,0 +1,113 @@
+"use server"
+
+import { db } from "@/lib/db"
+import { user } from "@/lib/db/schema"
+import { auth } from "@/lib/auth"
+import { requireCapability } from "@/lib/session"
+import { logActivity } from "@/lib/log"
+import { ROLES, type Role } from "@/lib/roles"
+import { eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
+
+export async function getAdmins() {
+  await requireCapability("admins.manage")
+  return db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    })
+    .from(user)
+    .orderBy(user.createdAt)
+}
+
+export async function createAdmin(input: {
+  name: string
+  email: string
+  password: string
+  role: Role
+}) {
+  const actor = await requireCapability("admins.manage")
+
+  if (!ROLES.includes(input.role)) {
+    return { ok: false, error: "Permissão inválida" }
+  }
+
+  try {
+    // Better Auth creates the user (with hashed password). The DB hook may set
+    // a default role, so we explicitly set the requested role afterwards.
+    const created = await auth.api.signUpEmail({
+      body: {
+        name: input.name,
+        email: input.email,
+        password: input.password,
+      },
+    })
+
+    const newUserId = created.user?.id
+    if (newUserId) {
+      await db
+        .update(user)
+        .set({ role: input.role })
+        .where(eq(user.id, newUserId))
+    }
+
+    await logActivity({
+      action: `Administrador criado: ${input.email} (${input.role})`,
+      category: "admin",
+      actor,
+    })
+    revalidatePath("/admins")
+    return { ok: true }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Erro ao criar administrador",
+    }
+  }
+}
+
+export async function updateAdminRole(userId: string, role: Role) {
+  const actor = await requireCapability("admins.manage")
+  if (!ROLES.includes(role)) return { ok: false, error: "Permissão inválida" }
+
+  // Prevent removing the last admin.
+  if (role !== "admin") {
+    const admins = await db.select().from(user).where(eq(user.role, "admin"))
+    const target = await db.select().from(user).where(eq(user.id, userId)).limit(1)
+    if (admins.length === 1 && target[0]?.role === "admin") {
+      return { ok: false, error: "Não é possível rebaixar o único administrador principal." }
+    }
+  }
+
+  await db.update(user).set({ role }).where(eq(user.id, userId))
+  await logActivity({
+    action: `Permissão alterada para ${role}`,
+    category: "admin",
+    actor,
+  })
+  revalidatePath("/admins")
+  return { ok: true }
+}
+
+export async function deleteAdmin(userId: string) {
+  const actor = await requireCapability("admins.manage")
+  if (actor.id === userId) {
+    return { ok: false, error: "Você não pode remover a si mesmo." }
+  }
+  const admins = await db.select().from(user).where(eq(user.role, "admin"))
+  const target = await db.select().from(user).where(eq(user.id, userId)).limit(1)
+  if (admins.length === 1 && target[0]?.role === "admin") {
+    return { ok: false, error: "Não é possível remover o único administrador principal." }
+  }
+  await db.delete(user).where(eq(user.id, userId))
+  await logActivity({
+    action: `Administrador removido: ${target[0]?.email ?? userId}`,
+    category: "admin",
+    actor,
+  })
+  revalidatePath("/admins")
+  return { ok: true }
+}
