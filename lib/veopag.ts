@@ -1,0 +1,102 @@
+import crypto from "crypto"
+import { veopagConfig } from "@/lib/integrations"
+
+/**
+ * Thin wrapper around the VeoPag gateway. Endpoints are structured for a
+ * typical PIX/checkout gateway; adjust the base URL / field names to match
+ * VeoPag's live API contract when going to production.
+ */
+const VEOPAG_BASE = process.env.VEOPAG_BASE_URL ?? "https://api.veopag.com"
+
+export type CreateChargeInput = {
+  amount: number
+  externalId: string
+  description: string
+  customerName?: string
+}
+
+export type CreateChargeResult =
+  | {
+      ok: true
+      paymentId: string
+      pixCode?: string
+      checkoutUrl?: string
+    }
+  | { ok: false; error: string }
+
+export async function createCharge(
+  input: CreateChargeInput,
+): Promise<CreateChargeResult> {
+  if (!veopagConfig.isConfigured) {
+    return { ok: false, error: "Credenciais da VeoPag não configuradas" }
+  }
+  try {
+    const res = await fetch(`${VEOPAG_BASE}/v1/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-public-key": veopagConfig.publicKey,
+        "x-secret-key": veopagConfig.secretKey,
+      },
+      body: JSON.stringify({
+        amount: input.amount,
+        external_id: input.externalId,
+        description: input.description,
+        customer: { name: input.customerName },
+        payment_method: "pix",
+      }),
+    })
+    const data = (await res.json()) as Record<string, any>
+    if (!res.ok) {
+      return { ok: false, error: data?.message ?? "Falha ao criar cobrança" }
+    }
+    return {
+      ok: true,
+      paymentId: String(data.id ?? data.transaction_id ?? input.externalId),
+      pixCode: data.pix?.qrcode ?? data.qr_code,
+      checkoutUrl: data.checkout_url ?? data.payment_url,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro de rede",
+    }
+  }
+}
+
+/**
+ * Validates the webhook signature using HMAC-SHA256 over the raw body with the
+ * secret key. VeoPag sends the signature in the `x-veopag-signature` header.
+ */
+export function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null,
+): boolean {
+  if (!veopagConfig.secretKey) return false
+  if (!signature) return false
+  const expected = crypto
+    .createHmac("sha256", veopagConfig.secretKey)
+    .update(rawBody)
+    .digest("hex")
+  // Constant-time comparison.
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expected),
+      Buffer.from(signature),
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Normalizes VeoPag payment statuses into our internal statuses. */
+export function mapPaymentStatus(
+  raw: string,
+): "approved" | "pending" | "refused" {
+  const s = raw.toLowerCase()
+  if (["paid", "approved", "completed", "confirmed"].includes(s))
+    return "approved"
+  if (["refused", "failed", "canceled", "cancelled", "expired"].includes(s))
+    return "refused"
+  return "pending"
+}
