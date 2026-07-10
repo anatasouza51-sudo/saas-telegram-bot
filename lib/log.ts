@@ -18,6 +18,7 @@ type LogCategory =
 export async function logActivity(params: {
   action: string
   category: LogCategory
+  actor?: { id: string; name: string } | null
   actorId?: string | null
   actorName?: string | null
   details?: string | null
@@ -26,8 +27,8 @@ export async function logActivity(params: {
     await db.insert(activityLogs).values({
       action: params.action,
       category: params.category,
-      actorId: params.actorId ?? null,
-      actorName: params.actorName ?? null,
+      actorId: params.actor?.id ?? params.actorId ?? null,
+      actorName: params.actor?.name ?? params.actorName ?? null,
       details: params.details ?? null,
     })
   } catch (err) {

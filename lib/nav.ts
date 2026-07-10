@@ -1,5 +1,3 @@
-import type { Role } from "@/lib/session"
-
 export type NavItem = {
   title: string
   href: string
@@ -22,21 +20,4 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Logs", href: "/logs", icon: "ScrollText", capability: "logs.view" },
 ]
 
-// A minimal client-safe capability check mirroring lib/session.ts
-const PERMISSIONS: Record<string, Role[]> = {
-  "products.manage": ["admin", "products"],
-  "stock.manage": ["admin", "products"],
-  "orders.view": ["admin", "finance", "support"],
-  "customers.view": ["admin", "finance", "support"],
-  "payments.view": ["admin", "finance"],
-  "gateway.manage": ["admin", "finance"],
-  "telegram.manage": ["admin"],
-  "admins.manage": ["admin"],
-  "logs.view": ["admin"],
-}
-
-export function canSee(role: Role, capability?: string) {
-  if (!capability) return true
-  if (role === "admin") return true
-  return PERMISSIONS[capability]?.includes(role) ?? false
-}
+export { canSee } from "@/lib/roles"

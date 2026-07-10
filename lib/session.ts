@@ -2,8 +2,9 @@ import "server-only"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { can, type Role } from "@/lib/roles"
 
-export type Role = "admin" | "products" | "finance" | "support"
+export type { Role } from "@/lib/roles"
 
 export type SessionUser = {
   id: string
@@ -37,32 +38,6 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 /**
- * Permission matrix. Each capability lists the roles allowed to perform it.
- * "admin" implicitly has every permission.
- */
-const PERMISSIONS: Record<string, Role[]> = {
-  "products.manage": ["admin", "products"],
-  "stock.manage": ["admin", "products"],
-  "orders.view": ["admin", "finance", "support"],
-  "orders.manage": ["admin", "finance"],
-  "payments.view": ["admin", "finance"],
-  "payments.manage": ["admin", "finance"],
-  "customers.view": ["admin", "finance", "support"],
-  "customers.manage": ["admin", "support"],
-  "gateway.manage": ["admin", "finance"],
-  "telegram.manage": ["admin"],
-  "admins.manage": ["admin"],
-  "logs.view": ["admin"],
-  "settings.manage": ["admin"],
-}
-
-export function can(role: Role, capability: keyof typeof PERMISSIONS | string) {
-  if (role === "admin") return true
-  const allowed = PERMISSIONS[capability]
-  return allowed ? allowed.includes(role) : false
-}
-
-/**
  * Requires the given capability. Throws if the user lacks permission.
  */
 export async function requireCapability(capability: string): Promise<SessionUser> {
@@ -71,11 +46,4 @@ export async function requireCapability(capability: string): Promise<SessionUser
     throw new Error("Você não tem permissão para executar esta ação.")
   }
   return user
-}
-
-export const ROLE_LABELS: Record<Role, string> = {
-  admin: "Administrador Principal",
-  products: "Gerenciador de Produtos",
-  finance: "Gerenciador Financeiro",
-  support: "Suporte",
 }
