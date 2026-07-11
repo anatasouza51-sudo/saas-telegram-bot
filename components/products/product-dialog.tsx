@@ -35,6 +35,7 @@ type ProductRow = {
   status: string
   deliveryType: string
   lowStockThreshold: number
+  position?: number
 }
 
 /**
@@ -94,6 +95,7 @@ function initialForm(product: ProductRow | null): ProductInput {
     status: (product?.status as "active" | "inactive") ?? "active",
     deliveryType: (product?.deliveryType as "stock" | "manual") ?? "stock",
     lowStockThreshold: product?.lowStockThreshold ?? 5,
+    position: product?.position ?? 0,
   }
 }
 
@@ -249,14 +251,28 @@ function ProductForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="image">URL da imagem</Label>
+            <Label htmlFor="position">Ordem na categoria</Label>
             <Input
-              id="image"
-              value={form.imageUrl ?? ""}
-              onChange={(e) => set("imageUrl", e.target.value)}
-              placeholder="https://..."
+              id="position"
+              type="number"
+              min="0"
+              value={form.position ?? 0}
+              onChange={(e) => set("position", Number(e.target.value))}
             />
+            <p className="text-xs text-muted-foreground">
+              0 = ordenar por preço (menor primeiro).
+            </p>
           </div>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="image">URL da imagem</Label>
+          <Input
+            id="image"
+            value={form.imageUrl ?? ""}
+            onChange={(e) => set("imageUrl", e.target.value)}
+            placeholder="https://..."
+          />
         </div>
       </div>
 

@@ -28,6 +28,7 @@ import {
   Wallet,
   ShieldCheck,
   ScrollText,
+  FolderTree,
   Bot,
   type LucideIcon,
 } from "lucide-react"
@@ -45,6 +46,7 @@ const ICONS: Record<string, LucideIcon> = {
   Wallet,
   ShieldCheck,
   ScrollText,
+  FolderTree,
 }
 
 export function AppSidebar({

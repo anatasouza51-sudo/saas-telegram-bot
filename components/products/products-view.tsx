@@ -26,8 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 import { ProductDialog } from "./product-dialog"
-import { CategoryDialog } from "./category-dialog"
 import {
   duplicateProduct,
   deleteProduct,
@@ -83,7 +83,6 @@ export function ProductsView({
     open: boolean
     product?: ProductRow | null
   }>({ open: false })
-  const [categoryOpen, setCategoryOpen] = useState(false)
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -169,7 +168,7 @@ export function ProductsView({
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => setCategoryOpen(true)}>
+          <Button variant="outline" render={<Link href="/categories" />}>
             <FolderTree className="mr-2 h-4 w-4" />
             Categorias
           </Button>
@@ -330,11 +329,6 @@ export function ProductsView({
         onOpenChange={(v) => setProductDialog((s) => ({ ...s, open: v }))}
         categories={categories}
         product={productDialog.product}
-      />
-      <CategoryDialog
-        open={categoryOpen}
-        onOpenChange={setCategoryOpen}
-        categories={categories}
       />
     </div>
   )
