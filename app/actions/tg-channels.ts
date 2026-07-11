@@ -5,9 +5,25 @@ import { telegramChats } from "@/lib/db/schema"
 import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
-import { getStoreTelegram } from "@/lib/tg/config"
+import { getStoreTelegram, TG_KEYS } from "@/lib/tg/config"
 import { validateChat } from "@/lib/tg/validate"
+import { saveSetting } from "@/lib/settings"
 import { revalidatePath } from "next/cache"
+
+// Keeps the CDN / management setting keys in sync with the chats table so the
+// rest of the module (uploads, alerts) can resolve them by a single key.
+async function syncPurposeSettings(storeId: string) {
+  const rows = await db
+    .select()
+    .from(telegramChats)
+    .where(eq(telegramChats.ownerId, storeId))
+  const cdn = rows.find((r) => r.purpose === "cdn" && r.status === "active")
+  const mgmt = rows.find(
+    (r) => r.purpose === "management" && r.status === "active",
+  )
+  await saveSetting(storeId, TG_KEYS.cdnChatId, cdn?.chatId ?? "")
+  await saveSetting(storeId, TG_KEYS.managementChatId, mgmt?.chatId ?? "")
+}
 
 export type ChannelInput = {
   title: string
@@ -84,6 +100,7 @@ export async function addChannel(input: ChannelInput) {
     action: `Cadastrou o destino "${row.title}"`,
     category: "settings",
   })
+  await syncPurposeSettings(user.storeId)
   revalidatePath("/channels")
   return row
 }
@@ -102,6 +119,7 @@ export async function updateChannel(id: number, input: Partial<ChannelInput>) {
     .where(
       and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
     )
+  await syncPurposeSettings(user.storeId)
   revalidatePath("/channels")
 }
 
@@ -113,6 +131,7 @@ export async function setChannelStatus(id: number, status: "active" | "inactive"
     .where(
       and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
     )
+  await syncPurposeSettings(user.storeId)
   revalidatePath("/channels")
 }
 
@@ -129,6 +148,7 @@ export async function deleteChannel(id: number) {
     action: `Removeu um destino do Telegram`,
     category: "settings",
   })
+  await syncPurposeSettings(user.storeId)
   revalidatePath("/channels")
 }
 

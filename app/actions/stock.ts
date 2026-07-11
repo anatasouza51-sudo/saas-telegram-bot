@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { stockItems, products } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { runAutomations } from "@/lib/tg/automations"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -61,6 +62,20 @@ export async function addStockItems(productId: number, raw: string) {
 
   if (lines.length === 0) throw new Error("Nenhum item informado")
 
+  // Snapshot availability before insert so we can detect a true "restock"
+  // (went from zero to having stock again).
+  const [before] = await db
+    .select({
+      available: sql<number>`COUNT(*) FILTER (WHERE ${stockItems.status} = 'available')::int`,
+    })
+    .from(stockItems)
+    .where(
+      and(
+        eq(stockItems.productId, productId),
+        eq(stockItems.ownerId, user.storeId),
+      ),
+    )
+
   await db.insert(stockItems).values(
     lines.map((content) => ({
       ownerId: user.storeId,
@@ -76,6 +91,18 @@ export async function addStockItems(productId: number, raw: string) {
     action: `Adicionou ${lines.length} item(ns) de estoque ao produto #${productId}`,
     category: "stock",
   })
+
+  if ((before?.available ?? 0) === 0) {
+    const [p] = await db
+      .select({ name: products.name })
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.ownerId, user.storeId)))
+    await runAutomations(user.storeId, "stock_restocked", {
+      productName: p?.name,
+      stock: lines.length,
+    })
+  }
+
   revalidatePath("/stock")
   return lines.length
 }
