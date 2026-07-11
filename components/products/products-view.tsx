@@ -245,6 +245,7 @@ export function ProductsView({
                         render={
                           <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Ações do produto {p.name}</span>
                           </Button>
                         }
                       />
