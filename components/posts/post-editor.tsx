@@ -15,6 +15,7 @@ import {
   X,
   Users,
   Megaphone,
+  LayoutTemplate,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +36,7 @@ import type { MediaItem } from "@/components/media/media-thumb"
 import type { ButtonRows } from "@/lib/tg/buttons"
 import type { Recurrence } from "@/lib/tg/recurrence"
 import { publishNow, savePost, schedulePost } from "@/app/actions/tg-posts"
+import { saveTemplate } from "@/app/actions/tg-templates"
 
 type Channel = {
   id: number
@@ -59,10 +61,12 @@ export function PostEditor({
   botName,
   cdnReady,
   initial,
+  onDone,
 }: {
   channels: Channel[]
   botName: string
   cdnReady: boolean
+  onDone?: () => void
   initial?: {
     id?: number
     title?: string
@@ -167,6 +171,29 @@ export function PostEditor({
     })
   }
 
+  function handleSaveTemplate() {
+    const name = window.prompt(
+      "Nome do template:",
+      title || "Novo template",
+    )
+    if (!name) return
+    startTransition(async () => {
+      try {
+        await saveTemplate({
+          name,
+          text,
+          parseMode,
+          mediaIds: media.map((m) => m.id),
+          buttons,
+        })
+        toast.success("Template salvo")
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao salvar template")
+      }
+    })
+  }
+
   function handlePublish() {
     const spec = resolveTargetSpec()
     if (spec.length === 0) {
@@ -177,8 +204,8 @@ export function PostEditor({
       try {
         const { enqueued } = await publishNow(buildInput(), spec)
         toast.success(`Postagem enfileirada para ${enqueued} destino(s)`)
-        router.push("/posts")
-        router.refresh()
+        if (onDone) onDone()
+        else router.refresh()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao publicar")
       }
@@ -208,8 +235,9 @@ export function PostEditor({
           recurrence: rec,
         })
         toast.success("Postagem agendada")
-        router.push("/posts")
-        router.refresh()
+        setScheduleOpen(false)
+        if (onDone) onDone()
+        else router.refresh()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao agendar")
       }
@@ -365,6 +393,14 @@ export function PostEditor({
           <Button variant="ghost" onClick={handleSaveDraft} disabled={isPending}>
             <Save className="mr-2 h-4 w-4" />
             Salvar rascunho
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleSaveTemplate}
+            disabled={isPending}
+          >
+            <LayoutTemplate className="mr-2 h-4 w-4" />
+            Salvar como template
           </Button>
         </div>
 
