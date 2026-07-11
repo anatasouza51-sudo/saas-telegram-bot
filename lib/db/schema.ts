@@ -176,3 +176,166 @@ export const activityLogs = pgTable("activity_logs", {
   details: text("details"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
+
+/* ---------------------------------------------------------------------------
+ * Telegram posting module
+ * ------------------------------------------------------------------------- */
+
+// Unified table for groups and channels. `purpose` distinguishes normal
+// audience destinations from the private CDN store and the management group.
+export const telegramChats = pgTable(
+  "telegram_chats",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    title: text("title").notNull(),
+    chatId: text("chatId").notNull(),
+    username: text("username"),
+    // group | supergroup | channel
+    type: text("type").notNull().default("group"),
+    description: text("description"),
+    // active | inactive
+    status: text("status").notNull().default("active"),
+    botIsAdmin: boolean("botIsAdmin").notNull().default(false),
+    // JSON array of missing admin permissions when the bot is not fully set up
+    missingPermissions: text("missingPermissions"),
+    // audience | cdn | management
+    purpose: text("purpose").notNull().default("audience"),
+    lastSyncedAt: timestamp("lastSyncedAt"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerChatUnique: uniqueIndex("telegram_chats_owner_chatid_uidx").on(
+      t.ownerId,
+      t.chatId,
+    ),
+  }),
+)
+
+export const telegramMediaFolders = pgTable("telegram_media_folders", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  name: text("name").notNull(),
+  parentId: integer("parentId"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+// Media stored on Telegram's own infrastructure. We only persist the file_id
+// (per-bot reusable handle) and metadata — never a public URL.
+export const telegramMedia = pgTable(
+  "telegram_media",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    folderId: integer("folderId"),
+    fileId: text("fileId").notNull(),
+    fileUniqueId: text("fileUniqueId"),
+    // photo | video | animation | document | audio | sticker
+    type: text("type").notNull().default("photo"),
+    fileName: text("fileName"),
+    mimeType: text("mimeType"),
+    fileSize: integer("fileSize"),
+    width: integer("width"),
+    height: integer("height"),
+    duration: integer("duration"),
+    thumbFileId: text("thumbFileId"),
+    caption: text("caption"),
+    uploadedBy: text("uploadedBy"),
+    uploadedByName: text("uploadedByName"),
+    usageCount: integer("usageCount").notNull().default(0),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerUniqueFile: uniqueIndex("telegram_media_owner_uniqueid_uidx").on(
+      t.ownerId,
+      t.fileUniqueId,
+    ),
+  }),
+)
+
+export const telegramTemplates = pgTable("telegram_templates", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  name: text("name").notNull(),
+  category: text("category").notNull().default("geral"),
+  text: text("text"),
+  parseMode: text("parseMode").notNull().default("HTML"),
+  // JSON array of media ids
+  mediaIds: text("mediaIds"),
+  // JSON array of button rows
+  buttons: text("buttons"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const telegramPosts = pgTable("telegram_posts", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  title: text("title"),
+  text: text("text"),
+  parseMode: text("parseMode").notNull().default("HTML"),
+  // JSON array of media ids (references telegram_media.id)
+  mediaIds: text("mediaIds"),
+  // JSON array of button rows: [[{text,type,value}]]
+  buttons: text("buttons"),
+  // draft | scheduled | queued | sent | failed | cancelled
+  status: text("status").notNull().default("draft"),
+  createdBy: text("createdBy"),
+  createdByName: text("createdByName"),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const telegramSchedules = pgTable("telegram_schedules", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  postId: integer("postId").notNull(),
+  // JSON: array of chat ids, or tokens "all_groups" | "all_channels" | "all"
+  targets: text("targets").notNull(),
+  // now | once | recurring
+  scheduleType: text("scheduleType").notNull().default("now"),
+  runAt: timestamp("runAt"),
+  timezone: text("timezone").notNull().default("America/Sao_Paulo"),
+  // JSON recurrence config
+  recurrence: text("recurrence"),
+  nextRunAt: timestamp("nextRunAt"),
+  lastRunAt: timestamp("lastRunAt"),
+  active: boolean("active").notNull().default(true),
+  createdBy: text("createdBy"),
+  createdByName: text("createdByName"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export const telegramQueue = pgTable("telegram_queue", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  postId: integer("postId").notNull(),
+  scheduleId: integer("scheduleId"),
+  chatId: text("chatId").notNull(),
+  // pending | processing | sent | failed
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("maxAttempts").notNull().default(5),
+  lastError: text("lastError"),
+  scheduledFor: timestamp("scheduledFor").notNull().defaultNow(),
+  sentMessageId: integer("sentMessageId"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const telegramAutomations = pgTable("telegram_automations", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  name: text("name").notNull(),
+  // product_created | stock_restocked | product_unavailable | promo_created
+  trigger: text("trigger").notNull(),
+  templateId: integer("templateId"),
+  customText: text("customText"),
+  // JSON targets (same format as schedules)
+  targets: text("targets").notNull(),
+  active: boolean("active").notNull().default(true),
+  lastTriggeredAt: timestamp("lastTriggeredAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
