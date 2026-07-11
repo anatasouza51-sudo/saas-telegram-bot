@@ -6,6 +6,7 @@ import {
   serial,
   integer,
   numeric,
+  uniqueIndex,
 } from "drizzle-orm/pg-core"
 
 /* ---------------------------------------------------------------------------
@@ -151,13 +152,19 @@ export const deliveries = pgTable("deliveries", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  ownerId: text("ownerId").notNull(),
-  key: text("key").notNull(),
-  value: text("value"),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-})
+export const settings = pgTable(
+  "settings",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    key: text("key").notNull(),
+    value: text("value"),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerKeyUnique: uniqueIndex("settings_owner_key_uidx").on(t.ownerId, t.key),
+  }),
+)
 
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
