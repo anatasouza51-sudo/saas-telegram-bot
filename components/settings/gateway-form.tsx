@@ -10,13 +10,16 @@ import { Copy, Check } from "lucide-react"
 
 export function GatewayForm({
   initial,
+  secretConfigured,
   webhookUrl,
 }: {
-  initial: { publicKey: string; secretKey: string }
+  initial: { publicKey: string }
+  secretConfigured: boolean
   webhookUrl: string
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
-  const [secretKey, setSecretKey] = useState(initial.secretKey)
+  // The secret is never sent to the browser. Empty = keep the stored value.
+  const [secretKey, setSecretKey] = useState("")
   const [pending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
 
@@ -53,13 +56,19 @@ export function GatewayForm({
         <Input
           id="veo-secret"
           type="password"
-          placeholder="seu client_secret da VeoPag"
+          autoComplete="new-password"
+          placeholder={
+            secretConfigured
+              ? "•••••••• (deixe em branco para manter)"
+              : "seu client_secret da VeoPag"
+          }
           value={secretKey}
           onChange={(e) => setSecretKey(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
           Gere o <strong>client_id</strong> e o <strong>client_secret</strong> em
-          dashboard.veopag.com/credentials. Cada loja usa a sua própria conta.
+          dashboard.veopag.com/credentials. Por segurança, o secret não é exibido
+          novamente após salvo.
         </p>
       </div>
 

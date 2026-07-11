@@ -13,11 +13,12 @@ export function TelegramForm({
   webhookUrl,
   botConfigured,
 }: {
-  initial: { botToken: string; adminIds: string }
+  initial: { adminIds: string }
   webhookUrl: string
   botConfigured: boolean
 }) {
-  const [botToken, setBotToken] = useState(initial.botToken)
+  // The bot token is never sent to the browser. Empty = keep the stored value.
+  const [botToken, setBotToken] = useState("")
   const [adminIds, setAdminIds] = useState(initial.adminIds)
   const [pending, startTransition] = useTransition()
   const [registering, startRegister] = useTransition()
@@ -58,12 +59,18 @@ export function TelegramForm({
         <Input
           id="tg-token"
           type="password"
-          placeholder="123456:ABC-DEF..."
+          autoComplete="new-password"
+          placeholder={
+            botConfigured
+              ? "•••••••• (deixe em branco para manter)"
+              : "123456:ABC-DEF..."
+          }
           value={botToken}
           onChange={(e) => setBotToken(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Token gerado pelo @BotFather. Cada loja usa o seu próprio bot.
+          Token gerado pelo @BotFather. Por segurança, o token não é exibido
+          novamente após salvo.
         </p>
       </div>
 
