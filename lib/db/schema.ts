@@ -75,7 +75,14 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   description: text("description"),
+  emoji: text("emoji"),
+  imageUrl: text("imageUrl"),
+  // Display order in the Telegram catalog (ascending).
+  position: integer("position").notNull().default(0),
+  // active | inactive
+  status: text("status").notNull().default("active"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
 
 export const products = pgTable("products", {
@@ -85,6 +92,8 @@ export const products = pgTable("products", {
   description: text("description"),
   categoryId: integer("categoryId"),
   imageUrl: text("imageUrl"),
+  // Display order within its category in the Telegram catalog (ascending).
+  position: integer("position").notNull().default(0),
   price: numeric("price", { precision: 12, scale: 2 }).notNull().default("0"),
   // active | inactive
   status: text("status").notNull().default("active"),
