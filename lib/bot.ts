@@ -6,6 +6,7 @@ import {
   orders,
   deliveries,
   settings,
+  stockItems,
 } from "@/lib/db/schema"
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
 import {
@@ -361,9 +362,13 @@ async function buildProductScreen(
 
   const [{ count }] = await db
     .select({ count: sql<number>`COUNT(*)::int` })
-    .from(sql`stock_items`)
+    .from(stockItems)
     .where(
-      sql`"productId" = ${productId} AND "ownerId" = ${ctx.storeId} AND status = 'available'`,
+      and(
+        eq(stockItems.ownerId, ctx.storeId),
+        eq(stockItems.productId, productId),
+        eq(stockItems.status, "available"),
+      ),
     )
 
   // Manual-delivery products are always purchasable; stock products need units.
