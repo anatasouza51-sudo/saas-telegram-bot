@@ -52,7 +52,7 @@ export class TelegramClient {
       parseMode?: "HTML" | "Markdown" | "MarkdownV2"
     },
   ) {
-    return this.callApi("sendMessage", {
+    return this.callApi<TelegramMessage>("sendMessage", {
       chat_id: chatId,
       text,
       parse_mode: options?.parseMode ?? "HTML",
@@ -133,6 +133,19 @@ export class TelegramClient {
       chat_id: chatId,
       user_id: userId,
     })
+  }
+
+  /* --- File download (server-side only) ------------------------------- */
+
+  // Resolves a file_id to Telegram's temporary download URL. This URL embeds
+  // the bot token, so it must NEVER be sent to the browser — only used by our
+  // server-side proxy to stream bytes back to authenticated admins.
+  async getFileUrl(fileId: string): Promise<string | null> {
+    const res = await this.callApi<{ file_path?: string }>("getFile", {
+      file_id: fileId,
+    })
+    if (!res.ok || !res.result?.file_path) return null
+    return `https://api.telegram.org/file/bot${this.token}/${res.result.file_path}`
   }
 
   /* --- Sending by file_id (reuses Telegram-hosted media) -------------- */

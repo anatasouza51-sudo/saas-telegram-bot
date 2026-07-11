@@ -13,6 +13,7 @@ type LogCategory =
   | "admin"
   | "settings"
   | "security"
+  | "posts"
   | "system"
 
 export async function logActivity(params: {
