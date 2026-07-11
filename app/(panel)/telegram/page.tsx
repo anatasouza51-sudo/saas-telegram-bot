@@ -40,7 +40,10 @@ export default async function TelegramPage() {
         </CardHeader>
         <CardContent>
           <TelegramForm
-            initial={{ adminIds: saved["telegram.adminIds"] ?? "" }}
+            initial={{
+              botToken: saved["telegram.botToken"] ?? "",
+              adminIds: saved["telegram.adminIds"] ?? "",
+            }}
             webhookUrl={webhookUrl}
             botConfigured={botConfigured}
           />

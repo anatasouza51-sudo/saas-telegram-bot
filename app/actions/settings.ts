@@ -6,7 +6,6 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { getAppBaseUrl } from "@/lib/urls"
-import { webhookToken } from "@/lib/webhook-security"
 import { and, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -56,11 +55,7 @@ export async function saveTelegramSettings(input: {
   adminIds: string
 }) {
   const user = await requireCapability("telegram.manage")
-  // The bot token is a secret and is never sent back to the client. A blank
-  // value means "keep the current token", so we only overwrite when provided.
-  if (input.botToken.trim()) {
-    await saveSetting(user.storeId, "telegram.botToken", input.botToken.trim())
-  }
+  await saveSetting(user.storeId, "telegram.botToken", input.botToken)
   await saveSetting(user.storeId, "telegram.adminIds", input.adminIds)
   await logActivity({
     storeId: user.storeId,
@@ -77,12 +72,8 @@ export async function saveGatewaySettings(input: {
   secretKey: string
 }) {
   const user = await requireCapability("gateway.manage")
-  await saveSetting(user.storeId, "veopag.publicKey", input.publicKey.trim())
-  // The client secret is never sent back to the client. A blank value means
-  // "keep the current secret", so we only overwrite when a new one is given.
-  if (input.secretKey.trim()) {
-    await saveSetting(user.storeId, "veopag.secretKey", input.secretKey.trim())
-  }
+  await saveSetting(user.storeId, "veopag.publicKey", input.publicKey)
+  await saveSetting(user.storeId, "veopag.secretKey", input.secretKey)
   await logActivity({
     storeId: user.storeId,
     action: "Configurações do gateway VeoPag atualizadas",
@@ -123,8 +114,7 @@ export async function registerTelegramWebhook(): Promise<{
   }
   const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
   const client = new TelegramClient(token)
-  const secret = webhookToken("telegram", user.storeId)
-  const res = await client.setWebhook(url, secret)
+  const res = await client.setWebhook(url)
   if (!res.ok) {
     return { ok: false, error: res.description ?? "Falha ao registrar webhook" }
   }
