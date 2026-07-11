@@ -10,6 +10,7 @@ import {
 import { GatewayForm } from "@/components/settings/gateway-form"
 import { getSettings } from "@/app/actions/settings"
 import { getAppBaseUrl } from "@/lib/urls"
+import { webhookToken } from "@/lib/webhook-security"
 
 export default async function GatewayPage() {
   const user = await requireCapability("gateway.manage")
@@ -17,7 +18,10 @@ export default async function GatewayPage() {
     "veopag.publicKey",
     "veopag.secretKey",
   ])
-  const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}`
+  const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}?token=${webhookToken(
+    "veopag",
+    user.storeId,
+  )}`
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -36,10 +40,8 @@ export default async function GatewayPage() {
         </CardHeader>
         <CardContent>
           <GatewayForm
-            initial={{
-              publicKey: saved["veopag.publicKey"] ?? "",
-              secretKey: saved["veopag.secretKey"] ?? "",
-            }}
+            initial={{ publicKey: saved["veopag.publicKey"] ?? "" }}
+            secretConfigured={Boolean(saved["veopag.secretKey"])}
             webhookUrl={webhookUrl}
           />
         </CardContent>

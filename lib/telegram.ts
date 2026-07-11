@@ -107,8 +107,15 @@ export class TelegramClient {
     })
   }
 
-  setWebhook(url: string) {
-    return this.callApi("setWebhook", { url })
+  setWebhook(url: string, secretToken?: string) {
+    return this.callApi("setWebhook", {
+      url,
+      // Telegram echoes this back in the X-Telegram-Bot-Api-Secret-Token
+      // header on every update, letting us authenticate incoming webhooks.
+      secret_token: secretToken,
+      // Drop any updates queued while the bot was disconnected.
+      drop_pending_updates: true,
+    })
   }
 }
 
