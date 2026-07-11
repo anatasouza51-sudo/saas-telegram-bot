@@ -104,6 +104,36 @@ export class TelegramClient {
       text,
       parse_mode: "HTML",
       reply_markup: replyMarkup,
+      disable_web_page_preview: true,
+    })
+  }
+
+  // Replaces a media message's photo + caption in place (used for in-place
+  // navigation between screens that show an image).
+  editMessageMedia(
+    chatId: string | number,
+    messageId: number,
+    photoUrl: string,
+    caption: string,
+    replyMarkup?: ReturnType<typeof buildInlineKeyboard>,
+  ) {
+    return this.callApi("editMessageMedia", {
+      chat_id: chatId,
+      message_id: messageId,
+      media: {
+        type: "photo",
+        media: photoUrl,
+        caption,
+        parse_mode: "HTML",
+      },
+      reply_markup: replyMarkup,
+    })
+  }
+
+  deleteMessage(chatId: string | number, messageId: number) {
+    return this.callApi("deleteMessage", {
+      chat_id: chatId,
+      message_id: messageId,
     })
   }
 
