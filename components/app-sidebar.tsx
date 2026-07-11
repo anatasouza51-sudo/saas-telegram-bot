@@ -28,6 +28,10 @@ import {
   Wallet,
   ShieldCheck,
   ScrollText,
+  Megaphone,
+  Radio,
+  Images,
+  Zap,
   Bot,
   type LucideIcon,
 } from "lucide-react"
@@ -45,6 +49,10 @@ const ICONS: Record<string, LucideIcon> = {
   Wallet,
   ShieldCheck,
   ScrollText,
+  Megaphone,
+  Radio,
+  Images,
+  Zap,
 }
 
 export function AppSidebar({

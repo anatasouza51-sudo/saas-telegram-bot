@@ -27,6 +27,7 @@ export const PERMISSIONS: Record<string, Role[]> = {
   "customers.manage": ["admin", "support"],
   "gateway.manage": ["admin", "finance"],
   "telegram.manage": ["admin"],
+  "posts.manage": ["admin", "products"],
   "admins.manage": ["admin"],
   "logs.view": ["admin"],
   "settings.manage": ["admin"],

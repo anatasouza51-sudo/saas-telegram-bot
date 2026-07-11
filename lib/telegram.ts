@@ -117,6 +117,201 @@ export class TelegramClient {
       drop_pending_updates: true,
     })
   }
+
+  /* --- Identity & chat validation ------------------------------------- */
+
+  getMe() {
+    return this.callApi<TelegramUser>("getMe", {})
+  }
+
+  getChat(chatId: string | number) {
+    return this.callApi<TelegramChatInfo>("getChat", { chat_id: chatId })
+  }
+
+  getChatMember(chatId: string | number, userId: number) {
+    return this.callApi<TelegramChatMember>("getChatMember", {
+      chat_id: chatId,
+      user_id: userId,
+    })
+  }
+
+  /* --- Sending by file_id (reuses Telegram-hosted media) -------------- */
+
+  sendMediaByFileId(
+    chatId: string | number,
+    kind: TelegramMediaKind,
+    fileId: string,
+    options?: {
+      caption?: string
+      replyMarkup?: ReturnType<typeof buildInlineKeyboard>
+      parseMode?: "HTML" | "Markdown" | "MarkdownV2"
+    },
+  ) {
+    const method = SEND_METHOD[kind]
+    const field = MEDIA_FIELD[kind]
+    const payload: Record<string, unknown> = {
+      chat_id: chatId,
+      [field]: fileId,
+      reply_markup: options?.replyMarkup,
+    }
+    // Stickers don't support captions.
+    if (kind !== "sticker") {
+      payload.caption = options?.caption
+      payload.parse_mode = options?.parseMode ?? "HTML"
+    }
+    return this.callApi<TelegramMessage>(method, payload)
+  }
+
+  sendMediaGroup(
+    chatId: string | number,
+    items: { kind: "photo" | "video"; fileId: string; caption?: string }[],
+    parseMode: "HTML" | "Markdown" = "HTML",
+  ) {
+    const media = items.map((it, i) => ({
+      type: it.kind,
+      media: it.fileId,
+      // Caption only on the first item so it shows under the album.
+      caption: i === 0 ? it.caption : undefined,
+      parse_mode: parseMode,
+    }))
+    return this.callApi<TelegramMessage[]>("sendMediaGroup", {
+      chat_id: chatId,
+      media,
+    })
+  }
+
+  /* --- Multipart upload to the CDN chat ------------------------------- */
+
+  // Uploads a raw file to the given (private CDN) chat. Telegram stores the
+  // bytes and returns a reusable file_id we persist. No public URL involved.
+  async uploadMedia(
+    chatId: string | number,
+    kind: TelegramMediaKind,
+    file: { data: Buffer | Uint8Array; filename: string; mimeType?: string },
+  ): Promise<{
+    ok: boolean
+    description?: string
+    media?: NormalizedMedia
+  }> {
+    if (!this.token) return { ok: false, description: "Token não configurado" }
+    const method = SEND_METHOD[kind]
+    const field = MEDIA_FIELD[kind]
+    try {
+      const form = new FormData()
+      form.append("chat_id", String(chatId))
+      const blob = new Blob([file.data as BlobPart], {
+        type: file.mimeType || "application/octet-stream",
+      })
+      form.append(field, blob, file.filename)
+      const res = await fetch(`${API_BASE}${this.token}/${method}`, {
+        method: "POST",
+        body: form,
+      })
+      const json = (await res.json()) as {
+        ok: boolean
+        result?: TelegramMessage
+        description?: string
+      }
+      if (!json.ok || !json.result) {
+        return { ok: false, description: json.description ?? "Falha no upload" }
+      }
+      const media = extractMedia(json.result, kind, file)
+      if (!media) return { ok: false, description: "Mídia não reconhecida" }
+      return { ok: true, media }
+    } catch (err) {
+      return {
+        ok: false,
+        description: err instanceof Error ? err.message : "Erro de rede",
+      }
+    }
+  }
+}
+
+/* --- Media helpers ---------------------------------------------------- */
+
+export type TelegramMediaKind =
+  | "photo"
+  | "video"
+  | "animation"
+  | "document"
+  | "audio"
+  | "sticker"
+
+const SEND_METHOD: Record<TelegramMediaKind, string> = {
+  photo: "sendPhoto",
+  video: "sendVideo",
+  animation: "sendAnimation",
+  document: "sendDocument",
+  audio: "sendAudio",
+  sticker: "sendSticker",
+}
+
+const MEDIA_FIELD: Record<TelegramMediaKind, string> = {
+  photo: "photo",
+  video: "video",
+  animation: "animation",
+  document: "document",
+  audio: "audio",
+  sticker: "sticker",
+}
+
+export type NormalizedMedia = {
+  fileId: string
+  fileUniqueId: string
+  type: TelegramMediaKind
+  fileName?: string
+  mimeType?: string
+  fileSize?: number
+  width?: number
+  height?: number
+  duration?: number
+  thumbFileId?: string
+}
+
+// Pulls the file_id + metadata out of a sent Message, per media kind.
+function extractMedia(
+  msg: TelegramMessage,
+  kind: TelegramMediaKind,
+  file: { filename: string; mimeType?: string },
+): NormalizedMedia | null {
+  if (kind === "photo" && msg.photo?.length) {
+    const largest = msg.photo[msg.photo.length - 1]
+    return {
+      fileId: largest.file_id,
+      fileUniqueId: largest.file_unique_id,
+      type: "photo",
+      fileName: file.filename,
+      mimeType: file.mimeType,
+      fileSize: largest.file_size,
+      width: largest.width,
+      height: largest.height,
+    }
+  }
+  const obj =
+    kind === "video"
+      ? msg.video
+      : kind === "animation"
+        ? msg.animation
+        : kind === "document"
+          ? msg.document
+          : kind === "audio"
+            ? msg.audio
+            : kind === "sticker"
+              ? msg.sticker
+              : undefined
+  if (!obj) return null
+  return {
+    fileId: obj.file_id,
+    fileUniqueId: obj.file_unique_id,
+    type: kind,
+    fileName: obj.file_name ?? file.filename,
+    mimeType: obj.mime_type ?? file.mimeType,
+    fileSize: obj.file_size,
+    width: obj.width,
+    height: obj.height,
+    duration: obj.duration,
+    thumbFileId: obj.thumb?.file_id,
+  }
 }
 
 // Minimal shapes of the Telegram update payload we consume.
@@ -134,4 +329,62 @@ export type TelegramUpdate = {
     message?: { message_id: number; chat: { id: number } }
     data?: string
   }
+}
+
+export type TelegramUser = {
+  id: number
+  is_bot: boolean
+  first_name: string
+  username?: string
+}
+
+export type TelegramChatInfo = {
+  id: number
+  type: "private" | "group" | "supergroup" | "channel"
+  title?: string
+  username?: string
+  description?: string
+}
+
+export type TelegramChatMember = {
+  status:
+    | "creator"
+    | "administrator"
+    | "member"
+    | "restricted"
+    | "left"
+    | "kicked"
+  can_post_messages?: boolean
+  can_edit_messages?: boolean
+  can_delete_messages?: boolean
+  can_manage_chat?: boolean
+}
+
+type TelegramFileObject = {
+  file_id: string
+  file_unique_id: string
+  file_name?: string
+  mime_type?: string
+  file_size?: number
+  width?: number
+  height?: number
+  duration?: number
+  thumb?: { file_id: string; file_unique_id: string }
+}
+
+export type TelegramMessage = {
+  message_id: number
+  chat: { id: number }
+  photo?: Array<{
+    file_id: string
+    file_unique_id: string
+    width: number
+    height: number
+    file_size?: number
+  }>
+  video?: TelegramFileObject
+  animation?: TelegramFileObject
+  document?: TelegramFileObject
+  audio?: TelegramFileObject
+  sticker?: TelegramFileObject
 }
