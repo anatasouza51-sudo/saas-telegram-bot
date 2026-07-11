@@ -9,6 +9,8 @@ import {
 import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+import { escapeHtml } from "@/lib/security"
 
 // Everything the router needs for one store, loaded once per update.
 type StoreContext = {
@@ -118,9 +120,9 @@ async function showProduct(ctx: StoreContext, chatId: number, productId: number)
 
   const inStock = Number(available[0]?.count ?? 0) > 0
   const caption = [
-    `<b>${product.name}</b>`,
+    `<b>${escapeHtml(product.name)}</b>`,
     ``,
-    product.description ?? "",
+    escapeHtml(product.description ?? ""),
     ``,
     `💰 <b>${formatCurrency(Number(product.price))}</b>`,
     inStock ? "✅ Em estoque" : "⛔ Esgotado",
@@ -167,12 +169,13 @@ async function startPurchase(
     })
     .returning()
 
+  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
   const charge = await createCharge(ctx.veopag, {
     amount: Number(product.price),
     externalId: String(order.id),
     description: product.name,
     customerName: customer.name ?? undefined,
-    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}`,
+    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
     payer: {
       name: customer.name ?? customer.username ?? "Cliente",
     },
@@ -181,7 +184,7 @@ async function startPurchase(
   if (!charge.ok) {
     await ctx.tg.sendMessage(
       chatId,
-      `⚠️ Não foi possível gerar o pagamento agora.\n<code>${charge.error}</code>\n\nO pedido #${order.id} ficou pendente.`,
+      `⚠️ Não foi possível gerar o pagamento agora.\n<code>${escapeHtml(charge.error)}</code>\n\nO pedido #${order.id} ficou pendente.`,
     )
     return
   }
@@ -193,13 +196,13 @@ async function startPurchase(
 
   const lines = [
     `<b>Pedido #${order.id}</b> criado!`,
-    `Produto: <b>${product.name}</b>`,
+    `Produto: <b>${escapeHtml(product.name)}</b>`,
     `Valor: <b>${formatCurrency(Number(product.price))}</b>`,
     ``,
     `Pague via PIX para receber o produto automaticamente:`,
   ]
   if (charge.pixCode) {
-    lines.push("", `<code>${charge.pixCode}</code>`)
+    lines.push("", `<code>${escapeHtml(charge.pixCode)}</code>`)
   }
 
   const keyboard = charge.checkoutUrl
@@ -235,7 +238,7 @@ async function showHistory(ctx: StoreContext, chatId: number, telegramId: string
     ``,
     ...rows.map(
       (o) =>
-        `#${o.id} — ${o.productName} — ${formatCurrency(Number(o.amount))} — ${
+        `#${o.id} — ${escapeHtml(o.productName)} — ${formatCurrency(Number(o.amount))} — ${
           o.deliveryStatus === "delivered" ? "entregue ✅" : o.paymentStatus
         }`,
     ),
@@ -280,7 +283,8 @@ async function handleAdminCommand(ctx: StoreContext, chatId: number, command: st
         [
           `<b>📦 Produtos</b>`,
           ...rows.map(
-            (p) => `#${p.id} ${p.name} — ${formatCurrency(Number(p.price))} (${p.status})`,
+            (p) =>
+              `#${p.id} ${escapeHtml(p.name)} — ${formatCurrency(Number(p.price))} (${p.status})`,
           ),
         ].join("\n"),
       )
@@ -298,7 +302,8 @@ async function handleAdminCommand(ctx: StoreContext, chatId: number, command: st
         [
           `<b>🧾 Últimos pedidos</b>`,
           ...rows.map(
-            (o) => `#${o.id} ${o.productName} — ${o.paymentStatus}/${o.deliveryStatus}`,
+            (o) =>
+              `#${o.id} ${escapeHtml(o.productName)} — ${o.paymentStatus}/${o.deliveryStatus}`,
           ),
         ].join("\n"),
       )
@@ -375,7 +380,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   // Customer flows.
   if (text === "/start") {
     await upsertCustomer(ctx.storeId, msg.from)
-    const firstName = msg.from.first_name ?? "cliente"
+    const firstName = escapeHtml(msg.from.first_name ?? "cliente")
     // Store owners can customize this via the panel; {nome} is replaced with
     // the customer's first name. Falls back to a friendly default.
     const welcome = (

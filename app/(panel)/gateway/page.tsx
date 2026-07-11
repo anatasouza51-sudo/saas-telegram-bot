@@ -10,6 +10,7 @@ import {
 import { GatewayForm } from "@/components/settings/gateway-form"
 import { getSettings } from "@/app/actions/settings"
 import { getAppBaseUrl } from "@/lib/urls"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 
 export default async function GatewayPage() {
   const user = await requireCapability("gateway.manage")
@@ -17,7 +18,12 @@ export default async function GatewayPage() {
     "veopag.publicKey",
     "veopag.secretKey",
   ])
-  const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}`
+  // The secret key is never sent to the client — only whether one is stored.
+  const hasSecretKey = Boolean(saved["veopag.secretKey"])
+  // The authenticated owner needs their own signed webhook URL to paste into
+  // VeoPag. The embedded secret authenticates inbound callbacks.
+  const webhookSecret = await getOrCreateWebhookSecret(user.storeId, "veopag")
+  const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}/${webhookSecret}`
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
