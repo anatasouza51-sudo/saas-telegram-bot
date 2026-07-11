@@ -30,28 +30,6 @@ export const auth = betterAuth({
   trustedOrigins,
   emailAndPassword: {
     enabled: true,
-    // Better Auth hashes passwords with scrypt by default (memory-hard, salted).
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
-  },
-  // Sessions expire after 7 days and are refreshed at most once per day.
-  session: {
-    expiresIn: 60 * 60 * 24 * 7,
-    updateAge: 60 * 60 * 24,
-  },
-  // Brute-force protection. Auth endpoints get a tighter budget than the
-  // default; the login/signup routes are limited to a few attempts per minute
-  // per IP. Counters are persisted in the database (survives serverless).
-  rateLimit: {
-    enabled: true,
-    window: 60,
-    max: 100,
-    storage: "database",
-    customRules: {
-      "/sign-in/email": { window: 60, max: 5 },
-      "/sign-up/email": { window: 60, max: 5 },
-      "/forget-password": { window: 60, max: 3 },
-    },
   },
   user: {
     additionalFields: {

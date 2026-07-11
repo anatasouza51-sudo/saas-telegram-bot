@@ -9,7 +9,6 @@ import {
 import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
-import { webhookToken } from "@/lib/webhook-security"
 
 // Everything the router needs for one store, loaded once per update.
 type StoreContext = {
@@ -173,10 +172,7 @@ async function startPurchase(
     externalId: String(order.id),
     description: product.name,
     customerName: customer.name ?? undefined,
-    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}?token=${webhookToken(
-      "veopag",
-      ctx.storeId,
-    )}`,
+    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}`,
     payer: {
       name: customer.name ?? customer.username ?? "Cliente",
     },
