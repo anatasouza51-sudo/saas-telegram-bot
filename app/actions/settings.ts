@@ -1,51 +1,12 @@
 "use server"
 
-import { db } from "@/lib/db"
-import { settings } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
-import { and, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-
-// Non-secret settings live in the DB, scoped per store. Secrets (tokens/keys)
-// live in env vars.
-export async function getSettings(storeId: string, keys: string[]) {
-  if (keys.length === 0) return {}
-  const rows = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.ownerId, storeId), inArray(settings.key, keys)))
-  const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
-  return map
-}
-
-export async function getSetting(
-  storeId: string,
-  key: string,
-): Promise<string | null> {
-  const [row] = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.ownerId, storeId), eq(settings.key, key)))
-    .limit(1)
-  return row?.value ?? null
-}
-
-export async function saveSetting(storeId: string, key: string, value: string) {
-  // Atomic upsert backed by the unique index on (ownerId, key). Avoids the
-  // read-then-write race that could create duplicate rows under concurrency.
-  await db
-    .insert(settings)
-    .values({ ownerId: storeId, key, value })
-    .onConflictDoUpdate({
-      target: [settings.ownerId, settings.key],
-      set: { value, updatedAt: new Date() },
-    })
-}
+import { getSetting, saveSetting } from "@/lib/settings"
 
 export async function saveTelegramSettings(input: {
   botToken?: string

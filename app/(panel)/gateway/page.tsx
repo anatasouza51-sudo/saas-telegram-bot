@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { GatewayForm } from "@/components/settings/gateway-form"
-import { getSettings } from "@/app/actions/settings"
+import { getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 
@@ -44,7 +44,7 @@ export default async function GatewayPage() {
           <GatewayForm
             initial={{
               publicKey: saved["veopag.publicKey"] ?? "",
-              secretKey: saved["veopag.secretKey"] ?? "",
+              hasSecretKey,
             }}
             webhookUrl={webhookUrl}
           />

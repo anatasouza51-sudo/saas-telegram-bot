@@ -13,11 +13,11 @@ export function TelegramForm({
   webhookUrl,
   botConfigured,
 }: {
-  initial: { botToken: string; adminIds: string }
+  initial: { hasBotToken: boolean; adminIds: string }
   webhookUrl: string
   botConfigured: boolean
 }) {
-  const [botToken, setBotToken] = useState(initial.botToken)
+  const [botToken, setBotToken] = useState("")
   const [adminIds, setAdminIds] = useState(initial.adminIds)
   const [pending, startTransition] = useTransition()
   const [registering, startRegister] = useTransition()
@@ -26,7 +26,12 @@ export function TelegramForm({
   function submit() {
     startTransition(async () => {
       try {
-        await saveTelegramSettings({ botToken, adminIds })
+        // Empty token means "keep the one already stored on the server".
+        await saveTelegramSettings({
+          botToken: botToken.trim() || undefined,
+          adminIds,
+        })
+        setBotToken("")
         toast.success("Configurações do Telegram salvas")
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
@@ -58,12 +63,20 @@ export function TelegramForm({
         <Input
           id="tg-token"
           type="password"
-          placeholder="123456:ABC-DEF..."
+          autoComplete="new-password"
+          placeholder={
+            initial.hasBotToken
+              ? "•••••••• (salvo — preencha para alterar)"
+              : "123456:ABC-DEF..."
+          }
           value={botToken}
           onChange={(e) => setBotToken(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
           Token gerado pelo @BotFather. Cada loja usa o seu próprio bot.
+          {initial.hasBotToken
+            ? " Deixe em branco para manter o token atual."
+            : ""}
         </p>
       </div>
 
