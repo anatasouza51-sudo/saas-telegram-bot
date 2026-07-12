@@ -391,3 +391,87 @@ export async function syncKnownChats(
 
   return result
 }
+
+export type ManualAddResult =
+  | { ok: true; title: string; type: string; isAdmin: boolean }
+  | { ok: false; error: string }
+
+// Manually registers a chat by its id or @username. This does NOT trust the
+// admin's word — it resolves the chat through the Bot API and verifies the bot
+// is actually a member/admin there. This is the definitive way to register a
+// group the bot already joined, since Telegram offers no "list my chats" API
+// and webhook events only fire on changes.
+export async function addChatManually(
+  storeId: string,
+  botId: number,
+  client: TelegramClient,
+  rawInput: string,
+): Promise<ManualAddResult> {
+  const input = rawInput.trim()
+  if (!input) return { ok: false, error: "Informe o ID ou @username do chat." }
+
+  // Accept: -1001234567890, 1234567890, @canal, https://t.me/canal, t.me/canal.
+  let identifier = input
+  const tmeMatch = input.match(/(?:t\.me\/)(@?[\w+]+)/i)
+  if (tmeMatch) identifier = tmeMatch[1]
+  if (/^[a-zA-Z]/.test(identifier) && !identifier.startsWith("@")) {
+    identifier = `@${identifier}`
+  }
+
+  const chatRes = await client.getChat(identifier)
+  if (!chatRes.ok || !chatRes.result) {
+    return {
+      ok: false,
+      error:
+        "Não foi possível acessar esse chat. Verifique o ID/@username e se o bot está no grupo.",
+    }
+  }
+
+  const info = chatRes.result
+  if (!isValidChatRow(info.type, info.id, botId)) {
+    return {
+      ok: false,
+      error:
+        "Só é possível adicionar grupos, supergrupos ou canais — nunca chats privados ou o próprio bot.",
+    }
+  }
+
+  const memberRes = await client.getChatMember(info.id, botId)
+  if (!memberRes.ok || !memberRes.result) {
+    return {
+      ok: false,
+      error:
+        "O bot não está nesse chat. Adicione o bot ao grupo/canal antes de registrá-lo.",
+    }
+  }
+
+  const member = memberRes.result
+  if (!isPresent(member.status)) {
+    return {
+      ok: false,
+      error:
+        "O bot foi removido desse chat. Adicione-o novamente para registrá-lo.",
+    }
+  }
+
+  let memberCount: number | null = null
+  const countRes = await client.getChatMemberCount(info.id)
+  if (countRes.ok && typeof countRes.result === "number") {
+    memberCount = countRes.result
+  }
+
+  await upsertChat({
+    storeId,
+    chatId: String(info.id),
+    title: info.title ?? info.username ?? String(info.id),
+    username: info.username ?? null,
+    type: info.type,
+    member,
+    memberCount,
+    botId,
+  })
+
+  const isAdmin =
+    member.status === "administrator" || member.status === "creator"
+  return { ok: true, title: info.title ?? String(info.id), type: info.type, isAdmin }
+}

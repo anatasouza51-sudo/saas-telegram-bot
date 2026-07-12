@@ -10,6 +10,7 @@ import {
   syncKnownChats,
   purgeInvalidChats,
   isRealChatType,
+  addChatManually,
 } from "@/lib/tg/discovery"
 import {
   isExclusivePurpose,
@@ -214,6 +215,35 @@ export async function setChatPurpose(id: number, purpose: string) {
     category: "settings",
   })
   revalidatePath("/channels")
+}
+
+// Manual registration fallback: the admin pastes a Chat ID or @username and we
+// verify the bot's presence through the API before saving. Works even when no
+// webhook event has fired for an already-joined group.
+export async function addChannelManually(
+  rawInput: string,
+): Promise<{ ok: boolean; error?: string; title?: string }> {
+  const user = await requireCapability("posts.manage")
+  const { client } = await getStoreTelegram(user.storeId)
+  if (!client) {
+    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
+  }
+  const me = await client.getMe()
+  if (!me.ok || !me.result) {
+    return { ok: false, error: "Token inválido ou API indisponível." }
+  }
+
+  const res = await addChatManually(user.storeId, me.result.id, client, rawInput)
+  if (!res.ok) return { ok: false, error: res.error }
+
+  await logActivity({
+    storeId: user.storeId,
+    actor: user,
+    action: `Adicionou manualmente "${res.title}"`,
+    category: "settings",
+  })
+  revalidatePath("/channels")
+  return { ok: true, title: res.title }
 }
 
 export type TelegramDiagnostics = {
