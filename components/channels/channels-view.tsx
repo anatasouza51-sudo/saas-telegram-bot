@@ -22,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -492,28 +493,32 @@ export function ChannelsView({
                         }
                       />
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Definir função</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          disabled={pending}
-                          onClick={() => handlePurpose(c.id, "audience")}
-                        >
-                          <Users className="mr-2 h-4 w-4" />
-                          Audiência
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={pending}
-                          onClick={() => handlePurpose(c.id, "cdn")}
-                        >
-                          <Database className="mr-2 h-4 w-4" />
-                          CDN Privado
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={pending}
-                          onClick={() => handlePurpose(c.id, "management")}
-                        >
-                          <ShieldAlert className="mr-2 h-4 w-4" />
-                          Gerenciamento
-                        </DropdownMenuItem>
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>
+                            Definir função
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={pending}
+                            onClick={() => handlePurpose(c.id, "audience")}
+                          >
+                            <Users className="mr-2 h-4 w-4" />
+                            Audiência
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={pending}
+                            onClick={() => handlePurpose(c.id, "cdn")}
+                          >
+                            <Database className="mr-2 h-4 w-4" />
+                            CDN Privado
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={pending}
+                            onClick={() => handlePurpose(c.id, "management")}
+                          >
+                            <ShieldAlert className="mr-2 h-4 w-4" />
+                            Gerenciamento
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           disabled={syncing}
