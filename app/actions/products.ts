@@ -5,7 +5,7 @@ import { products, categories, stockItems } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { runAutomations } from "@/lib/tg/automations"
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export type ProductInput = {
@@ -17,6 +17,8 @@ export type ProductInput = {
   status?: "active" | "inactive"
   deliveryType?: "stock" | "manual"
   lowStockThreshold?: number
+  // Display order within its category (ascending). Ties break by price ASC.
+  position?: number
 }
 
 export async function listProducts(opts?: {
@@ -38,6 +40,7 @@ export async function listProducts(opts?: {
       status: products.status,
       deliveryType: products.deliveryType,
       lowStockThreshold: products.lowStockThreshold,
+      position: products.position,
       createdAt: products.createdAt,
       stockAvailable: sql<number>`(
         SELECT COUNT(*)::int FROM ${stockItems}
@@ -87,6 +90,7 @@ export async function createProduct(input: ProductInput) {
       status: input.status ?? "active",
       deliveryType: input.deliveryType ?? "stock",
       lowStockThreshold: input.lowStockThreshold ?? 5,
+      position: input.position ?? 0,
     })
     .returning()
   await logActivity({
@@ -119,6 +123,7 @@ export async function updateProduct(id: number, input: ProductInput) {
       status: input.status ?? "active",
       deliveryType: input.deliveryType ?? "stock",
       lowStockThreshold: input.lowStockThreshold ?? 5,
+      position: input.position ?? 0,
       updatedAt: new Date(),
     })
     .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
@@ -210,10 +215,17 @@ export async function deleteProduct(id: number) {
 export async function listCategories() {
   const { storeId } = await requireCapability("products.manage")
   return db
-    .select()
+    .select({
+      id: categories.id,
+      name: categories.name,
+      emoji: categories.emoji,
+      description: categories.description,
+      status: categories.status,
+      position: categories.position,
+    })
     .from(categories)
     .where(eq(categories.ownerId, storeId))
-    .orderBy(desc(categories.createdAt))
+    .orderBy(asc(categories.position), asc(categories.name))
 }
 
 export async function createCategory(name: string, description?: string) {

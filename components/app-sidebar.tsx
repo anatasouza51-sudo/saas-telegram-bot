@@ -32,6 +32,7 @@ import {
   Radio,
   Images,
   Zap,
+  FolderTree,
   Bot,
   type LucideIcon,
 } from "lucide-react"
@@ -53,6 +54,7 @@ const ICONS: Record<string, LucideIcon> = {
   Radio,
   Images,
   Zap,
+  FolderTree,
 }
 
 export function AppSidebar({
