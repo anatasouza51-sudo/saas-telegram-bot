@@ -2,8 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import type { NavItem } from "@/lib/nav"
 import {
@@ -53,8 +51,6 @@ export function SectionTabs({
   return (
     <header className="sticky top-0 z-10 flex flex-col gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur md:px-6 md:py-4">
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="md:hidden" />
-        <Separator orientation="vertical" className="h-6 md:hidden" />
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {section}
