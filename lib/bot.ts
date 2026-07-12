@@ -702,6 +702,12 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     await ctx.tg.answerCallbackQuery(cq.id)
     if (!chatId) return
 
+    // The shop/catalog is a PRIVATE-chat experience only. If inline buttons
+    // from an old shop message get clicked inside a group/supergroup/channel,
+    // ignore them so the product flow never renders in a group.
+    const cbChatType = cq.message?.chat.type
+    if (cbChatType && cbChatType !== "private") return
+
     if (data === "noop") return
 
     if (data === "home" || data.startsWith("home:")) {
@@ -731,6 +737,10 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
 
   const msg = update.message
   if (!msg?.text || !msg.from) return
+  // Shop commands (/start, /catalogo, /suporte, etc.) and admin commands are
+  // private-chat only. Group/supergroup messages already returned above; this
+  // guard ensures nothing with a "/" ever triggers a reply outside private DMs.
+  if (msg.chat.type !== "private") return
   const chatId = msg.chat.id
   const text = msg.text.trim()
   const senderId = String(msg.from.id)
