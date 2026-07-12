@@ -9,8 +9,8 @@ import {
 } from "@/lib/telegram"
 import { and, eq } from "drizzle-orm"
 import {
-  ALL_PERMISSION_KEYS,
-  REQUIRED_PERMISSIONS,
+  requiredPermissionsForType,
+  relevantPermissionsForType,
 } from "@/lib/tg/permissions"
 import { saveSetting, getSetting } from "@/lib/settings"
 import { TG_KEYS } from "@/lib/tg/config"
@@ -74,26 +74,36 @@ export function isValidChatRow(
 }
 
 // Derives the list of admin permissions the bot currently HAS from a member
-// record. For channels, Telegram only reports the messaging-related flags.
-export function grantedPermissions(member: TelegramChatMember): string[] {
+// record, scoped to the permissions that actually apply to the chat type
+// (channels expose posting/editing flags; groups do not).
+export function grantedPermissions(
+  member: TelegramChatMember,
+  type?: string | null,
+): string[] {
+  const relevant = relevantPermissionsForType(type)
   if (member.status === "creator") {
-    // Creator implicitly has every permission.
-    return [...ALL_PERMISSION_KEYS]
+    // Creator implicitly has every relevant permission.
+    return [...relevant]
   }
   if (member.status !== "administrator") return []
-  return ALL_PERMISSION_KEYS.filter(
+  return relevant.filter(
     (key) => (member as Record<string, unknown>)[key] === true,
   )
 }
 
-// Required permissions the bot is missing (empty when fully set up).
-export function missingPermissions(member: TelegramChatMember): string[] {
+// Required permissions the bot is missing (empty when fully set up). Scoped by
+// chat type so channel-only flags never count against a group.
+export function missingPermissions(
+  member: TelegramChatMember,
+  type?: string | null,
+): string[] {
+  const required = requiredPermissionsForType(type)
   if (member.status === "creator") return []
   if (member.status !== "administrator") {
     // Not an admin at all -> everything required is missing.
-    return [...REQUIRED_PERMISSIONS]
+    return [...required]
   }
-  return REQUIRED_PERMISSIONS.filter(
+  return required.filter(
     (key) => (member as Record<string, unknown>)[key] !== true,
   )
 }
@@ -104,12 +114,15 @@ export function isPresent(status: TelegramChatMember["status"]): boolean {
 }
 
 // Computes the panel status badge from a member record.
-export function computeStatus(member: TelegramChatMember): ChatStatus {
+export function computeStatus(
+  member: TelegramChatMember,
+  type?: string | null,
+): ChatStatus {
   if (!isPresent(member.status)) return "removed"
   const isAdmin =
     member.status === "administrator" || member.status === "creator"
   if (!isAdmin) return "member"
-  return missingPermissions(member).length > 0 ? "insufficient" : "online"
+  return missingPermissions(member, type).length > 0 ? "insufficient" : "online"
 }
 
 type UpsertInput = {
@@ -137,8 +150,8 @@ async function upsertChat(input: UpsertInput) {
   const isAdmin =
     input.member.status === "administrator" ||
     input.member.status === "creator"
-  const missing = missingPermissions(input.member)
-  const granted = grantedPermissions(input.member)
+  const missing = missingPermissions(input.member, input.type)
+  const granted = grantedPermissions(input.member, input.type)
 
   const values = {
     ownerId: input.storeId,
