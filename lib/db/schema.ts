@@ -208,8 +208,12 @@ export const telegramChats = pgTable(
     botIsAdmin: boolean("botIsAdmin").notNull().default(false),
     // JSON array of missing admin permissions when the bot is not fully set up
     missingPermissions: text("missingPermissions"),
+    // JSON array of admin permissions the bot currently holds in the chat
+    grantedPermissions: text("grantedPermissions"),
     // audience | cdn | management
     purpose: text("purpose").notNull().default("audience"),
+    // Cached member count from getChatMemberCount (null when API forbids it).
+    memberCount: integer("memberCount"),
     lastSyncedAt: timestamp("lastSyncedAt"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),

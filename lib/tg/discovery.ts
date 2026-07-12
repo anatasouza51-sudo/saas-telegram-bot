@@ -1,0 +1,233 @@
+import "server-only"
+import { db } from "@/lib/db"
+import { telegramChats } from "@/lib/db/schema"
+import {
+  TelegramClient,
+  type TelegramChatMember,
+  type TelegramChatMemberUpdated,
+} from "@/lib/telegram"
+import { and, eq } from "drizzle-orm"
+import {
+  ALL_PERMISSION_KEYS,
+  REQUIRED_PERMISSIONS,
+} from "@/lib/tg/permissions"
+
+export type ChatStatus =
+  | "online" // bot present, admin, all required permissions
+  | "member" // bot present but only a regular member
+  | "insufficient" // bot present (admin) but missing required permissions
+  | "removed" // bot was kicked/left
+
+// Derives the list of admin permissions the bot currently HAS from a member
+// record. For channels, Telegram only reports the messaging-related flags.
+export function grantedPermissions(member: TelegramChatMember): string[] {
+  if (member.status === "creator") {
+    // Creator implicitly has every permission.
+    return [...ALL_PERMISSION_KEYS]
+  }
+  if (member.status !== "administrator") return []
+  return ALL_PERMISSION_KEYS.filter(
+    (key) => (member as Record<string, unknown>)[key] === true,
+  )
+}
+
+// Required permissions the bot is missing (empty when fully set up).
+export function missingPermissions(member: TelegramChatMember): string[] {
+  if (member.status === "creator") return []
+  if (member.status !== "administrator") {
+    // Not an admin at all -> everything required is missing.
+    return [...REQUIRED_PERMISSIONS]
+  }
+  return REQUIRED_PERMISSIONS.filter(
+    (key) => (member as Record<string, unknown>)[key] !== true,
+  )
+}
+
+// Whether a membership status means the bot is still in the chat.
+export function isPresent(status: TelegramChatMember["status"]): boolean {
+  return status !== "left" && status !== "kicked"
+}
+
+// Computes the panel status badge from a member record.
+export function computeStatus(member: TelegramChatMember): ChatStatus {
+  if (!isPresent(member.status)) return "removed"
+  const isAdmin =
+    member.status === "administrator" || member.status === "creator"
+  if (!isAdmin) return "member"
+  return missingPermissions(member).length > 0 ? "insufficient" : "online"
+}
+
+type UpsertInput = {
+  storeId: string
+  chatId: string
+  title: string
+  username: string | null
+  type: string
+  member: TelegramChatMember
+  memberCount?: number | null
+}
+
+// Inserts or updates a chat row from freshly resolved Telegram data. The
+// (ownerId, chatId) unique index guarantees we never create duplicates, so the
+// same chat re-detected simply refreshes its data.
+async function upsertChat(input: UpsertInput) {
+  const present = isPresent(input.member.status)
+  const isAdmin =
+    input.member.status === "administrator" ||
+    input.member.status === "creator"
+  const missing = missingPermissions(input.member)
+  const granted = grantedPermissions(input.member)
+
+  const values = {
+    ownerId: input.storeId,
+    title: input.title,
+    chatId: input.chatId,
+    username: input.username,
+    type: input.type,
+    status: present ? ("active" as const) : ("inactive" as const),
+    botIsAdmin: isAdmin,
+    missingPermissions: JSON.stringify(missing),
+    grantedPermissions: JSON.stringify(granted),
+    memberCount: input.memberCount ?? null,
+    lastSyncedAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  await db
+    .insert(telegramChats)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [telegramChats.ownerId, telegramChats.chatId],
+      // Never overwrite `purpose` here — it's set explicitly by the admin.
+      set: {
+        title: values.title,
+        username: values.username,
+        type: values.type,
+        status: values.status,
+        botIsAdmin: values.botIsAdmin,
+        missingPermissions: values.missingPermissions,
+        grantedPermissions: values.grantedPermissions,
+        memberCount: values.memberCount,
+        lastSyncedAt: values.lastSyncedAt,
+        updatedAt: values.updatedAt,
+      },
+    })
+}
+
+// Handles a my_chat_member update: the bot was added, removed, promoted, or
+// demoted somewhere. We persist the new state immediately so the panel reflects
+// it without any manual action.
+export async function handleMyChatMember(
+  storeId: string,
+  update: TelegramChatMemberUpdated,
+  client: TelegramClient,
+): Promise<void> {
+  const chat = update.chat
+  // Only groups, supergroups and channels are destinations — ignore private.
+  if (chat.type === "private") return
+
+  const member = update.new_chat_member
+  let memberCount: number | null = null
+  // Member count is best-effort: channels and some groups forbid it.
+  if (isPresent(member.status)) {
+    const countRes = await client.getChatMemberCount(chat.id)
+    if (countRes.ok && typeof countRes.result === "number") {
+      memberCount = countRes.result
+    }
+  }
+
+  await upsertChat({
+    storeId,
+    chatId: String(chat.id),
+    title: chat.title ?? chat.username ?? String(chat.id),
+    username: chat.username ?? null,
+    type: chat.type,
+    member,
+    memberCount,
+  })
+}
+
+export type SyncResult = {
+  total: number
+  updated: number
+  removed: number
+  errors: number
+}
+
+// Revalidates every chat we already know about for a store. Telegram has no
+// "list my chats" endpoint, so this refreshes the known set: title, username,
+// admin status, permissions and member count. Chats where the bot is gone are
+// marked as removed.
+export async function syncKnownChats(
+  storeId: string,
+  botId: number,
+  client: TelegramClient,
+): Promise<SyncResult> {
+  const rows = await db
+    .select()
+    .from(telegramChats)
+    .where(eq(telegramChats.ownerId, storeId))
+
+  const result: SyncResult = {
+    total: rows.length,
+    updated: 0,
+    removed: 0,
+    errors: 0,
+  }
+
+  for (const row of rows) {
+    try {
+      const [chatRes, memberRes] = await Promise.all([
+        client.getChat(row.chatId),
+        client.getChatMember(row.chatId, botId),
+      ])
+
+      // If the chat itself can't be fetched, the bot most likely lost access.
+      if (!chatRes.ok || !chatRes.result || !memberRes.ok || !memberRes.result) {
+        await db
+          .update(telegramChats)
+          .set({
+            status: "inactive",
+            botIsAdmin: false,
+            lastSyncedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(telegramChats.ownerId, storeId),
+              eq(telegramChats.chatId, row.chatId),
+            ),
+          )
+        result.removed += 1
+        continue
+      }
+
+      const info = chatRes.result
+      const member = memberRes.result
+      let memberCount: number | null = null
+      if (isPresent(member.status)) {
+        const countRes = await client.getChatMemberCount(row.chatId)
+        if (countRes.ok && typeof countRes.result === "number") {
+          memberCount = countRes.result
+        }
+      }
+
+      await upsertChat({
+        storeId,
+        chatId: row.chatId,
+        title: info.title ?? info.username ?? row.chatId,
+        username: info.username ?? null,
+        type: info.type,
+        member,
+        memberCount,
+      })
+
+      if (isPresent(member.status)) result.updated += 1
+      else result.removed += 1
+    } catch {
+      result.errors += 1
+    }
+  }
+
+  return result
+}
