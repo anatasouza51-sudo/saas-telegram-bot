@@ -19,6 +19,7 @@ import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
+import { handleMyChatMember } from "@/lib/tg/discovery"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -632,6 +633,14 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   const ctx = await loadStoreContext(storeId)
   if (!ctx) {
     // Store has no bot token configured; nothing we can send.
+    return
+  }
+
+  // Auto-detection: the bot was added/removed/promoted/demoted in a chat.
+  // Persist the new state so "Grupos & Canais" updates with zero manual input.
+  const memberUpdate = update.my_chat_member ?? update.chat_member
+  if (memberUpdate) {
+    await handleMyChatMember(storeId, memberUpdate, ctx.tg)
     return
   }
 

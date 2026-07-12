@@ -6,7 +6,7 @@ import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { getStoreTelegram, TG_KEYS } from "@/lib/tg/config"
-import { validateChat } from "@/lib/tg/validate"
+import { syncKnownChats } from "@/lib/tg/discovery"
 import { saveSetting } from "@/lib/settings"
 import { revalidatePath } from "next/cache"
 
@@ -25,135 +25,65 @@ async function syncPurposeSettings(storeId: string) {
   await saveSetting(storeId, TG_KEYS.managementChatId, mgmt?.chatId ?? "")
 }
 
-export type ChannelInput = {
-  title: string
-  chatId: string
-  username?: string
-  type: "group" | "supergroup" | "channel"
-  description?: string
-  purpose: "audience" | "cdn" | "management"
-}
-
+// Lists every chat auto-detected for the current store. There is no manual
+// registration: rows only exist because the bot was added to those chats.
 export async function listChannels() {
   const { storeId } = await requireCapability("posts.manage")
   return db
     .select()
     .from(telegramChats)
     .where(eq(telegramChats.ownerId, storeId))
-    .orderBy(desc(telegramChats.createdAt))
+    .orderBy(desc(telegramChats.updatedAt))
 }
 
-// Creates a chat and immediately validates the bot's admin status against it.
-export async function addChannel(input: ChannelInput) {
+// "Sincronizar Telegram" button: re-queries every known chat via the Bot API
+// and refreshes name, username, admin status, permissions and member count.
+// Telegram exposes no endpoint to list all chats, so this revalidates the set
+// already discovered through my_chat_member events.
+export async function syncAllChannels(): Promise<{
+  ok: boolean
+  error?: string
+  updated?: number
+  removed?: number
+  total?: number
+}> {
   const user = await requireCapability("posts.manage")
-  const chatId = input.chatId.trim()
-  if (!chatId) throw new Error("Chat ID é obrigatório.")
-
   const { client } = await getStoreTelegram(user.storeId)
-  let botIsAdmin = false
-  let missing: string[] = []
-  let resolvedTitle = input.title.trim()
-  let resolvedType = input.type
-  let resolvedUsername = input.username?.trim() || null
-
-  if (client) {
-    const v = await validateChat(client, chatId)
-    botIsAdmin = v.botIsAdmin
-    missing = v.missingPermissions
-    if (v.title) resolvedTitle = resolvedTitle || v.title
-    if (v.type) resolvedType = v.type as ChannelInput["type"]
-    if (v.username) resolvedUsername = v.username
+  if (!client) {
+    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
   }
 
-  const [row] = await db
-    .insert(telegramChats)
-    .values({
-      ownerId: user.storeId,
-      title: resolvedTitle || chatId,
-      chatId,
-      username: resolvedUsername,
-      type: resolvedType,
-      description: input.description?.trim() || null,
-      purpose: input.purpose,
-      botIsAdmin,
-      missingPermissions: missing.length ? JSON.stringify(missing) : null,
-      status: "active",
-      lastSyncedAt: client ? new Date() : null,
-    })
-    .onConflictDoUpdate({
-      target: [telegramChats.ownerId, telegramChats.chatId],
-      set: {
-        title: resolvedTitle || chatId,
-        type: resolvedType,
-        purpose: input.purpose,
-        botIsAdmin,
-        missingPermissions: missing.length ? JSON.stringify(missing) : null,
-        updatedAt: new Date(),
-        lastSyncedAt: client ? new Date() : null,
-      },
-    })
-    .returning()
+  const me = await client.getMe()
+  if (!me.ok || !me.result) {
+    return { ok: false, error: "Não foi possível identificar o bot." }
+  }
+
+  const res = await syncKnownChats(user.storeId, me.result.id, client)
+  await syncPurposeSettings(user.storeId)
 
   await logActivity({
     storeId: user.storeId,
     actor: user,
-    action: `Cadastrou o destino "${row.title}"`,
+    action: `Sincronizou grupos e canais do Telegram (${res.updated} ativos, ${res.removed} indisponíveis)`,
     category: "settings",
   })
-  await syncPurposeSettings(user.storeId)
+
   revalidatePath("/channels")
-  return row
+  return {
+    ok: true,
+    updated: res.updated,
+    removed: res.removed,
+    total: res.total,
+  }
 }
 
-export async function updateChannel(id: number, input: Partial<ChannelInput>) {
-  const user = await requireCapability("posts.manage")
-  await db
-    .update(telegramChats)
-    .set({
-      title: input.title?.trim(),
-      username: input.username?.trim() || null,
-      description: input.description?.trim() || null,
-      purpose: input.purpose,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
-    )
-  await syncPurposeSettings(user.storeId)
-  revalidatePath("/channels")
-}
-
-export async function setChannelStatus(id: number, status: "active" | "inactive") {
-  const user = await requireCapability("posts.manage")
-  await db
-    .update(telegramChats)
-    .set({ status, updatedAt: new Date() })
-    .where(
-      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
-    )
-  await syncPurposeSettings(user.storeId)
-  revalidatePath("/channels")
-}
-
-export async function deleteChannel(id: number) {
-  const user = await requireCapability("posts.manage")
-  await db
-    .delete(telegramChats)
-    .where(
-      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
-    )
-  await logActivity({
-    storeId: user.storeId,
-    actor: user,
-    action: `Removeu um destino do Telegram`,
-    category: "settings",
-  })
-  await syncPurposeSettings(user.storeId)
-  revalidatePath("/channels")
-}
-
-// Re-validates the bot's admin status and refreshes stored metadata.
-export async function testChannelConnection(id: number) {
+// Assigns a special role to an already-detected chat: audience (default),
+// private CDN store, or management/alerts group. This is the only per-chat
+// setting an admin controls — everything else comes from the Telegram API.
+export async function setChatPurpose(
+  id: number,
+  purpose: "audience" | "cdn" | "management",
+) {
   const user = await requireCapability("posts.manage")
   const [chat] = await db
     .select()
@@ -162,33 +92,41 @@ export async function testChannelConnection(id: number) {
       and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
     )
     .limit(1)
-  if (!chat) throw new Error("Destino não encontrado.")
+  if (!chat) throw new Error("Grupo/canal não encontrado.")
 
-  const { client } = await getStoreTelegram(user.storeId)
-  if (!client) {
-    return { ok: false, reason: "Configure o token do bot em Telegram Bot." }
+  // A store can only have one CDN and one management chat: demote any previous
+  // holder of the chosen exclusive role back to audience.
+  if (purpose === "cdn" || purpose === "management") {
+    await db
+      .update(telegramChats)
+      .set({ purpose: "audience", updatedAt: new Date() })
+      .where(
+        and(
+          eq(telegramChats.ownerId, user.storeId),
+          eq(telegramChats.purpose, purpose),
+        ),
+      )
   }
 
-  const v = await validateChat(client, chat.chatId)
   await db
     .update(telegramChats)
-    .set({
-      title: v.title || chat.title,
-      username: v.username ?? chat.username,
-      type: (v.type as ChannelInput["type"]) ?? chat.type,
-      botIsAdmin: v.botIsAdmin,
-      missingPermissions: v.missingPermissions.length
-        ? JSON.stringify(v.missingPermissions)
-        : null,
-      lastSyncedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(telegramChats.id, id))
+    .set({ purpose, updatedAt: new Date() })
+    .where(
+      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
+    )
+
+  await syncPurposeSettings(user.storeId)
+  await logActivity({
+    storeId: user.storeId,
+    actor: user,
+    action: `Definiu "${chat.title}" como ${
+      purpose === "cdn"
+        ? "CDN privado"
+        : purpose === "management"
+          ? "grupo de gerenciamento"
+          : "destino de audiência"
+    }`,
+    category: "settings",
+  })
   revalidatePath("/channels")
-  return {
-    ok: v.ok,
-    reason: v.reason,
-    botIsAdmin: v.botIsAdmin,
-    missingPermissions: v.missingPermissions,
-  }
 }
