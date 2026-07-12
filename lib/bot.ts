@@ -19,7 +19,8 @@ import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
-import { handleMyChatMember } from "@/lib/tg/discovery"
+import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
+import { botIdFromToken } from "@/lib/tg/config"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -44,6 +45,7 @@ type SupportConfig = {
 type StoreContext = {
   storeId: string
   tg: TelegramClient
+  botId: number | null
   adminIds: string[]
   veopag: VeoPagCredentials
   welcomeMessage: string
@@ -81,6 +83,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
   return {
     storeId,
     tg: new TelegramClient(token),
+    botId: botIdFromToken(token),
     adminIds,
     veopag: {
       publicKey: map["veopag.publicKey"] ?? "",
@@ -642,6 +645,38 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   if (memberUpdate) {
     await handleMyChatMember(storeId, memberUpdate, ctx.tg)
     return
+  }
+
+  // Passive auto-detection: a channel_post means the bot administrates a channel
+  // we may not have seen a my_chat_member event for. Detect it, then stop (there
+  // is no customer flow for channel posts).
+  if (update.channel_post) {
+    if (ctx.botId) {
+      await detectChatFromUpdate(
+        storeId,
+        update.channel_post.chat,
+        ctx.botId,
+        ctx.tg,
+      )
+    }
+    return
+  }
+
+  // Passive auto-detection for groups/supergroups: any message from a group
+  // proves the bot is there. Runs alongside the normal message handling below.
+  if (
+    ctx.botId &&
+    update.message &&
+    (update.message.chat.type === "group" ||
+      update.message.chat.type === "supergroup" ||
+      update.message.chat.type === "channel")
+  ) {
+    await detectChatFromUpdate(
+      storeId,
+      update.message.chat,
+      ctx.botId,
+      ctx.tg,
+    )
   }
 
   if (update.callback_query) {

@@ -7,22 +7,37 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { getStoreTelegram, TG_KEYS } from "@/lib/tg/config"
 import { syncKnownChats } from "@/lib/tg/discovery"
+import {
+  isExclusivePurpose,
+  isValidPurpose,
+  getPurposeMeta,
+  type ChatPurpose,
+} from "@/lib/tg/purposes"
 import { saveSetting } from "@/lib/settings"
+import { getAppBaseUrl } from "@/lib/urls"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
 
-// Keeps the CDN / management setting keys in sync with the chats table so the
-// rest of the module (uploads, alerts) can resolve them by a single key.
+// Keeps the CDN / management / backup setting keys in sync with the chats table
+// so the rest of the module (uploads, alerts, backups) can resolve them by key.
 async function syncPurposeSettings(storeId: string) {
   const rows = await db
     .select()
     .from(telegramChats)
     .where(eq(telegramChats.ownerId, storeId))
-  const cdn = rows.find((r) => r.purpose === "cdn" && r.status === "active")
-  const mgmt = rows.find(
-    (r) => r.purpose === "management" && r.status === "active",
+  const active = (purpose: string) =>
+    rows.find((r) => r.purpose === purpose && r.status === "active")
+  await saveSetting(storeId, TG_KEYS.cdnChatId, active("cdn")?.chatId ?? "")
+  await saveSetting(
+    storeId,
+    TG_KEYS.managementChatId,
+    active("management")?.chatId ?? "",
   )
-  await saveSetting(storeId, TG_KEYS.cdnChatId, cdn?.chatId ?? "")
-  await saveSetting(storeId, TG_KEYS.managementChatId, mgmt?.chatId ?? "")
+  await saveSetting(
+    storeId,
+    TG_KEYS.backupChatId,
+    active("backups")?.chatId ?? "",
+  )
 }
 
 // Lists every chat auto-detected for the current store. There is no manual
@@ -36,10 +51,12 @@ export async function listChannels() {
     .orderBy(desc(telegramChats.updatedAt))
 }
 
-// "Sincronizar Telegram" button: re-queries every known chat via the Bot API
-// and refreshes name, username, admin status, permissions and member count.
-// Telegram exposes no endpoint to list all chats, so this revalidates the set
-// already discovered through my_chat_member events.
+// "Sincronizar Telegram" button. Two jobs:
+//   1. Re-register the webhook (idempotent) so allowed_updates includes
+//      my_chat_member/channel_post — this is what makes auto-detection work,
+//      and fixes bots whose webhook was set before these updates were enabled.
+//   2. Revalidate every known chat: name, username, admin status, permissions
+//      and member count. Chats the bot left are marked inactive.
 export async function syncAllChannels(): Promise<{
   ok: boolean
   error?: string
@@ -56,6 +73,15 @@ export async function syncAllChannels(): Promise<{
   const me = await client.getMe()
   if (!me.ok || !me.result) {
     return { ok: false, error: "Não foi possível identificar o bot." }
+  }
+
+  // Re-register the webhook so *_member and channel_post updates are delivered.
+  try {
+    const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+    const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
+    await client.setWebhook(url, secret)
+  } catch {
+    // Non-fatal: revalidation of known chats can still proceed.
   }
 
   const res = await syncKnownChats(user.storeId, me.result.id, client)
@@ -77,14 +103,16 @@ export async function syncAllChannels(): Promise<{
   }
 }
 
-// Assigns a special role to an already-detected chat: audience (default),
-// private CDN store, or management/alerts group. This is the only per-chat
-// setting an admin controls — everything else comes from the Telegram API.
-export async function setChatPurpose(
-  id: number,
-  purpose: "audience" | "cdn" | "management",
-) {
+// Assigns a role to an already-detected chat. The audience/posting role is the
+// default; some roles (cdn, management, backups) are exclusive — only one chat
+// may hold each at a time. This is the only per-chat setting an admin controls.
+export async function setChatPurpose(id: number, purpose: string) {
   const user = await requireCapability("posts.manage")
+  if (!isValidPurpose(purpose)) {
+    throw new Error("Função inválida.")
+  }
+  const value = purpose as ChatPurpose
+
   const [chat] = await db
     .select()
     .from(telegramChats)
@@ -94,23 +122,22 @@ export async function setChatPurpose(
     .limit(1)
   if (!chat) throw new Error("Grupo/canal não encontrado.")
 
-  // A store can only have one CDN and one management chat: demote any previous
-  // holder of the chosen exclusive role back to audience.
-  if (purpose === "cdn" || purpose === "management") {
+  // Exclusive roles: demote any previous holder back to the posting role.
+  if (isExclusivePurpose(value)) {
     await db
       .update(telegramChats)
       .set({ purpose: "audience", updatedAt: new Date() })
       .where(
         and(
           eq(telegramChats.ownerId, user.storeId),
-          eq(telegramChats.purpose, purpose),
+          eq(telegramChats.purpose, value),
         ),
       )
   }
 
   await db
     .update(telegramChats)
-    .set({ purpose, updatedAt: new Date() })
+    .set({ purpose: value, updatedAt: new Date() })
     .where(
       and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
     )
@@ -119,14 +146,101 @@ export async function setChatPurpose(
   await logActivity({
     storeId: user.storeId,
     actor: user,
-    action: `Definiu "${chat.title}" como ${
-      purpose === "cdn"
-        ? "CDN privado"
-        : purpose === "management"
-          ? "grupo de gerenciamento"
-          : "destino de audiência"
-    }`,
+    action: `Definiu "${chat.title}" como ${getPurposeMeta(value).label}`,
     category: "settings",
   })
   revalidatePath("/channels")
+}
+
+export type TelegramDiagnostics = {
+  botConfigured: boolean
+  botOk: boolean
+  botUsername: string | null
+  webhookSet: boolean
+  webhookUrl: string | null
+  webhookHasMemberUpdates: boolean
+  pendingUpdates: number | null
+  lastError: string | null
+  detectedTotal: number
+  activeTotal: number
+  reasons: string[]
+}
+
+// Powers the diagnostics panel. Explains, in plain Portuguese, why groups might
+// not be showing up — checking the bot token, webhook registration, and whether
+// allowed_updates actually includes the membership events we depend on.
+export async function getTelegramDiagnostics(): Promise<TelegramDiagnostics> {
+  const user = await requireCapability("posts.manage")
+  const rows = await db
+    .select()
+    .from(telegramChats)
+    .where(eq(telegramChats.ownerId, user.storeId))
+  const detectedTotal = rows.length
+  const activeTotal = rows.filter((r) => r.status === "active").length
+
+  const diag: TelegramDiagnostics = {
+    botConfigured: false,
+    botOk: false,
+    botUsername: null,
+    webhookSet: false,
+    webhookUrl: null,
+    webhookHasMemberUpdates: false,
+    pendingUpdates: null,
+    lastError: null,
+    detectedTotal,
+    activeTotal,
+    reasons: [],
+  }
+
+  const { client } = await getStoreTelegram(user.storeId)
+  if (!client) {
+    diag.reasons.push(
+      "O token do bot ainda não foi configurado. Configure em Telegram Bot.",
+    )
+    return diag
+  }
+  diag.botConfigured = true
+
+  const me = await client.getMe()
+  if (!me.ok || !me.result) {
+    diag.reasons.push(
+      "Falha na comunicação com a API do Telegram (token inválido ou fora do ar).",
+    )
+    return diag
+  }
+  diag.botOk = true
+  diag.botUsername = me.result.username ?? null
+
+  const info = await client.getWebhookInfo()
+  if (info.ok && info.result) {
+    diag.webhookSet = Boolean(info.result.url)
+    diag.webhookUrl = info.result.url || null
+    diag.pendingUpdates = info.result.pending_update_count ?? 0
+    diag.lastError = info.result.last_error_message ?? null
+    const allowed = info.result.allowed_updates ?? []
+    // Empty allowed_updates means "all types" in the Bot API, which includes
+    // my_chat_member; a non-empty list must explicitly contain it.
+    diag.webhookHasMemberUpdates =
+      allowed.length === 0 || allowed.includes("my_chat_member")
+  }
+
+  if (!diag.webhookSet) {
+    diag.reasons.push(
+      "O webhook não está registrado. Clique em Sincronizar Telegram para ativá-lo.",
+    )
+  } else if (!diag.webhookHasMemberUpdates) {
+    diag.reasons.push(
+      "O webhook não recebe eventos de entrada (my_chat_member). Clique em Sincronizar Telegram para corrigir.",
+    )
+  }
+  if (diag.lastError) {
+    diag.reasons.push(`Último erro do webhook: ${diag.lastError}`)
+  }
+  if (detectedTotal === 0) {
+    diag.reasons.push(
+      "Nenhum grupo detectado ainda. Adicione o bot a um grupo/canal como administrador; ele aparece aqui automaticamente. Grupos onde o bot já estava aparecem após a primeira mensagem ou ao Sincronizar.",
+    )
+  }
+
+  return diag
 }
