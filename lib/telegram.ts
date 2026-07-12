@@ -150,11 +150,16 @@ export class TelegramClient {
       drop_pending_updates: true,
       allowed_updates: [
         "message",
+        "channel_post",
         "callback_query",
         "my_chat_member",
         "chat_member",
       ],
     })
+  }
+
+  getWebhookInfo() {
+    return this.callApi<TelegramWebhookInfo>("getWebhookInfo", {})
   }
 
   /* --- Identity & chat validation ------------------------------------- */
@@ -393,7 +398,14 @@ export type TelegramUpdate = {
   message?: {
     message_id: number
     from?: { id: number; username?: string; first_name?: string }
-    chat: { id: number }
+    chat: TelegramUpdateChat
+    text?: string
+  }
+  // Posts in a channel the bot administrates. Like `message` but for channels;
+  // used as a passive auto-detection signal for channels already joined.
+  channel_post?: {
+    message_id: number
+    chat: TelegramUpdateChat
     text?: string
   }
   callback_query?: {
@@ -408,6 +420,19 @@ export type TelegramUpdate = {
   // Sent for other members' changes (requires bot admin). Used to keep data
   // fresh (e.g. title changes surface via getChat on the next sync).
   chat_member?: TelegramChatMemberUpdated
+}
+
+// Result of getWebhookInfo — used by the diagnostics panel to explain why
+// detection might not be working (e.g. missing allowed_updates).
+export type TelegramWebhookInfo = {
+  url: string
+  has_custom_certificate: boolean
+  pending_update_count: number
+  ip_address?: string
+  last_error_date?: number
+  last_error_message?: string
+  max_connections?: number
+  allowed_updates?: string[]
 }
 
 export type TelegramUser = {

@@ -10,6 +10,17 @@ export const TG_KEYS = {
 } as const
 
 /**
+ * A bot token has the form `<botId>:<hash>`. The numeric prefix IS the bot's
+ * user id, so we can derive it without an extra getMe() API call. Returns null
+ * for malformed tokens.
+ */
+export function botIdFromToken(token: string): number | null {
+  const prefix = token.split(":")[0]
+  const id = Number(prefix)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+/**
  * Loads a store's Telegram config and a client bound to its bot token.
  * Returns { client: null } when the store hasn't configured a bot yet.
  */

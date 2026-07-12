@@ -38,8 +38,11 @@ import {
   listChannels,
   syncAllChannels,
   setChatPurpose,
+  type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
+import { PURPOSES, getPurposeMeta } from "@/lib/tg/purposes"
+import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
 import {
   Search,
@@ -47,12 +50,11 @@ import {
   RefreshCw,
   Megaphone,
   Users,
-  Database,
-  ShieldAlert,
   ShieldCheck,
   AlertTriangle,
   Radio,
   Info,
+  Check,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -73,12 +75,6 @@ export type ChannelRow = {
 
 const PAGE_SIZE = 10
 const POLL_MS = 15000
-
-const PURPOSE_META: Record<string, { label: string; icon: typeof Users }> = {
-  audience: { label: "Audiência", icon: Users },
-  cdn: { label: "CDN Privado", icon: Database },
-  management: { label: "Gerenciamento", icon: ShieldAlert },
-}
 
 function parsePerms(json: string | null): string[] {
   if (!json) return []
@@ -143,9 +139,11 @@ function typeLabel(type: string) {
 export function ChannelsView({
   channels: initialChannels,
   botConfigured,
+  diagnostics,
 }: {
   channels: ChannelRow[]
   botConfigured: boolean
+  diagnostics: TelegramDiagnostics | null
 }) {
   const [channels, setChannels] = useState<ChannelRow[]>(initialChannels)
   const [search, setSearch] = useState("")
@@ -215,10 +213,7 @@ export function ChannelsView({
     })
   }
 
-  function handlePurpose(
-    id: number,
-    purpose: "audience" | "cdn" | "management",
-  ) {
+  function handlePurpose(id: number, purpose: string) {
     startTransition(async () => {
       try {
         await setChatPurpose(id, purpose)
@@ -250,6 +245,8 @@ export function ChannelsView({
           }
         </p>
       </div>
+
+      <DiagnosticsPanel initial={diagnostics} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
@@ -364,8 +361,7 @@ export function ChannelsView({
               const st = deriveStatus(c)
               const granted = parsePerms(c.grantedPermissions)
               const missing = parsePerms(c.missingPermissions)
-              const purpose = PURPOSE_META[c.purpose] ?? PURPOSE_META.audience
-              const PurposeIcon = purpose.icon
+              const purpose = getPurposeMeta(c.purpose)
               return (
                 <TableRow key={c.id}>
                   <TableCell>
@@ -469,10 +465,9 @@ export function ChannelsView({
                       : "—"}
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <PurposeIcon className="h-3.5 w-3.5" />
+                    <Badge variant="secondary" className="font-normal">
                       {purpose.label}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {c.lastSyncedAt
@@ -492,32 +487,32 @@ export function ChannelsView({
                           </Button>
                         }
                       />
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-64">
                         <DropdownMenuGroup>
                           <DropdownMenuLabel>
-                            Definir função
+                            Função do grupo
                           </DropdownMenuLabel>
-                          <DropdownMenuItem
-                            disabled={pending}
-                            onClick={() => handlePurpose(c.id, "audience")}
-                          >
-                            <Users className="mr-2 h-4 w-4" />
-                            Audiência
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={pending}
-                            onClick={() => handlePurpose(c.id, "cdn")}
-                          >
-                            <Database className="mr-2 h-4 w-4" />
-                            CDN Privado
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={pending}
-                            onClick={() => handlePurpose(c.id, "management")}
-                          >
-                            <ShieldAlert className="mr-2 h-4 w-4" />
-                            Gerenciamento
-                          </DropdownMenuItem>
+                          {PURPOSES.map((p) => (
+                            <DropdownMenuItem
+                              key={p.value}
+                              disabled={pending}
+                              onClick={() => handlePurpose(c.id, p.value)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  c.purpose === p.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
+                              />
+                              <div className="flex flex-col">
+                                <span>{p.label}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {p.description}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

@@ -147,6 +147,60 @@ export async function handleMyChatMember(
   })
 }
 
+// Passive detection: any message or channel_post arriving from a group/channel
+// proves the bot is a member there — even if we never received a my_chat_member
+// event (e.g. the bot was added before the webhook was configured, or Telegram
+// dropped the event). We resolve the bot's current membership and upsert the
+// chat. This is the key fix for "the bot is in the group but nothing shows up".
+export async function detectChatFromUpdate(
+  storeId: string,
+  chat: { id: number; type: string; title?: string; username?: string },
+  botId: number,
+  client: TelegramClient,
+): Promise<void> {
+  if (chat.type === "private") return
+
+  // Avoid redundant work: if we already have this chat and synced it very
+  // recently, skip the extra API calls on every single incoming message.
+  const existing = await db
+    .select({ id: telegramChats.id, lastSyncedAt: telegramChats.lastSyncedAt })
+    .from(telegramChats)
+    .where(
+      and(
+        eq(telegramChats.ownerId, storeId),
+        eq(telegramChats.chatId, String(chat.id)),
+      ),
+    )
+    .limit(1)
+
+  const recentlySynced =
+    existing.length > 0 &&
+    existing[0].lastSyncedAt != null &&
+    Date.now() - new Date(existing[0].lastSyncedAt).getTime() < 60_000
+  if (recentlySynced) return
+
+  const memberRes = await client.getChatMember(chat.id, botId)
+  if (!memberRes.ok || !memberRes.result) return
+  const member = memberRes.result
+  if (!isPresent(member.status)) return
+
+  let memberCount: number | null = null
+  const countRes = await client.getChatMemberCount(chat.id)
+  if (countRes.ok && typeof countRes.result === "number") {
+    memberCount = countRes.result
+  }
+
+  await upsertChat({
+    storeId,
+    chatId: String(chat.id),
+    title: chat.title ?? chat.username ?? String(chat.id),
+    username: chat.username ?? null,
+    type: chat.type,
+    member,
+    memberCount,
+  })
+}
+
 export type SyncResult = {
   total: number
   updated: number
