@@ -15,6 +15,16 @@ import {
   ChevronDown,
 } from "lucide-react"
 
+// Pretty-prints the stored payload JSON; falls back to the raw string if it
+// was truncated and can no longer be parsed.
+function formatPayload(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
+}
+
 function Check({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -126,10 +136,43 @@ export function DiagnosticsPanel({
                   </span>
                 </span>
                 <span>
+                  Eventos recebidos:{" "}
+                  <span className="font-mono">{diag.eventCount}</span>
+                </span>
+                <span>
                   Grupos detectados:{" "}
-                  <span className="font-mono">{diag.detectedTotal}</span>
+                  <span className="font-mono">{diag.groupsTotal}</span>
+                </span>
+                <span>
+                  Canais detectados:{" "}
+                  <span className="font-mono">{diag.channelsTotal}</span>
+                </span>
+                <span>
+                  Último evento:{" "}
+                  <span className="font-mono">
+                    {diag.lastEventType ?? "—"}
+                  </span>
+                </span>
+                <span>
+                  Processado em:{" "}
+                  <span className="font-mono">
+                    {diag.lastEventAt
+                      ? new Date(diag.lastEventAt).toLocaleString("pt-BR")
+                      : "—"}
+                  </span>
                 </span>
               </div>
+
+              {diag.lastPayload && (
+                <details className="rounded-md border border-border bg-muted/40">
+                  <summary className="cursor-pointer p-2 text-xs font-medium text-muted-foreground">
+                    Último payload recebido da Telegram Bot API
+                  </summary>
+                  <pre className="max-h-64 overflow-auto border-t border-border p-3 text-xs">
+                    {formatPayload(diag.lastPayload)}
+                  </pre>
+                </details>
+              )}
 
               {diag.reasons.length > 0 && (
                 <div className="flex flex-col gap-2 rounded-md border border-warning/30 bg-warning/10 p-3">

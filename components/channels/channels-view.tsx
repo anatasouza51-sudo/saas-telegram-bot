@@ -24,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuGroup,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -38,23 +37,24 @@ import {
   listChannels,
   syncAllChannels,
   setChatPurpose,
+  restartTelegramIntegration,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
-import { PURPOSES, getPurposeMeta } from "@/lib/tg/purposes"
+import { PURPOSES } from "@/lib/tg/purposes"
 import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
 import {
   Search,
   MoreHorizontal,
   RefreshCw,
+  RotateCcw,
   Megaphone,
   Users,
   ShieldCheck,
   AlertTriangle,
   Radio,
   Info,
-  Check,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -75,6 +75,11 @@ export type ChannelRow = {
 
 const PAGE_SIZE = 10
 const POLL_MS = 15000
+
+// Map form for the base-ui Select `items` prop (value -> label).
+const purposeItems: Record<string, string> = Object.fromEntries(
+  PURPOSES.map((p) => [p.value, p.label]),
+)
 
 function parsePerms(json: string | null): string[] {
   if (!json) return []
@@ -213,6 +218,20 @@ export function ChannelsView({
     })
   }
 
+  function handleRestart() {
+    startSync(async () => {
+      const res = await restartTelegramIntegration()
+      if (res.ok) {
+        toast.success(
+          `Integração reiniciada: ${res.purged ?? 0} inválido(s) removido(s), ${res.updated ?? 0} sincronizado(s).`,
+        )
+        await refresh()
+      } else {
+        toast.error(res.error ?? "Falha ao reiniciar a integração.")
+      }
+    })
+  }
+
   function handlePurpose(id: number, purpose: string) {
     startTransition(async () => {
       try {
@@ -316,6 +335,14 @@ export function ChannelsView({
             />
             Sincronizar Telegram
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleRestart}
+            disabled={syncing || !botConfigured}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reiniciar Integração
+          </Button>
         </div>
       </div>
 
@@ -361,7 +388,6 @@ export function ChannelsView({
               const st = deriveStatus(c)
               const granted = parsePerms(c.grantedPermissions)
               const missing = parsePerms(c.missingPermissions)
-              const purpose = getPurposeMeta(c.purpose)
               return (
                 <TableRow key={c.id}>
                   <TableCell>
@@ -465,9 +491,22 @@ export function ChannelsView({
                       : "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-normal">
-                      {purpose.label}
-                    </Badge>
+                    <Select
+                      items={purposeItems}
+                      value={c.purpose}
+                      onValueChange={(v) => handlePurpose(c.id, v as string)}
+                    >
+                      <SelectTrigger className="w-[190px]" disabled={pending}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PURPOSES.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {c.lastSyncedAt
@@ -487,41 +526,17 @@ export function ChannelsView({
                           </Button>
                         }
                       />
-                      <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuGroup>
-                          <DropdownMenuLabel>
-                            Função do grupo
-                          </DropdownMenuLabel>
-                          {PURPOSES.map((p) => (
-                            <DropdownMenuItem
-                              key={p.value}
-                              disabled={pending}
-                              onClick={() => handlePurpose(c.id, p.value)}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  c.purpose === p.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                }`}
-                              />
-                              <div className="flex flex-col">
-                                <span>{p.label}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {p.description}
-                                </span>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={syncing}
+                            onClick={handleSync}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Sincronizar agora
+                          </DropdownMenuItem>
                         </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          disabled={syncing}
-                          onClick={handleSync}
-                        >
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Sincronizar agora
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

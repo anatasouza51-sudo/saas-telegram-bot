@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { TelegramUpdate } from "@/lib/telegram"
 import { handleUpdate } from "@/lib/bot"
+import { recordWebhookEvent } from "@/lib/tg/discovery"
 import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
@@ -49,6 +50,10 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
+
+  // Record diagnostics before handling so the panel reflects delivery even if
+  // handling throws.
+  await recordWebhookEvent(storeId, update)
 
   try {
     await handleUpdate(storeId, update)
