@@ -5,18 +5,73 @@ import {
   TelegramClient,
   type TelegramChatMember,
   type TelegramChatMemberUpdated,
+  type TelegramUpdate,
 } from "@/lib/telegram"
 import { and, eq } from "drizzle-orm"
 import {
   ALL_PERMISSION_KEYS,
   REQUIRED_PERMISSIONS,
 } from "@/lib/tg/permissions"
+import { saveSetting, getSetting } from "@/lib/settings"
+import { TG_KEYS } from "@/lib/tg/config"
+
+// Identifies the primary event type in an update, for the diagnostics panel.
+function updateType(update: TelegramUpdate): string {
+  if (update.my_chat_member) return "my_chat_member"
+  if (update.chat_member) return "chat_member"
+  if (update.channel_post) return "channel_post"
+  if (update.message) return "message"
+  if (update.callback_query) return "callback_query"
+  return "unknown"
+}
+
+// Persists lightweight diagnostics for every inbound webhook: the last event
+// type, timestamp, a running counter, and a trimmed copy of the raw payload so
+// the admin can inspect exactly what Telegram delivered.
+export async function recordWebhookEvent(
+  storeId: string,
+  update: TelegramUpdate,
+): Promise<void> {
+  try {
+    const prev = Number((await getSetting(storeId, TG_KEYS.eventCount)) ?? "0")
+    const payload = JSON.stringify(update).slice(0, 4000)
+    await Promise.all([
+      saveSetting(storeId, TG_KEYS.lastEventAt, new Date().toISOString()),
+      saveSetting(storeId, TG_KEYS.lastEventType, updateType(update)),
+      saveSetting(storeId, TG_KEYS.lastPayload, payload),
+      saveSetting(storeId, TG_KEYS.eventCount, String(prev + 1)),
+    ])
+  } catch {
+    // Diagnostics are best-effort; never block update handling.
+  }
+}
 
 export type ChatStatus =
   | "online" // bot present, admin, all required permissions
   | "member" // bot present but only a regular member
   | "insufficient" // bot present (admin) but missing required permissions
   | "removed" // bot was kicked/left
+
+// The ONLY chat types allowed in "Grupos & Canais". Everything else — private
+// chats, the bot's own chat, users — must never be persisted or listed.
+const REAL_CHAT_TYPES = new Set(["group", "supergroup", "channel"])
+
+export function isRealChatType(type: string | undefined | null): boolean {
+  return type != null && REAL_CHAT_TYPES.has(type)
+}
+
+// A chat row is only valid if it is a real group/channel AND is not the bot's
+// own id. `getChat(botId)` returns a valid "private" chat, which is exactly how
+// the bot leaked into the list — so we guard on both conditions everywhere.
+export function isValidChatRow(
+  type: string | undefined | null,
+  chatId: string | number,
+  botId: number | null,
+): boolean {
+  if (!isRealChatType(type)) return false
+  if (botId != null && String(chatId) === String(botId)) return false
+  return true
+}
 
 // Derives the list of admin permissions the bot currently HAS from a member
 // record. For channels, Telegram only reports the messaging-related flags.
@@ -65,12 +120,19 @@ type UpsertInput = {
   type: string
   member: TelegramChatMember
   memberCount?: number | null
+  botId?: number | null
 }
 
 // Inserts or updates a chat row from freshly resolved Telegram data. The
 // (ownerId, chatId) unique index guarantees we never create duplicates, so the
 // same chat re-detected simply refreshes its data.
 async function upsertChat(input: UpsertInput) {
+  // Hard guard: never persist private chats, users, or the bot itself. This is
+  // the definitive fix for the bot appearing in the groups list.
+  if (!isValidChatRow(input.type, input.chatId, input.botId ?? null)) {
+    return
+  }
+
   const present = isPresent(input.member.status)
   const isAdmin =
     input.member.status === "administrator" ||
@@ -123,8 +185,8 @@ export async function handleMyChatMember(
   client: TelegramClient,
 ): Promise<void> {
   const chat = update.chat
-  // Only groups, supergroups and channels are destinations — ignore private.
-  if (chat.type === "private") return
+  // Only real groups/supergroups/channels — never private or the bot itself.
+  if (!isValidChatRow(chat.type, chat.id, client.botId)) return
 
   const member = update.new_chat_member
   let memberCount: number | null = null
@@ -144,6 +206,7 @@ export async function handleMyChatMember(
     type: chat.type,
     member,
     memberCount,
+    botId: client.botId,
   })
 }
 
@@ -158,7 +221,8 @@ export async function detectChatFromUpdate(
   botId: number,
   client: TelegramClient,
 ): Promise<void> {
-  if (chat.type === "private") return
+  // Only real groups/supergroups/channels — never private or the bot itself.
+  if (!isValidChatRow(chat.type, chat.id, botId)) return
 
   // Avoid redundant work: if we already have this chat and synced it very
   // recently, skip the extra API calls on every single incoming message.
@@ -198,6 +262,7 @@ export async function detectChatFromUpdate(
     type: chat.type,
     member,
     memberCount,
+    botId,
   })
 }
 
@@ -206,6 +271,32 @@ export type SyncResult = {
   updated: number
   removed: number
   errors: number
+  purged: number
+}
+
+// Deletes any rows that should never have been stored (private chats, the bot
+// itself, unknown types). Returns how many were removed. Safe to call anytime.
+export async function purgeInvalidChats(
+  storeId: string,
+  botId: number | null,
+): Promise<number> {
+  const rows = await db
+    .select({
+      id: telegramChats.id,
+      chatId: telegramChats.chatId,
+      type: telegramChats.type,
+    })
+    .from(telegramChats)
+    .where(eq(telegramChats.ownerId, storeId))
+
+  let purged = 0
+  for (const row of rows) {
+    if (!isValidChatRow(row.type, row.chatId, botId)) {
+      await db.delete(telegramChats).where(eq(telegramChats.id, row.id))
+      purged += 1
+    }
+  }
+  return purged
 }
 
 // Revalidates every chat we already know about for a store. Telegram has no
@@ -217,6 +308,10 @@ export async function syncKnownChats(
   botId: number,
   client: TelegramClient,
 ): Promise<SyncResult> {
+  // First, remove any invalid rows (private/bot/unknown) so they never get
+  // "revalidated" back into existence by getChat.
+  const purged = await purgeInvalidChats(storeId, botId)
+
   const rows = await db
     .select()
     .from(telegramChats)
@@ -227,6 +322,7 @@ export async function syncKnownChats(
     updated: 0,
     removed: 0,
     errors: 0,
+    purged,
   }
 
   for (const row of rows) {
@@ -258,6 +354,15 @@ export async function syncKnownChats(
 
       const info = chatRes.result
       const member = memberRes.result
+
+      // Defensive: if the resolved chat is not a real group/channel (e.g. it's
+      // the bot's own private chat), delete it instead of refreshing it.
+      if (!isValidChatRow(info.type, row.chatId, botId)) {
+        await db.delete(telegramChats).where(eq(telegramChats.id, row.id))
+        result.purged += 1
+        continue
+      }
+
       let memberCount: number | null = null
       if (isPresent(member.status)) {
         const countRes = await client.getChatMemberCount(row.chatId)
@@ -274,6 +379,7 @@ export async function syncKnownChats(
         type: info.type,
         member,
         memberCount,
+        botId,
       })
 
       if (isPresent(member.status)) result.updated += 1

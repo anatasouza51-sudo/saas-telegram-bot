@@ -18,6 +18,14 @@ export function buildInlineKeyboard(rows: InlineButton[][]) {
 export class TelegramClient {
   constructor(private readonly token: string) {}
 
+  // The numeric prefix of a bot token (`<botId>:<hash>`) IS the bot's user id.
+  // Exposed so discovery logic can reject the bot's own chat without a getMe().
+  get botId(): number | null {
+    const prefix = this.token.split(":")[0]
+    const id = Number(prefix)
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+
   private async callApi<T = unknown>(
     method: string,
     payload: Record<string, unknown>,
@@ -160,6 +168,12 @@ export class TelegramClient {
 
   getWebhookInfo() {
     return this.callApi<TelegramWebhookInfo>("getWebhookInfo", {})
+  }
+
+  deleteWebhook(dropPendingUpdates = false) {
+    return this.callApi("deleteWebhook", {
+      drop_pending_updates: dropPendingUpdates,
+    })
   }
 
   /* --- Identity & chat validation ------------------------------------- */

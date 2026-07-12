@@ -6,14 +6,18 @@ import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { getStoreTelegram, TG_KEYS } from "@/lib/tg/config"
-import { syncKnownChats } from "@/lib/tg/discovery"
+import {
+  syncKnownChats,
+  purgeInvalidChats,
+  isRealChatType,
+} from "@/lib/tg/discovery"
 import {
   isExclusivePurpose,
   isValidPurpose,
   getPurposeMeta,
   type ChatPurpose,
 } from "@/lib/tg/purposes"
-import { saveSetting } from "@/lib/settings"
+import { saveSetting, getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
@@ -42,13 +46,16 @@ async function syncPurposeSettings(storeId: string) {
 
 // Lists every chat auto-detected for the current store. There is no manual
 // registration: rows only exist because the bot was added to those chats.
+// Final safety net: only ever return real groups/supergroups/channels, so a bad
+// row (e.g. a private/bot chat) can never surface in the UI.
 export async function listChannels() {
   const { storeId } = await requireCapability("posts.manage")
-  return db
+  const rows = await db
     .select()
     .from(telegramChats)
     .where(eq(telegramChats.ownerId, storeId))
     .orderBy(desc(telegramChats.updatedAt))
+  return rows.filter((r) => isRealChatType(r.type))
 }
 
 // "Sincronizar Telegram" button. Two jobs:
@@ -101,6 +108,63 @@ export async function syncAllChannels(): Promise<{
     removed: res.removed,
     total: res.total,
   }
+}
+
+// "Reiniciar Integração Telegram" button. A full reset that recovers a broken
+// integration in one click: validates the token, tears down and re-registers
+// the webhook (guaranteeing correct allowed_updates), purges invalid rows (the
+// bot itself / private chats), then re-syncs all known chats and settings.
+export async function restartTelegramIntegration(): Promise<{
+  ok: boolean
+  error?: string
+  steps?: string[]
+  purged?: number
+  updated?: number
+}> {
+  const user = await requireCapability("posts.manage")
+  const { client } = await getStoreTelegram(user.storeId)
+  if (!client) {
+    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
+  }
+
+  const steps: string[] = []
+
+  // 1. Validate token.
+  const me = await client.getMe()
+  if (!me.ok || !me.result) {
+    return { ok: false, error: "Token inválido ou API indisponível." }
+  }
+  steps.push(`Token válido (@${me.result.username ?? "bot"})`)
+
+  // 2. Reset the webhook: delete, then re-create with correct allowed_updates.
+  try {
+    await client.deleteWebhook(false)
+    const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+    const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
+    await client.setWebhook(url, secret)
+    steps.push("Webhook reiniciado")
+  } catch {
+    steps.push("Falha ao reiniciar o webhook")
+  }
+
+  // 3. Purge invalid rows (bot itself / private chats).
+  const purged = await purgeInvalidChats(user.storeId, me.result.id)
+  steps.push(`${purged} registro(s) inválido(s) removido(s)`)
+
+  // 4. Re-sync known chats + settings.
+  const res = await syncKnownChats(user.storeId, me.result.id, client)
+  await syncPurposeSettings(user.storeId)
+  steps.push(`${res.updated} grupo(s)/canal(is) sincronizado(s)`)
+
+  await logActivity({
+    storeId: user.storeId,
+    actor: user,
+    action: "Reiniciou a integração do Telegram",
+    category: "settings",
+  })
+
+  revalidatePath("/channels")
+  return { ok: true, steps, purged, updated: res.updated }
 }
 
 // Assigns a role to an already-detected chat. The audience/posting role is the
@@ -163,6 +227,12 @@ export type TelegramDiagnostics = {
   lastError: string | null
   detectedTotal: number
   activeTotal: number
+  groupsTotal: number
+  channelsTotal: number
+  eventCount: number
+  lastEventType: string | null
+  lastEventAt: string | null
+  lastPayload: string | null
   reasons: string[]
 }
 
@@ -171,12 +241,25 @@ export type TelegramDiagnostics = {
 // allowed_updates actually includes the membership events we depend on.
 export async function getTelegramDiagnostics(): Promise<TelegramDiagnostics> {
   const user = await requireCapability("posts.manage")
-  const rows = await db
-    .select()
-    .from(telegramChats)
-    .where(eq(telegramChats.ownerId, user.storeId))
+  const rows = (
+    await db
+      .select()
+      .from(telegramChats)
+      .where(eq(telegramChats.ownerId, user.storeId))
+  ).filter((r) => isRealChatType(r.type))
   const detectedTotal = rows.length
   const activeTotal = rows.filter((r) => r.status === "active").length
+  const groupsTotal = rows.filter(
+    (r) => r.type === "group" || r.type === "supergroup",
+  ).length
+  const channelsTotal = rows.filter((r) => r.type === "channel").length
+
+  const events = await getSettings(user.storeId, [
+    TG_KEYS.eventCount,
+    TG_KEYS.lastEventType,
+    TG_KEYS.lastEventAt,
+    TG_KEYS.lastPayload,
+  ])
 
   const diag: TelegramDiagnostics = {
     botConfigured: false,
@@ -189,6 +272,12 @@ export async function getTelegramDiagnostics(): Promise<TelegramDiagnostics> {
     lastError: null,
     detectedTotal,
     activeTotal,
+    groupsTotal,
+    channelsTotal,
+    eventCount: Number(events[TG_KEYS.eventCount] || "0"),
+    lastEventType: events[TG_KEYS.lastEventType] || null,
+    lastEventAt: events[TG_KEYS.lastEventAt] || null,
+    lastPayload: events[TG_KEYS.lastPayload] || null,
     reasons: [],
   }
 

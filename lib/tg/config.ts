@@ -7,6 +7,12 @@ export const TG_KEYS = {
   cdnChatId: "telegram.cdnChatId",
   managementChatId: "telegram.managementChatId",
   backupChatId: "telegram.backupChatId",
+  // Diagnostics: updated on every inbound webhook so the panel can show the
+  // last event received, when, and a trimmed copy of the raw payload.
+  lastEventAt: "telegram.diag.lastEventAt",
+  lastEventType: "telegram.diag.lastEventType",
+  lastPayload: "telegram.diag.lastPayload",
+  eventCount: "telegram.diag.eventCount",
 } as const
 
 /**
