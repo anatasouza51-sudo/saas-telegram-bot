@@ -1,6 +1,14 @@
 import { db } from "@/lib/db"
-import { products, customers, orders, deliveries, settings } from "@/lib/db/schema"
-import { and, desc, eq, sql } from "drizzle-orm"
+import {
+  products,
+  categories,
+  customers,
+  orders,
+  deliveries,
+  settings,
+  stockItems,
+} from "@/lib/db/schema"
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
 import {
   TelegramClient,
   buildInlineKeyboard,
@@ -12,6 +20,25 @@ import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
 
+// How many categories/products to show per screen. Inline keyboards can't hold
+// thousands of buttons, so every list is paginated. This keeps the bot fast
+// and correct for any catalog size (e.g. 100 categories / 5.000 products).
+const PAGE_SIZE = 8
+
+// Special id used for the virtual "Outros" bucket that groups active products
+// that do not belong to any category, so nothing is ever hidden.
+const UNCATEGORIZED = "none"
+
+type SupportConfig = {
+  enabled: boolean
+  label: string
+  message: string
+  telegramUsername: string
+  whatsappUrl: string
+  hours: string
+  buttonLabel: string
+}
+
 // Everything the router needs for one store, loaded once per update.
 type StoreContext = {
   storeId: string
@@ -20,6 +47,17 @@ type StoreContext = {
   veopag: VeoPagCredentials
   welcomeMessage: string
   welcomeImageUrl: string
+  support: SupportConfig
+}
+
+type InlineButton = { text: string; callback_data?: string; url?: string }
+
+// A single logical screen. `text` is used as the message body, or as the photo
+// caption when `imageUrl` is present.
+type Screen = {
+  imageUrl?: string | null
+  text: string
+  keyboard: ReturnType<typeof buildInlineKeyboard>
 }
 
 async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
@@ -49,6 +87,15 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
     welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",
+    support: {
+      enabled: (map["support.enabled"] ?? "true") !== "false",
+      label: map["support.label"] || "💬 Suporte",
+      message: map["support.message"] || "Precisa de ajuda? Fale com o nosso suporte.",
+      telegramUsername: map["support.telegramUsername"] ?? "",
+      whatsappUrl: map["support.whatsappUrl"] ?? "",
+      hours: map["support.hours"] ?? "",
+      buttonLabel: map["support.buttonLabel"] || "📞 Falar com Suporte",
+    },
   }
 }
 
@@ -75,71 +122,310 @@ async function upsertCustomer(
   return created
 }
 
-// ---------- Customer bot ----------
+/* ---------------------------------------------------------------------------
+ * In-place rendering
+ *
+ * All navigation edits the SAME message. Telegram cannot convert a text
+ * message into a media message (or vice-versa) via edit, so when the screen
+ * type changes we delete and resend exactly once — never accumulating
+ * duplicate messages. "Message is not modified" errors are ignored.
+ * ------------------------------------------------------------------------- */
 
-async function showCatalog(ctx: StoreContext, chatId: number) {
-  const items = await db
-    .select()
-    .from(products)
-    .where(and(eq(products.ownerId, ctx.storeId), eq(products.status, "active")))
-    .orderBy(desc(products.createdAt))
+function isIgnorableEditError(desc?: string) {
+  return (desc ?? "").toLowerCase().includes("not modified")
+}
 
-  if (items.length === 0) {
-    await ctx.tg.sendMessage(chatId, "Nenhum produto disponível no momento.")
+async function renderScreen(
+  ctx: StoreContext,
+  chatId: number,
+  messageId: number | null,
+  screen: Screen,
+) {
+  const image = screen.imageUrl?.trim() || ""
+  const hasImage = image.length > 0
+
+  // Fresh send (e.g. from /start): no message to edit.
+  if (messageId == null) {
+    if (hasImage) {
+      await ctx.tg.sendPhoto(chatId, image, screen.text, screen.keyboard)
+    } else {
+      await ctx.tg.sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard })
+    }
     return
   }
 
-  await ctx.tg.sendMessage(chatId, "<b>🛒 Catálogo</b>\nEscolha um produto:", {
-    replyMarkup: buildInlineKeyboard(
-      items.map((p) => [
-        {
-          text: `${p.name} — ${formatCurrency(Number(p.price))}`,
-          callback_data: `product:${p.id}`,
-        },
-      ]),
-    ),
-  })
+  if (hasImage) {
+    const res = await ctx.tg.editMessageMedia(
+      chatId,
+      messageId,
+      image,
+      screen.text,
+      screen.keyboard,
+    )
+    if (!res.ok && !isIgnorableEditError(res.description)) {
+      // Current message is text-only; replace it with a photo message.
+      await ctx.tg.deleteMessage(chatId, messageId)
+      await ctx.tg.sendPhoto(chatId, image, screen.text, screen.keyboard)
+    }
+  } else {
+    const res = await ctx.tg.editMessageText(
+      chatId,
+      messageId,
+      screen.text,
+      screen.keyboard,
+    )
+    if (!res.ok && !isIgnorableEditError(res.description)) {
+      // Current message is a photo; replace it with a text message.
+      await ctx.tg.deleteMessage(chatId, messageId)
+      await ctx.tg.sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard })
+    }
+  }
 }
 
-async function showProduct(ctx: StoreContext, chatId: number, productId: number) {
+function pageNav(prefix: string, page: number, totalPages: number): InlineButton[] {
+  if (totalPages <= 1) return []
+  const row: InlineButton[] = []
+  if (page > 0) row.push({ text: "◀️", callback_data: `${prefix}${page - 1}` })
+  row.push({ text: `${page + 1}/${totalPages}`, callback_data: "noop" })
+  if (page < totalPages - 1)
+    row.push({ text: "▶️", callback_data: `${prefix}${page + 1}` })
+  return row
+}
+
+/* ---------------------------------------------------------------------------
+ * Screen builders
+ * ------------------------------------------------------------------------- */
+
+async function buildHomeScreen(
+  ctx: StoreContext,
+  firstName: string,
+  page: number,
+): Promise<Screen> {
+  const cats = await db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      emoji: categories.emoji,
+    })
+    .from(categories)
+    .where(and(eq(categories.ownerId, ctx.storeId), eq(categories.status, "active")))
+    .orderBy(asc(categories.position), asc(categories.name))
+
+  const entries: Array<{ id: string; label: string }> = cats.map((c) => ({
+    id: String(c.id),
+    label: `${c.emoji ? c.emoji + " " : ""}${c.name}`,
+  }))
+
+  // Include a virtual "Outros" bucket if there are active uncategorized items.
+  const [{ count: uncategorized }] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(products)
+    .where(
+      and(
+        eq(products.ownerId, ctx.storeId),
+        eq(products.status, "active"),
+        isNull(products.categoryId),
+      ),
+    )
+  if (Number(uncategorized) > 0) {
+    entries.push({ id: UNCATEGORIZED, label: "📦 Outros" })
+  }
+
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE))
+  const safePage = Math.min(Math.max(0, page), totalPages - 1)
+  const slice = entries.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
+  const welcome = (
+    ctx.welcomeMessage.trim() ||
+    "👋 Bem-vindo(a) à nossa loja!"
+  ).replace(/\{nome\}/gi, firstName)
+
+  const rows: InlineButton[][] = slice.map((e) => [
+    { text: e.label, callback_data: `cat:${e.id}:0` },
+  ])
+
+  const nav = pageNav("home:", safePage, totalPages)
+  if (nav.length) rows.push(nav)
+
+  if (ctx.support.enabled) {
+    rows.push([{ text: ctx.support.label, callback_data: "support" }])
+  }
+
+  const text =
+    entries.length === 0
+      ? `${welcome}\n\n<i>Nenhuma categoria disponível no momento.</i>`
+      : `${welcome}\n\n<b>Escolha uma categoria:</b>`
+
+  return {
+    imageUrl: ctx.welcomeImageUrl,
+    text,
+    keyboard: buildInlineKeyboard(rows),
+  }
+}
+
+async function buildCategoryScreen(
+  ctx: StoreContext,
+  catId: string,
+  page: number,
+): Promise<Screen> {
+  let title = "📦 Outros"
+  let description: string | null = null
+  let imageUrl: string | null = null
+
+  if (catId !== UNCATEGORIZED) {
+    const [cat] = await db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.ownerId, ctx.storeId),
+          eq(categories.id, Number(catId)),
+        ),
+      )
+    if (!cat) {
+      return {
+        text: "Categoria não encontrada.",
+        keyboard: buildInlineKeyboard([
+          [{ text: "⬅️ Voltar", callback_data: "home:0" }],
+        ]),
+      }
+    }
+    title = `${cat.emoji ? cat.emoji + " " : ""}${cat.name}`
+    description = cat.description
+    imageUrl = cat.imageUrl
+  }
+
+  // Order EXCLUSIVELY by price ASC by default (position defaults to 0 for all
+  // products). If the admin sets an explicit position it takes precedence,
+  // with price ASC as the deterministic tiebreaker.
+  const catCondition =
+    catId === UNCATEGORIZED
+      ? isNull(products.categoryId)
+      : eq(products.categoryId, Number(catId))
+
+  const items = await db
+    .select({ id: products.id, name: products.name, price: products.price })
+    .from(products)
+    .where(
+      and(
+        eq(products.ownerId, ctx.storeId),
+        eq(products.status, "active"),
+        catCondition,
+      ),
+    )
+    .orderBy(asc(products.position), asc(products.price), asc(products.id))
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  const safePage = Math.min(Math.max(0, page), totalPages - 1)
+  const slice = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
+  const rows: InlineButton[][] = slice.map((p) => [
+    {
+      text: `${p.name} — ${formatCurrency(Number(p.price))}`,
+      callback_data: `prod:${p.id}`,
+    },
+  ])
+
+  const nav = pageNav(`cat:${catId}:`, safePage, totalPages)
+  if (nav.length) rows.push(nav)
+  rows.push([{ text: "⬅️ Voltar", callback_data: "home:0" }])
+
+  const parts = [`<b>${title}</b>`]
+  if (description) parts.push("", description)
+  parts.push(
+    "",
+    items.length === 0 ? "<i>Nenhum produto disponível.</i>" : "Escolha um produto:",
+  )
+
+  return {
+    imageUrl,
+    text: parts.join("\n"),
+    keyboard: buildInlineKeyboard(rows),
+  }
+}
+
+async function buildProductScreen(
+  ctx: StoreContext,
+  productId: number,
+): Promise<Screen> {
   const [product] = await db
     .select()
     .from(products)
     .where(and(eq(products.ownerId, ctx.storeId), eq(products.id, productId)))
+
   if (!product) {
-    await ctx.tg.sendMessage(chatId, "Produto não encontrado.")
-    return
+    return {
+      text: "Produto não encontrado.",
+      keyboard: buildInlineKeyboard([
+        [{ text: "⬅️ Voltar", callback_data: "home:0" }],
+      ]),
+    }
   }
 
-  const available = await db
+  const [{ count }] = await db
     .select({ count: sql<number>`COUNT(*)::int` })
-    .from(sql`stock_items`)
+    .from(stockItems)
     .where(
-      sql`"productId" = ${productId} AND "ownerId" = ${ctx.storeId} AND status = 'available'`,
+      and(
+        eq(stockItems.ownerId, ctx.storeId),
+        eq(stockItems.productId, productId),
+        eq(stockItems.status, "available"),
+      ),
     )
 
-  const inStock = Number(available[0]?.count ?? 0) > 0
+  // Manual-delivery products are always purchasable; stock products need units.
+  const inStock = product.deliveryType === "manual" || Number(count) > 0
+
   const caption = [
     `<b>${escapeHtml(product.name)}</b>`,
-    ``,
-    escapeHtml(product.description ?? ""),
-    ``,
-    `💰 <b>${formatCurrency(Number(product.price))}</b>`,
-    inStock ? "✅ Em estoque" : "⛔ Esgotado",
-  ].join("\n")
+    product.description ? `\n${escapeHtml(product.description)}` : "",
+    `\n💰 <b>${formatCurrency(Number(product.price))}</b>`,
+    product.deliveryType === "stock"
+      ? inStock
+        ? "✅ Em estoque"
+        : "⛔ Esgotado"
+      : "✅ Disponível",
+  ]
+    .filter(Boolean)
+    .join("\n")
 
-  const keyboard = buildInlineKeyboard(
-    inStock
-      ? [[{ text: "🛍️ Comprar", callback_data: `buy:${product.id}` }]]
-      : [[{ text: "⬅️ Voltar ao catálogo", callback_data: "catalog" }]],
-  )
+  const backCat = product.categoryId != null ? String(product.categoryId) : UNCATEGORIZED
+  const rows: InlineButton[][] = []
+  if (inStock) {
+    rows.push([{ text: "🛍️ Comprar", callback_data: `buy:${product.id}` }])
+  }
+  rows.push([{ text: "⬅️ Voltar", callback_data: `cat:${backCat}:0` }])
 
-  if (product.imageUrl) {
-    await ctx.tg.sendPhoto(chatId, product.imageUrl, caption, keyboard)
-  } else {
-    await ctx.tg.sendMessage(chatId, caption, { replyMarkup: keyboard })
+  return {
+    imageUrl: product.imageUrl,
+    text: caption,
+    keyboard: buildInlineKeyboard(rows),
   }
 }
+
+function buildSupportScreen(ctx: StoreContext): Screen {
+  const parts = [`<b>${ctx.support.label}</b>`, "", ctx.support.message]
+  if (ctx.support.hours.trim()) {
+    parts.push("", `🕐 <b>Atendimento:</b> ${ctx.support.hours.trim()}`)
+  }
+
+  const rows: InlineButton[][] = []
+  const username = ctx.support.telegramUsername.trim().replace(/^@/, "")
+  if (username) {
+    rows.push([
+      { text: ctx.support.buttonLabel, url: `https://t.me/${username}` },
+    ])
+  } else if (ctx.support.whatsappUrl.trim()) {
+    rows.push([{ text: ctx.support.buttonLabel, url: ctx.support.whatsappUrl.trim() }])
+  }
+  rows.push([{ text: "⬅️ Voltar", callback_data: "home:0" }])
+
+  return { text: parts.join("\n"), keyboard: buildInlineKeyboard(rows) }
+}
+
+/* ---------------------------------------------------------------------------
+ * Purchase flow
+ * ------------------------------------------------------------------------- */
 
 async function startPurchase(
   ctx: StoreContext,
@@ -352,15 +638,36 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   if (update.callback_query) {
     const cq = update.callback_query
     const chatId = cq.message?.chat.id
+    const messageId = cq.message?.message_id ?? null
     const data = cq.data ?? ""
+    const firstName = cq.from.first_name ?? "cliente"
     await ctx.tg.answerCallbackQuery(cq.id)
     if (!chatId) return
 
-    if (data === "catalog") await showCatalog(ctx, chatId)
-    else if (data.startsWith("product:"))
-      await showProduct(ctx, chatId, Number(data.split(":")[1]))
-    else if (data.startsWith("buy:"))
+    if (data === "noop") return
+
+    if (data === "home" || data.startsWith("home:")) {
+      const page = Number(data.split(":")[1] ?? "0") || 0
+      await renderScreen(ctx, chatId, messageId, await buildHomeScreen(ctx, firstName, page))
+    } else if (data.startsWith("cat:")) {
+      const [, catId, pageStr] = data.split(":")
+      const page = Number(pageStr ?? "0") || 0
+      await renderScreen(ctx, chatId, messageId, await buildCategoryScreen(ctx, catId, page))
+    } else if (data.startsWith("prod:")) {
+      await renderScreen(
+        ctx,
+        chatId,
+        messageId,
+        await buildProductScreen(ctx, Number(data.split(":")[1])),
+      )
+    } else if (data === "support") {
+      await renderScreen(ctx, chatId, messageId, buildSupportScreen(ctx))
+    } else if (data === "catalog") {
+      // Legacy callback — route to the new home screen.
+      await renderScreen(ctx, chatId, messageId, await buildHomeScreen(ctx, firstName, 0))
+    } else if (data.startsWith("buy:")) {
       await startPurchase(ctx, chatId, Number(data.split(":")[1]), cq.from)
+    }
     return
   }
 
@@ -378,32 +685,18 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   }
 
   // Customer flows.
+  const firstName = msg.from.first_name ?? "cliente"
   if (text === "/start") {
     await upsertCustomer(ctx.storeId, msg.from)
-    const firstName = escapeHtml(msg.from.first_name ?? "cliente")
-    // Store owners can customize this via the panel; {nome} is replaced with
-    // the customer's first name. Falls back to a friendly default.
-    const welcome = (
-      ctx.welcomeMessage.trim() ||
-      "👋 Bem-vindo(a) à nossa loja!\n\nConfira nossos produtos abaixo:"
-    ).replace(/\{nome\}/gi, firstName)
-
-    if (ctx.welcomeImageUrl.trim()) {
-      await ctx.tg.sendPhoto(chatId, ctx.welcomeImageUrl.trim(), welcome)
-    } else {
-      await ctx.tg.sendMessage(chatId, welcome)
-    }
-    // Show the catalog immediately so the first screen is actionable.
-    await showCatalog(ctx, chatId)
+    // Single message: welcome + categories, sent fresh. All later navigation
+    // edits this same message in place.
+    await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
   } else if (text === "/catalogo" || text.toLowerCase() === "catálogo") {
-    await showCatalog(ctx, chatId)
+    await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
   } else if (text === "/historico" || text === "/compras") {
     await showHistory(ctx, chatId, senderId)
   } else if (text === "/suporte") {
-    await ctx.tg.sendMessage(
-      chatId,
-      "💬 Descreva sua dúvida e nossa equipe entrará em contato.",
-    )
+    await renderScreen(ctx, chatId, null, buildSupportScreen(ctx))
   } else {
     await ctx.tg.sendMessage(
       chatId,
