@@ -662,21 +662,32 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     return
   }
 
-  // Passive auto-detection for groups/supergroups: any message from a group
-  // proves the bot is there. Runs alongside the normal message handling below.
+  // Messages from a group/supergroup are NEVER the private customer shop flow.
+  // They serve two purposes: (1) passively prove the bot is a member so we can
+  // auto-detect the chat, and (2) let an admin force detection by sending a
+  // command inside the group. Commands reach the bot even with privacy mode ON,
+  // which is the ONLY reliable way to register a group the bot already joined.
   if (
-    ctx.botId &&
     update.message &&
     (update.message.chat.type === "group" ||
-      update.message.chat.type === "supergroup" ||
-      update.message.chat.type === "channel")
+      update.message.chat.type === "supergroup")
   ) {
-    await detectChatFromUpdate(
-      storeId,
-      update.message.chat,
-      ctx.botId,
-      ctx.tg,
-    )
+    if (ctx.botId) {
+      await detectChatFromUpdate(
+        storeId,
+        update.message.chat,
+        ctx.botId,
+        ctx.tg,
+      )
+      const cmd = (update.message.text ?? "")
+        .trim()
+        .toLowerCase()
+        .split("@")[0]
+      if (["/detectar", "/id", "/start", "/status"].includes(cmd)) {
+        await replyGroupDetection(ctx, update.message.chat)
+      }
+    }
+    return
   }
 
   if (update.callback_query) {
@@ -752,4 +763,39 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       ].join("\n"),
     )
   }
+}
+
+// Confirms in-group that detection succeeded, echoing the chat's real data and
+// the bot's admin status. This closes the loop for the self-service detection
+// command (/detectar, /id, /status) used to register already-joined groups.
+async function replyGroupDetection(
+  ctx: StoreContext,
+  chat: { id: number; type: string; title?: string; username?: string },
+) {
+  if (!ctx.botId) return
+  const memberRes = await ctx.tg.getChatMember(chat.id, ctx.botId)
+  const status = memberRes.ok ? memberRes.result.status : "unknown"
+  const isAdmin = status === "administrator" || status === "creator"
+  const typeLabel =
+    chat.type === "supergroup"
+      ? "Supergrupo"
+      : chat.type === "channel"
+        ? "Canal"
+        : "Grupo"
+
+  const lines = [
+    isAdmin
+      ? "✅ Grupo detectado e sincronizado com o painel!"
+      : "⚠️ Grupo detectado, mas o bot ainda não é administrador.",
+    "",
+    `Nome: ${chat.title ?? chat.id}`,
+    `Chat ID: ${chat.id}`,
+    `Tipo: ${typeLabel}`,
+    `Bot é administrador: ${isAdmin ? "sim" : "não"}`,
+    "",
+    isAdmin
+      ? "Abra o painel em Grupos & Canais e escolha a função deste grupo (CDN, Postagens, Logs, etc.)."
+      : "Promova o bot a administrador para liberar todas as funções e sincronizar as permissões.",
+  ]
+  await ctx.tg.sendMessage(chat.id, lines.join("\n"))
 }

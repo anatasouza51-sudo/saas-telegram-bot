@@ -258,11 +258,35 @@ export function ChannelsView({
 
       <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <p className="text-pretty">
-          {
-            "Não há cadastro manual. Adicione o bot como administrador em um grupo ou canal e ele aparece aqui automaticamente. Use \"Sincronizar Telegram\" para revalidar os dados quando quiser."
-          }
-        </p>
+        <div className="flex flex-col gap-2 text-pretty">
+          <p>
+            {
+              "Não há cadastro manual. Ao adicionar o bot a um grupo ou canal, ele aparece aqui automaticamente."
+            }
+          </p>
+          <p className="font-medium text-foreground">
+            {"O bot já está no grupo mas não apareceu?"}
+          </p>
+          <p>
+            {
+              "O Telegram não permite listar os grupos do bot — a detecção depende de um evento. Como o bot usa modo privacidade, ele não vê mensagens comuns. Para registrar um grupo onde o bot já está, faça uma destas ações:"
+            }
+          </p>
+          <ul className="ml-4 list-disc space-y-1">
+            <li>
+              {"Envie "}
+              <code className="rounded bg-muted px-1 font-mono text-foreground">
+                /detectar
+              </code>
+              {" dentro do grupo ou canal (funciona mesmo com privacidade)."}
+            </li>
+            <li>
+              {
+                "Ou remova e adicione o bot novamente, ou altere as permissões de administrador dele."
+              }
+            </li>
+          </ul>
+        </div>
       </div>
 
       <DiagnosticsPanel initial={diagnostics} />
