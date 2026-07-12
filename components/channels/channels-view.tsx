@@ -34,10 +34,20 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
   listChannels,
   syncAllChannels,
   setChatPurpose,
   restartTelegramIntegration,
+  addChannelManually,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
@@ -55,6 +65,7 @@ import {
   AlertTriangle,
   Radio,
   Info,
+  PlusCircle,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -157,6 +168,9 @@ export function ChannelsView({
   const [page, setPage] = useState(1)
   const [syncing, startSync] = useTransition()
   const [pending, startTransition] = useTransition()
+  const [manualOpen, setManualOpen] = useState(false)
+  const [manualInput, setManualInput] = useState("")
+  const [adding, startAdding] = useTransition()
   const searchRef = useRef(search)
   searchRef.current = search
 
@@ -228,6 +242,25 @@ export function ChannelsView({
         await refresh()
       } else {
         toast.error(res.error ?? "Falha ao reiniciar a integração.")
+      }
+    })
+  }
+
+  function handleManualAdd() {
+    const value = manualInput.trim()
+    if (!value) {
+      toast.error("Informe o ID ou @username do grupo/canal.")
+      return
+    }
+    startAdding(async () => {
+      const res = await addChannelManually(value)
+      if (res.ok) {
+        toast.success(`"${res.title}" adicionado com sucesso.`)
+        setManualInput("")
+        setManualOpen(false)
+        await refresh()
+      } else {
+        toast.error(res.error ?? "Falha ao adicionar.")
       }
     })
   }
@@ -367,6 +400,59 @@ export function ChannelsView({
             <RotateCcw className="mr-2 h-4 w-4" />
             Reiniciar Integração
           </Button>
+          <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+            <DialogTrigger
+              render={
+                <Button variant="outline" disabled={!botConfigured}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar manualmente
+                </Button>
+              }
+            />
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Adicionar grupo ou canal</DialogTitle>
+                <DialogDescription className="text-pretty">
+                  {
+                    "Cole o Chat ID (ex.: -1001234567890) ou o @username do canal. O bot já precisa estar dentro do grupo/canal — vamos validar isso pela API."
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-2">
+                <Input
+                  placeholder="-1001234567890 ou @baguerastore"
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.nativeEvent.isComposing &&
+                      e.keyCode !== 229
+                    ) {
+                      handleManualAdd()
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-pretty">
+                  {
+                    "Dica: para descobrir o Chat ID, encaminhe uma mensagem do grupo para @userinfobot, ou envie /detectar dentro do próprio grupo."
+                  }
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setManualOpen(false)}
+                  disabled={adding}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleManualAdd} disabled={adding}>
+                  {adding ? "Validando..." : "Adicionar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
