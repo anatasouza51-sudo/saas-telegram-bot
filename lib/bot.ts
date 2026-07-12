@@ -17,6 +17,8 @@ import {
 import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+import { escapeHtml } from "@/lib/security"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -375,8 +377,8 @@ async function buildProductScreen(
   const inStock = product.deliveryType === "manual" || Number(count) > 0
 
   const caption = [
-    `<b>${product.name}</b>`,
-    product.description ? `\n${product.description}` : "",
+    `<b>${escapeHtml(product.name)}</b>`,
+    product.description ? `\n${escapeHtml(product.description)}` : "",
     `\n💰 <b>${formatCurrency(Number(product.price))}</b>`,
     product.deliveryType === "stock"
       ? inStock
@@ -453,12 +455,13 @@ async function startPurchase(
     })
     .returning()
 
+  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
   const charge = await createCharge(ctx.veopag, {
     amount: Number(product.price),
     externalId: String(order.id),
     description: product.name,
     customerName: customer.name ?? undefined,
-    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}`,
+    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
     payer: {
       name: customer.name ?? customer.username ?? "Cliente",
     },
@@ -467,7 +470,7 @@ async function startPurchase(
   if (!charge.ok) {
     await ctx.tg.sendMessage(
       chatId,
-      `⚠️ Não foi possível gerar o pagamento agora.\n<code>${charge.error}</code>\n\nO pedido #${order.id} ficou pendente.`,
+      `⚠️ Não foi possível gerar o pagamento agora.\n<code>${escapeHtml(charge.error)}</code>\n\nO pedido #${order.id} ficou pendente.`,
     )
     return
   }
@@ -479,13 +482,13 @@ async function startPurchase(
 
   const lines = [
     `<b>Pedido #${order.id}</b> criado!`,
-    `Produto: <b>${product.name}</b>`,
+    `Produto: <b>${escapeHtml(product.name)}</b>`,
     `Valor: <b>${formatCurrency(Number(product.price))}</b>`,
     ``,
     `Pague via PIX para receber o produto automaticamente:`,
   ]
   if (charge.pixCode) {
-    lines.push("", `<code>${charge.pixCode}</code>`)
+    lines.push("", `<code>${escapeHtml(charge.pixCode)}</code>`)
   }
 
   const keyboard = charge.checkoutUrl
@@ -521,7 +524,7 @@ async function showHistory(ctx: StoreContext, chatId: number, telegramId: string
     ``,
     ...rows.map(
       (o) =>
-        `#${o.id} — ${o.productName} — ${formatCurrency(Number(o.amount))} — ${
+        `#${o.id} — ${escapeHtml(o.productName)} — ${formatCurrency(Number(o.amount))} — ${
           o.deliveryStatus === "delivered" ? "entregue ✅" : o.paymentStatus
         }`,
     ),
@@ -566,7 +569,8 @@ async function handleAdminCommand(ctx: StoreContext, chatId: number, command: st
         [
           `<b>📦 Produtos</b>`,
           ...rows.map(
-            (p) => `#${p.id} ${p.name} — ${formatCurrency(Number(p.price))} (${p.status})`,
+            (p) =>
+              `#${p.id} ${escapeHtml(p.name)} — ${formatCurrency(Number(p.price))} (${p.status})`,
           ),
         ].join("\n"),
       )
@@ -584,7 +588,8 @@ async function handleAdminCommand(ctx: StoreContext, chatId: number, command: st
         [
           `<b>🧾 Últimos pedidos</b>`,
           ...rows.map(
-            (o) => `#${o.id} ${o.productName} — ${o.paymentStatus}/${o.deliveryStatus}`,
+            (o) =>
+              `#${o.id} ${escapeHtml(o.productName)} — ${o.paymentStatus}/${o.deliveryStatus}`,
           ),
         ].join("\n"),
       )

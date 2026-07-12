@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { products, categories, stockItems } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { runAutomations } from "@/lib/tg/automations"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -98,6 +99,13 @@ export async function createProduct(input: ProductInput) {
     action: `Criou o produto "${input.name}"`,
     category: "product",
   })
+  // Fire "new product" automations (best-effort, never blocks product creation).
+  if ((input.status ?? "active") === "active") {
+    await runAutomations(user.storeId, "product_created", {
+      productName: input.name,
+      price: input.price,
+    })
+  }
   revalidatePath("/products")
   return row
 }
@@ -140,6 +148,15 @@ export async function setProductStatus(id: number, status: "active" | "inactive"
     action: `${status === "active" ? "Ativou" : "Desativou"} o produto #${id}`,
     category: "product",
   })
+  if (status === "inactive") {
+    const [p] = await db
+      .select({ name: products.name })
+      .from(products)
+      .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
+    await runAutomations(user.storeId, "product_unavailable", {
+      productName: p?.name,
+    })
+  }
   revalidatePath("/products")
 }
 

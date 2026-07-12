@@ -12,18 +12,23 @@ export function GatewayForm({
   initial,
   webhookUrl,
 }: {
-  initial: { publicKey: string; secretKey: string }
+  initial: { publicKey: string; hasSecretKey: boolean }
   webhookUrl: string
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
-  const [secretKey, setSecretKey] = useState(initial.secretKey)
+  const [secretKey, setSecretKey] = useState("")
   const [pending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
 
   function submit() {
     startTransition(async () => {
       try {
-        await saveGatewaySettings({ publicKey, secretKey })
+        // Empty secret means "keep the one already stored on the server".
+        await saveGatewaySettings({
+          publicKey,
+          secretKey: secretKey.trim() || undefined,
+        })
+        setSecretKey("")
         toast.success("Configurações do gateway salvas")
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
@@ -53,13 +58,21 @@ export function GatewayForm({
         <Input
           id="veo-secret"
           type="password"
-          placeholder="seu client_secret da VeoPag"
+          autoComplete="new-password"
+          placeholder={
+            initial.hasSecretKey
+              ? "•••••••• (salvo — preencha para alterar)"
+              : "seu client_secret da VeoPag"
+          }
           value={secretKey}
           onChange={(e) => setSecretKey(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
           Gere o <strong>client_id</strong> e o <strong>client_secret</strong> em
           dashboard.veopag.com/credentials. Cada loja usa a sua própria conta.
+          {initial.hasSecretKey
+            ? " Deixe o segredo em branco para manter o atual."
+            : ""}
         </p>
       </div>
 
