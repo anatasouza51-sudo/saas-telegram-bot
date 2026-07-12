@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/page-header"
 import {
   Card,
   CardContent,
@@ -23,11 +22,6 @@ export default async function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Categorias"
-        description="Organize o catálogo do bot em categorias (sessões). Tudo é dinâmico e gerenciado por aqui."
-      />
-
       <CategoriesView categories={categories} />
 
       <Card>
