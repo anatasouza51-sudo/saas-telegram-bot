@@ -1,5 +1,4 @@
 import { requireCapability } from "@/lib/session"
-import { PageHeader } from "@/components/page-header"
 import { MediaLibrary } from "@/components/media/media-library"
 import { listMedia, listFolders } from "@/app/actions/tg-media"
 import { getStoreTelegram } from "@/lib/tg/config"
@@ -14,10 +13,6 @@ export default async function MediaPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Biblioteca de Mídias"
-        description="Arquivos armazenados no próprio Telegram via file_id. Nenhuma URL pública é usada."
-      />
       <MediaLibrary
         initialMedia={media}
         folders={folders}

@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/page-header"
 import { ChannelsView } from "@/components/channels/channels-view"
 import {
   listChannels,
@@ -21,10 +20,6 @@ export default async function ChannelsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Grupos & Canais"
-        description="Detecção automática: adicione o bot a um grupo ou canal e ele aparece aqui sozinho, com status e permissões atualizados."
-      />
       <ChannelsView
         channels={channels}
         botConfigured={Boolean(tg.token)}

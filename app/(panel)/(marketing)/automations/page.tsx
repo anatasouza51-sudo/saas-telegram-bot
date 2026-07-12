@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/page-header"
 import { AutomationsView } from "@/components/automations/automations-view"
 import { listAutomations } from "@/app/actions/tg-automations"
 import { listChannels } from "@/app/actions/tg-channels"
@@ -15,10 +14,6 @@ export default async function AutomationsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Automações"
-        description="Publique automaticamente quando eventos da loja acontecerem: novo produto, estoque reposto, produto indisponível ou promoção."
-      />
       <AutomationsView
         automations={automations as never}
         channels={channels as never}
