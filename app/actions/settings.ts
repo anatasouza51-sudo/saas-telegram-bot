@@ -1,61 +1,24 @@
 "use server"
 
-import { db } from "@/lib/db"
-import { settings } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { getAppBaseUrl } from "@/lib/urls"
-import { and, eq, inArray } from "drizzle-orm"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
-
-// Non-secret settings live in the DB, scoped per store. Secrets (tokens/keys)
-// live in env vars.
-export async function getSettings(storeId: string, keys: string[]) {
-  if (keys.length === 0) return {}
-  const rows = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.ownerId, storeId), inArray(settings.key, keys)))
-  const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
-  return map
-}
-
-export async function getSetting(
-  storeId: string,
-  key: string,
-): Promise<string | null> {
-  const [row] = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.ownerId, storeId), eq(settings.key, key)))
-    .limit(1)
-  return row?.value ?? null
-}
-
-export async function saveSetting(storeId: string, key: string, value: string) {
-  const existing = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.ownerId, storeId), eq(settings.key, key)))
-    .limit(1)
-  if (existing.length > 0) {
-    await db
-      .update(settings)
-      .set({ value, updatedAt: new Date() })
-      .where(and(eq(settings.ownerId, storeId), eq(settings.key, key)))
-  } else {
-    await db.insert(settings).values({ ownerId: storeId, key, value })
-  }
-}
+import { getSetting, saveSetting } from "@/lib/settings"
 
 export async function saveTelegramSettings(input: {
-  botToken: string
+  botToken?: string
   adminIds: string
 }) {
   const user = await requireCapability("telegram.manage")
-  await saveSetting(user.storeId, "telegram.botToken", input.botToken)
+  // Only overwrite the token when a new value is provided. The client never
+  // receives the stored token, so an empty field means "keep current".
+  const token = input.botToken?.trim()
+  if (token) {
+    await saveSetting(user.storeId, "telegram.botToken", token)
+  }
   await saveSetting(user.storeId, "telegram.adminIds", input.adminIds)
   await logActivity({
     storeId: user.storeId,
@@ -69,11 +32,16 @@ export async function saveTelegramSettings(input: {
 
 export async function saveGatewaySettings(input: {
   publicKey: string
-  secretKey: string
+  secretKey?: string
 }) {
   const user = await requireCapability("gateway.manage")
-  await saveSetting(user.storeId, "veopag.publicKey", input.publicKey)
-  await saveSetting(user.storeId, "veopag.secretKey", input.secretKey)
+  await saveSetting(user.storeId, "veopag.publicKey", input.publicKey.trim())
+  // Keep the stored secret when the field is left blank (never round-tripped
+  // to the client).
+  const secret = input.secretKey?.trim()
+  if (secret) {
+    await saveSetting(user.storeId, "veopag.secretKey", secret)
+  }
   await logActivity({
     storeId: user.storeId,
     action: "Configurações do gateway VeoPag atualizadas",
@@ -113,8 +81,9 @@ export async function registerTelegramWebhook(): Promise<{
     return { ok: false, error: "Configure o token do bot antes de conectar." }
   }
   const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+  const secretToken = await getOrCreateWebhookSecret(user.storeId, "telegram")
   const client = new TelegramClient(token)
-  const res = await client.setWebhook(url)
+  const res = await client.setWebhook(url, secretToken)
   if (!res.ok) {
     return { ok: false, error: res.description ?? "Falha ao registrar webhook" }
   }

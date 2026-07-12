@@ -28,6 +28,10 @@ import {
   Wallet,
   ShieldCheck,
   ScrollText,
+  Megaphone,
+  Radio,
+  Images,
+  Zap,
   FolderTree,
   Bot,
   type LucideIcon,
@@ -46,6 +50,10 @@ const ICONS: Record<string, LucideIcon> = {
   Wallet,
   ShieldCheck,
   ScrollText,
+  Megaphone,
+  Radio,
+  Images,
+  Zap,
   FolderTree,
 }
 

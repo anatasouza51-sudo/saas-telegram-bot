@@ -10,6 +10,7 @@ import { and, eq } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { settings } from "@/lib/db/schema"
+import { escapeHtml } from "@/lib/security"
 
 type FulfillResult =
   | { ok: true; delivered: string; orderId: number }
@@ -150,9 +151,9 @@ async function deliverToCustomer(
   const message = [
     `<b>✅ Pagamento aprovado!</b>`,
     ``,
-    `Aqui está o seu produto: <b>${order.productName ?? "Produto digital"}</b>`,
+    `Aqui está o seu produto: <b>${escapeHtml(order.productName ?? "Produto digital")}</b>`,
     ``,
-    `<code>${content}</code>`,
+    `<code>${escapeHtml(content)}</code>`,
     ``,
     `Obrigado pela compra! Use /suporte se precisar de ajuda.`,
   ].join("\n")

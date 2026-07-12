@@ -30,6 +30,31 @@ export const auth = betterAuth({
   trustedOrigins,
   emailAndPassword: {
     enabled: true,
+    // Enforce a reasonable minimum; Better Auth hashes with scrypt by default.
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+  },
+  // Sessions expire after 7 days and refresh at most once per day. Better Auth
+  // stores sessions in the DB, so revocation/logout is immediate and complete.
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
+  // Built-in rate limiting throttles brute-force attempts. Auth endpoints get a
+  // tighter window than the global default.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 60, max: 3 },
+    },
   },
   user: {
     additionalFields: {

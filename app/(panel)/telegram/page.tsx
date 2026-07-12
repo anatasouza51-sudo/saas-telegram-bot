@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card"
 import { TelegramForm } from "@/components/settings/telegram-form"
 import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
-import { getSettings } from "@/app/actions/settings"
+import { getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
 
 export default async function TelegramPage() {
@@ -41,7 +41,7 @@ export default async function TelegramPage() {
         <CardContent>
           <TelegramForm
             initial={{
-              botToken: saved["telegram.botToken"] ?? "",
+              hasBotToken: botConfigured,
               adminIds: saved["telegram.adminIds"] ?? "",
             }}
             webhookUrl={webhookUrl}
