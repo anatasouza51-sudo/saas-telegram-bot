@@ -683,7 +683,10 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         .trim()
         .toLowerCase()
         .split("@")[0]
-      if (["/detectar", "/id", "/start", "/status"].includes(cmd)) {
+      // NOTE: "/start" is intentionally excluded. In groups it must be a no-op
+      // so the shop/product flow never appears there. Only explicit admin
+      // detection commands get a reply.
+      if (["/detectar", "/id", "/status"].includes(cmd)) {
         await replyGroupDetection(ctx, update.message.chat)
       }
     }
