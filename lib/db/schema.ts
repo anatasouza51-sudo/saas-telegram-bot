@@ -145,6 +145,17 @@ export const orders = pgTable("orders", {
   deliveryStatus: text("deliveryStatus").notNull().default("pending"),
   gateway: text("gateway").notNull().default("veopag"),
   paymentId: text("paymentId"),
+  // PIX copy-paste (EMV) code returned by the gateway. Persisted so the web
+  // payment page and the "check payment" button can rebuild the QR/code.
+  pixCode: text("pixCode"),
+  // Unguessable token for the public payment page URL (/pay/<token>).
+  publicToken: text("publicToken"),
+  // When the PIX charge expires (used for the countdown + expired state).
+  expiresAt: timestamp("expiresAt"),
+  // Telegram chat + message id of the PIX message we sent, so we can edit it
+  // in place ("Aguardando" -> "Aprovado") when the payment is confirmed.
+  pixChatId: text("pixChatId"),
+  pixMessageId: integer("pixMessageId"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
