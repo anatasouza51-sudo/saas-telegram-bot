@@ -19,6 +19,8 @@ import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
+import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
+import { botIdFromToken } from "@/lib/tg/config"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -43,6 +45,7 @@ type SupportConfig = {
 type StoreContext = {
   storeId: string
   tg: TelegramClient
+  botId: number | null
   adminIds: string[]
   veopag: VeoPagCredentials
   welcomeMessage: string
@@ -80,6 +83,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
   return {
     storeId,
     tg: new TelegramClient(token),
+    botId: botIdFromToken(token),
     adminIds,
     veopag: {
       publicKey: map["veopag.publicKey"] ?? "",
@@ -635,6 +639,66 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     return
   }
 
+  // Auto-detection: the bot was added/removed/promoted/demoted in a chat.
+  // Persist the new state so "Grupos & Canais" updates with zero manual input.
+  const memberUpdate = update.my_chat_member ?? update.chat_member
+  if (memberUpdate) {
+    await handleMyChatMember(storeId, memberUpdate, ctx.tg)
+    return
+  }
+
+  // Passive auto-detection: a channel_post means the bot administrates a channel
+  // we may not have seen a my_chat_member event for. Detect it, then stop (there
+  // is no customer flow for channel posts).
+  if (update.channel_post) {
+    if (ctx.botId) {
+      await detectChatFromUpdate(
+        storeId,
+        update.channel_post.chat,
+        ctx.botId,
+        ctx.tg,
+      )
+    }
+    return
+  }
+
+  // ANY message from a non-private chat (group/supergroup/anything that isn't a
+  // 1:1 DM) is NEVER the customer shop flow. The bot must stay silent there.
+  // These messages serve two purposes only: (1) passively prove the bot is a
+  // member so we can auto-detect the chat, and (2) let an admin force detection
+  // by sending an explicit command. Everything else — plain text, "Olá", "kkk",
+  // stickers, photos, videos, audio, documents, forwards, replies, emojis — is
+  // ignored. This is a hard boundary: we return before ANY reply logic runs.
+  if (update.message && update.message.chat.type !== "private") {
+    if (ctx.botId) {
+      await detectChatFromUpdate(
+        storeId,
+        update.message.chat,
+        ctx.botId,
+        ctx.tg,
+      )
+      // Only these explicit, bot-directed admin commands get a reply. We match
+      // the bare command (stripping any "@BotName" suffix). "/start" and every
+      // shop command are intentionally NOT here, so the menu never appears.
+      const cmd = (update.message.text ?? "")
+        .trim()
+        .toLowerCase()
+        .split("@")[0]
+      const DETECTION_COMMANDS = ["/detectar", "/id", "/status"]
+      if (DETECTION_COMMANDS.includes(cmd)) {
+        console.log(
+          `[v0] group handler: replying to detection command "${cmd}" in chat ${update.message.chat.id} (${update.message.chat.type})`,
+        )
+        await replyGroupDetection(ctx, update.message.chat)
+      } else {
+        console.log(
+          `[v0] group handler: ignoring non-command message in chat ${update.message.chat.id} (${update.message.chat.type}) — bot stays silent`,
+        )
+      }
+    }
+    return
+  }
+
   if (update.callback_query) {
     const cq = update.callback_query
     const chatId = cq.message?.chat.id
@@ -643,6 +707,12 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     const firstName = cq.from.first_name ?? "cliente"
     await ctx.tg.answerCallbackQuery(cq.id)
     if (!chatId) return
+
+    // The shop/catalog is a PRIVATE-chat experience only. If inline buttons
+    // from an old shop message get clicked inside a group/supergroup/channel,
+    // ignore them so the product flow never renders in a group.
+    const cbChatType = cq.message?.chat.type
+    if (cbChatType && cbChatType !== "private") return
 
     if (data === "noop") return
 
@@ -673,6 +743,13 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
 
   const msg = update.message
   if (!msg?.text || !msg.from) return
+  // Shop commands (/start, /catalogo, /suporte, etc.) and admin commands are
+  // private-chat only. Group/supergroup messages already returned above; this
+  // guard ensures nothing with a "/" ever triggers a reply outside private DMs.
+  if (msg.chat.type !== "private") return
+  console.log(
+    `[v0] private handler: processing "${msg.text.trim()}" from user ${msg.from.id}`,
+  )
   const chatId = msg.chat.id
   const text = msg.text.trim()
   const senderId = String(msg.from.id)
@@ -708,4 +785,39 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       ].join("\n"),
     )
   }
+}
+
+// Confirms in-group that detection succeeded, echoing the chat's real data and
+// the bot's admin status. This closes the loop for the self-service detection
+// command (/detectar, /id, /status) used to register already-joined groups.
+async function replyGroupDetection(
+  ctx: StoreContext,
+  chat: { id: number; type: string; title?: string; username?: string },
+) {
+  if (!ctx.botId) return
+  const memberRes = await ctx.tg.getChatMember(chat.id, ctx.botId)
+  const status = memberRes.ok ? memberRes.result.status : "unknown"
+  const isAdmin = status === "administrator" || status === "creator"
+  const typeLabel =
+    chat.type === "supergroup"
+      ? "Supergrupo"
+      : chat.type === "channel"
+        ? "Canal"
+        : "Grupo"
+
+  const lines = [
+    isAdmin
+      ? "✅ Grupo detectado e sincronizado com o painel!"
+      : "⚠️ Grupo detectado, mas o bot ainda não é administrador.",
+    "",
+    `Nome: ${chat.title ?? chat.id}`,
+    `Chat ID: ${chat.id}`,
+    `Tipo: ${typeLabel}`,
+    `Bot é administrador: ${isAdmin ? "sim" : "não"}`,
+    "",
+    isAdmin
+      ? "Abra o painel em Grupos & Canais e escolha a função deste grupo (CDN, Postagens, Logs, etc.)."
+      : "Promova o bot a administrador para liberar todas as funções e sincronizar as permissões.",
+  ]
+  await ctx.tg.sendMessage(chat.id, lines.join("\n"))
 }

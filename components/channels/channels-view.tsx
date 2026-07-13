@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -22,32 +22,50 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { ChannelDialog } from "./channel-dialog"
 import {
-  deleteChannel,
-  setChannelStatus,
-  testChannelConnection,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  listChannels,
+  syncAllChannels,
+  setChatPurpose,
+  restartTelegramIntegration,
+  addChannelManually,
+  type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
+import { PERMISSION_LABELS } from "@/lib/tg/permissions"
+import { PURPOSES } from "@/lib/tg/purposes"
+import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
 import {
-  Plus,
   Search,
   MoreHorizontal,
-  Pencil,
-  Trash2,
-  Power,
-  PlugZap,
-  Radio,
+  RefreshCw,
+  RotateCcw,
   Megaphone,
   Users,
-  Database,
-  ShieldAlert,
-  CheckCircle2,
+  ShieldCheck,
   AlertTriangle,
+  Radio,
+  Info,
+  PlusCircle,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -60,42 +78,122 @@ export type ChannelRow = {
   status: string
   botIsAdmin: boolean
   missingPermissions: string | null
+  grantedPermissions: string | null
   purpose: string
-  lastSyncedAt: Date | null
+  memberCount: number | null
+  lastSyncedAt: Date | string | null
 }
 
 const PAGE_SIZE = 10
+const POLL_MS = 15000
 
-const PURPOSE_META: Record<string, { label: string; icon: typeof Users }> = {
-  audience: { label: "Audiência", icon: Users },
-  cdn: { label: "CDN Privado", icon: Database },
-  management: { label: "Gerenciamento", icon: ShieldAlert },
-}
+// Map form for the base-ui Select `items` prop (value -> label).
+const purposeItems: Record<string, string> = Object.fromEntries(
+  PURPOSES.map((p) => [p.value, p.label]),
+)
 
 function parsePerms(json: string | null): string[] {
   if (!json) return []
   try {
-    return JSON.parse(json)
+    const v = JSON.parse(json)
+    return Array.isArray(v) ? v : []
   } catch {
     return []
   }
 }
 
+// Derives the panel status from stored fields (no live API call needed).
+type Status = {
+  key: "removed" | "insufficient" | "member" | "online"
+  label: string
+  dot: string
+  text: string
+}
+
+function deriveStatus(c: ChannelRow): Status {
+  const missing = parsePerms(c.missingPermissions)
+  if (c.status !== "active") {
+    return {
+      key: "removed",
+      label: "Removido",
+      dot: "bg-destructive",
+      text: "text-destructive",
+    }
+  }
+  if (!c.botIsAdmin) {
+    return {
+      key: "member",
+      label: "Apenas membro",
+      dot: "bg-muted-foreground",
+      text: "text-muted-foreground",
+    }
+  }
+  if (missing.length > 0) {
+    return {
+      key: "insufficient",
+      label: "Sem permissões suficientes",
+      dot: "bg-warning",
+      text: "text-warning",
+    }
+  }
+  return {
+    key: "online",
+    label: "Online",
+    dot: "bg-success",
+    text: "text-success",
+  }
+}
+
+function typeLabel(type: string) {
+  return type === "channel"
+    ? "Canal"
+    : type === "supergroup"
+      ? "Supergrupo"
+      : "Grupo"
+}
+
 export function ChannelsView({
-  channels,
+  channels: initialChannels,
   botConfigured,
+  diagnostics,
 }: {
   channels: ChannelRow[]
   botConfigured: boolean
+  diagnostics: TelegramDiagnostics | null
 }) {
+  const [channels, setChannels] = useState<ChannelRow[]>(initialChannels)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [purposeFilter, setPurposeFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
+  const [syncing, startSync] = useTransition()
   const [pending, startTransition] = useTransition()
-  const [dialog, setDialog] = useState<{ open: boolean; channel?: ChannelRow | null }>(
-    { open: false },
-  )
+  const [manualOpen, setManualOpen] = useState(false)
+  const [manualInput, setManualInput] = useState("")
+  const [adding, startAdding] = useTransition()
+  const searchRef = useRef(search)
+  searchRef.current = search
+
+  // Auto-refresh: silently re-fetch the list so newly detected chats and
+  // status/permission changes appear without any manual action.
+  const refresh = useCallback(async () => {
+    try {
+      const rows = (await listChannels()) as ChannelRow[]
+      setChannels(rows)
+    } catch {
+      // Ignore transient errors; next tick retries.
+    }
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(refresh, POLL_MS)
+    const onFocus = () => refresh()
+    window.addEventListener("focus", onFocus)
+    return () => {
+      clearInterval(id)
+      window.removeEventListener("focus", onFocus)
+    }
+  }, [refresh])
 
   const filtered = useMemo(() => {
     return channels.filter((c) => {
@@ -107,10 +205,11 @@ export function ChannelsView({
       )
         return false
       if (typeFilter !== "all" && c.type !== typeFilter) return false
-      if (purposeFilter !== "all" && c.purpose !== purposeFilter) return false
+      if (statusFilter !== "all" && deriveStatus(c).key !== statusFilter)
+        return false
       return true
     })
-  }, [channels, search, typeFilter, purposeFilter])
+  }, [channels, search, typeFilter, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -119,30 +218,59 @@ export function ChannelsView({
     currentPage * PAGE_SIZE,
   )
 
-  function action(fn: () => Promise<unknown>, successMsg: string) {
-    startTransition(async () => {
-      try {
-        await fn()
-        toast.success(successMsg)
-      } catch (err) {
-        toast.error((err as Error).message)
+  function handleSync() {
+    startSync(async () => {
+      const res = await syncAllChannels()
+      if (res.ok) {
+        toast.success(
+          `Sincronizado: ${res.updated ?? 0} ativo(s), ${res.removed ?? 0} indisponível(is).`,
+        )
+        await refresh()
+      } else {
+        toast.error(res.error ?? "Falha ao sincronizar.")
       }
     })
   }
 
-  function handleTest(id: number) {
+  function handleRestart() {
+    startSync(async () => {
+      const res = await restartTelegramIntegration()
+      if (res.ok) {
+        toast.success(
+          `Integração reiniciada: ${res.purged ?? 0} inválido(s) removido(s), ${res.updated ?? 0} sincronizado(s).`,
+        )
+        await refresh()
+      } else {
+        toast.error(res.error ?? "Falha ao reiniciar a integração.")
+      }
+    })
+  }
+
+  function handleManualAdd() {
+    const value = manualInput.trim()
+    if (!value) {
+      toast.error("Informe o ID ou @username do grupo/canal.")
+      return
+    }
+    startAdding(async () => {
+      const res = await addChannelManually(value)
+      if (res.ok) {
+        toast.success(`"${res.title}" adicionado com sucesso.`)
+        setManualInput("")
+        setManualOpen(false)
+        await refresh()
+      } else {
+        toast.error(res.error ?? "Falha ao adicionar.")
+      }
+    })
+  }
+
+  function handlePurpose(id: number, purpose: string) {
     startTransition(async () => {
       try {
-        const res = await testChannelConnection(id)
-        if (res.ok) {
-          toast.success("Conexão validada. Bot é administrador.")
-        } else {
-          toast.error(res.reason ?? "Falha na validação.", {
-            description: res.missingPermissions?.length
-              ? `Faltando: ${res.missingPermissions.join(", ")}`
-              : undefined,
-          })
-        }
+        await setChatPurpose(id, purpose)
+        toast.success("Função atualizada.")
+        await refresh()
       } catch (err) {
         toast.error((err as Error).message)
       }
@@ -150,15 +278,51 @@ export function ChannelsView({
   }
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col gap-4">
       {!botConfigured && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           Configure o token do bot em{" "}
-          <span className="font-medium">Telegram Bot</span> para validar e enviar
-          postagens.
+          <span className="font-medium">Telegram Bot</span> para detectar e
+          sincronizar grupos e canais.
         </div>
       )}
+
+      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex flex-col gap-2 text-pretty">
+          <p>
+            {
+              "Não há cadastro manual. Ao adicionar o bot a um grupo ou canal, ele aparece aqui automaticamente."
+            }
+          </p>
+          <p className="font-medium text-foreground">
+            {"O bot já está no grupo mas não apareceu?"}
+          </p>
+          <p>
+            {
+              "O Telegram não permite listar os grupos do bot — a detecção depende de um evento. Como o bot usa modo privacidade, ele não vê mensagens comuns. Para registrar um grupo onde o bot já está, faça uma destas ações:"
+            }
+          </p>
+          <ul className="ml-4 list-disc space-y-1">
+            <li>
+              {"Envie "}
+              <code className="rounded bg-muted px-1 font-mono text-foreground">
+                /detectar
+              </code>
+              {" dentro do grupo ou canal (funciona mesmo com privacidade)."}
+            </li>
+            <li>
+              {
+                "Ou remova e adicione o bot novamente, ou altere as permissões de administrador dele."
+              }
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <DiagnosticsPanel initial={diagnostics} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
@@ -199,31 +363,96 @@ export function ChannelsView({
           </Select>
           <Select
             items={{
-              all: "Toda função",
-              audience: "Audiência",
-              cdn: "CDN Privado",
-              management: "Gerenciamento",
+              all: "Todo status",
+              online: "Online",
+              insufficient: "Sem permissões",
+              member: "Apenas membro",
+              removed: "Removido",
             }}
-            value={purposeFilter}
+            value={statusFilter}
             onValueChange={(v) => {
-              setPurposeFilter(v as string)
+              setStatusFilter(v as string)
               setPage(1)
             }}
           >
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toda função</SelectItem>
-              <SelectItem value="audience">Audiência</SelectItem>
-              <SelectItem value="cdn">CDN Privado</SelectItem>
-              <SelectItem value="management">Gerenciamento</SelectItem>
+              <SelectItem value="all">Todo status</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="insufficient">Sem permissões</SelectItem>
+              <SelectItem value="member">Apenas membro</SelectItem>
+              <SelectItem value="removed">Removido</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => setDialog({ open: true, channel: null })}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo destino
+          <Button onClick={handleSync} disabled={syncing || !botConfigured}>
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+            />
+            Sincronizar Telegram
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleRestart}
+            disabled={syncing || !botConfigured}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reiniciar Integração
+          </Button>
+          <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+            <DialogTrigger
+              render={
+                <Button variant="outline" disabled={!botConfigured}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Adicionar manualmente
+                </Button>
+              }
+            />
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Adicionar grupo ou canal</DialogTitle>
+                <DialogDescription className="text-pretty">
+                  {
+                    "Cole o Chat ID (ex.: -1001234567890) ou o @username do canal. O bot já precisa estar dentro do grupo/canal — vamos validar isso pela API."
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-2">
+                <Input
+                  placeholder="-1001234567890 ou @baguerastore"
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.nativeEvent.isComposing &&
+                      e.keyCode !== 229
+                    ) {
+                      handleManualAdd()
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-pretty">
+                  {
+                    "Dica: para descobrir o Chat ID, encaminhe uma mensagem do grupo para @userinfobot, ou envie /detectar dentro do próprio grupo."
+                  }
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setManualOpen(false)}
+                  disabled={adding}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleManualAdd} disabled={adding}>
+                  {adding ? "Validando..." : "Adicionar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -231,12 +460,16 @@ export function ChannelsView({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Destino</TableHead>
+              <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Função</TableHead>
-              <TableHead>Bot Admin</TableHead>
+              <TableHead>Chat ID</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Sincronização</TableHead>
+              <TableHead>Admin</TableHead>
+              <TableHead>Permissões</TableHead>
+              <TableHead>Membros</TableHead>
+              <TableHead>Função</TableHead>
+              <TableHead>Última sinc.</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -244,30 +477,31 @@ export function ChannelsView({
             {paginated.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={7}
-                  className="h-32 text-center text-muted-foreground"
+                  colSpan={11}
+                  className="h-40 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <Radio className="h-8 w-8 opacity-40" />
-                    Nenhum destino cadastrado.
+                    <span className="font-medium">
+                      Nenhum grupo ou canal detectado ainda.
+                    </span>
+                    <span className="max-w-sm text-xs">
+                      Adicione o bot como administrador em um grupo ou canal do
+                      Telegram. Ele será detectado e listado aqui
+                      automaticamente.
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>
             )}
             {paginated.map((c) => {
-              const perms = parsePerms(c.missingPermissions)
-              const purpose = PURPOSE_META[c.purpose] ?? PURPOSE_META.audience
-              const PurposeIcon = purpose.icon
+              const st = deriveStatus(c)
+              const granted = parsePerms(c.grantedPermissions)
+              const missing = parsePerms(c.missingPermissions)
               return (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{c.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {c.username ? `@${c.username.replace(/^@/, "")} • ` : ""}
-                        {c.chatId}
-                      </span>
-                    </div>
+                    <span className="font-medium">{c.title}</span>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -276,50 +510,113 @@ export function ChannelsView({
                       ) : (
                         <Users className="h-3.5 w-3.5" />
                       )}
-                      {c.type === "channel"
-                        ? "Canal"
-                        : c.type === "supergroup"
-                          ? "Supergrupo"
-                          : "Grupo"}
+                      {typeLabel(c.type)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <PurposeIcon className="h-3.5 w-3.5" />
-                      {purpose.label}
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {c.chatId}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.username ? `@${c.username.replace(/^@/, "")}` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-sm font-medium ${st.text}`}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${st.dot}`}
+                        aria-hidden
+                      />
+                      {st.label}
                     </span>
                   </TableCell>
                   <TableCell>
-                    {c.botIsAdmin && perms.length === 0 ? (
+                    {c.botIsAdmin ? (
                       <Badge
                         variant="outline"
                         className="border-success/30 bg-success/10 text-success"
                       >
-                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                        OK
+                        <ShieldCheck className="mr-1 h-3 w-3" />
+                        Administrador
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="border-destructive/30 bg-destructive/10 text-destructive"
-                        title={perms.join(", ")}
+                        className="border-muted-foreground/30 bg-muted text-muted-foreground"
                       >
-                        <ShieldAlert className="mr-1 h-3 w-3" />
-                        {c.botIsAdmin ? "Permissões" : "Bloqueado"}
+                        Membro
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        c.status === "active"
-                          ? "border-success/30 bg-success/10 text-success"
-                          : "border-muted-foreground/30 bg-muted text-muted-foreground"
-                      }
+                    {granted.length === 0 && missing.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              className="text-left text-xs text-muted-foreground underline decoration-dotted underline-offset-2"
+                            >
+                              {granted.length} concedida(s)
+                              {missing.length > 0
+                                ? `, ${missing.length} faltando`
+                                : ""}
+                            </button>
+                          }
+                        />
+                        <TooltipContent className="max-w-xs">
+                          <div className="flex flex-col gap-1 text-xs">
+                            {granted.length > 0 && (
+                              <div>
+                                <span className="font-medium text-success">
+                                  Concedidas:
+                                </span>{" "}
+                                {granted
+                                  .map((p) => PERMISSION_LABELS[p] ?? p)
+                                  .join(", ")}
+                              </div>
+                            )}
+                            {missing.length > 0 && (
+                              <div>
+                                <span className="font-medium text-warning">
+                                  Faltando:
+                                </span>{" "}
+                                {missing
+                                  .map((p) => PERMISSION_LABELS[p] ?? p)
+                                  .join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {typeof c.memberCount === "number"
+                      ? c.memberCount.toLocaleString("pt-BR")
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      items={purposeItems}
+                      value={c.purpose}
+                      onValueChange={(v) => handlePurpose(c.id, v as string)}
                     >
-                      {c.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
+                      <SelectTrigger className="w-[190px]" disabled={pending}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PURPOSES.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {c.lastSyncedAt
@@ -330,50 +627,26 @@ export function ChannelsView({
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         }
                       />
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          disabled={pending}
-                          onClick={() => handleTest(c.id)}
-                        >
-                          <PlugZap className="mr-2 h-4 w-4" />
-                          Testar conexão
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDialog({ open: true, channel: c })}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            action(
-                              () =>
-                                setChannelStatus(
-                                  c.id,
-                                  c.status === "active" ? "inactive" : "active",
-                                ),
-                              "Status atualizado",
-                            )
-                          }
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {c.status === "active" ? "Desativar" : "Ativar"}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() =>
-                            action(() => deleteChannel(c.id), "Destino removido")
-                          }
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={syncing}
+                            onClick={handleSync}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Sincronizar agora
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -409,12 +682,7 @@ export function ChannelsView({
           </div>
         </div>
       )}
-
-      <ChannelDialog
-        open={dialog.open}
-        onOpenChange={(v) => setDialog((s) => ({ ...s, open: v }))}
-        channel={dialog.channel}
-      />
     </div>
+    </TooltipProvider>
   )
 }

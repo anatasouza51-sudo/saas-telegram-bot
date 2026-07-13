@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/page-header"
 import { PostsWorkspace } from "@/components/posts/posts-workspace"
 import { listChannels } from "@/app/actions/tg-channels"
 import { listPosts, listSchedules, getPostStats } from "@/app/actions/tg-posts"
@@ -32,10 +31,6 @@ export default async function PostsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Postagens"
-        description="Crie mensagens com mídia e botões, agende disparos e acompanhe o histórico."
-      />
       <PostsWorkspace
         channels={channels as never}
         posts={posts as never}
