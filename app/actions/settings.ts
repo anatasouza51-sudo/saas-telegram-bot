@@ -7,6 +7,7 @@ import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
 import { getSetting, saveSetting } from "@/lib/settings"
+import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
 
 export async function saveTelegramSettings(input: {
   botToken?: string
@@ -45,6 +46,19 @@ export async function saveGatewaySettings(input: {
   await logActivity({
     storeId: user.storeId,
     action: "Configurações do gateway VeoPag atualizadas",
+    category: "settings",
+    actor: user,
+  })
+  revalidatePath("/gateway")
+  return { ok: true }
+}
+
+export async function savePixSettings(config: PixConfig) {
+  const user = await requireCapability("gateway.manage")
+  await saveSetting(user.storeId, "pix.config", serializePixConfig(config))
+  await logActivity({
+    storeId: user.storeId,
+    action: "Configurações de pagamento PIX atualizadas",
     category: "settings",
     actor: user,
   })

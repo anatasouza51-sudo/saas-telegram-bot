@@ -61,7 +61,12 @@ type StoreContext = {
   pix: PixConfig
 }
 
-type InlineButton = { text: string; callback_data?: string; url?: string }
+type InlineButton = {
+  text: string
+  callback_data?: string
+  url?: string
+  copy_text?: { text: string }
+}
 
 // A single logical screen. `text` is used as the message body, or as the photo
 // caption when `imageUrl` is present.

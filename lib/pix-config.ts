@@ -83,6 +83,16 @@ export function parsePixConfig(raw: string | null | undefined): PixConfig {
   }
 }
 
+/**
+ * Validates and serializes a config to the JSON string stored in settings.
+ * Runs the input through parse first so out-of-range / malformed values are
+ * clamped to safe defaults before persisting.
+ */
+export function serializePixConfig(config: PixConfig): string {
+  const clean = parsePixConfig(JSON.stringify(config))
+  return JSON.stringify(clean)
+}
+
 function mergeButton(
   b: Partial<PixButton> | undefined,
   fallback: PixButton,
