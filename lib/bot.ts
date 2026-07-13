@@ -662,16 +662,14 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     return
   }
 
-  // Messages from a group/supergroup are NEVER the private customer shop flow.
-  // They serve two purposes: (1) passively prove the bot is a member so we can
-  // auto-detect the chat, and (2) let an admin force detection by sending a
-  // command inside the group. Commands reach the bot even with privacy mode ON,
-  // which is the ONLY reliable way to register a group the bot already joined.
-  if (
-    update.message &&
-    (update.message.chat.type === "group" ||
-      update.message.chat.type === "supergroup")
-  ) {
+  // ANY message from a non-private chat (group/supergroup/anything that isn't a
+  // 1:1 DM) is NEVER the customer shop flow. The bot must stay silent there.
+  // These messages serve two purposes only: (1) passively prove the bot is a
+  // member so we can auto-detect the chat, and (2) let an admin force detection
+  // by sending an explicit command. Everything else — plain text, "Olá", "kkk",
+  // stickers, photos, videos, audio, documents, forwards, replies, emojis — is
+  // ignored. This is a hard boundary: we return before ANY reply logic runs.
+  if (update.message && update.message.chat.type !== "private") {
     if (ctx.botId) {
       await detectChatFromUpdate(
         storeId,
@@ -679,15 +677,23 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         ctx.botId,
         ctx.tg,
       )
+      // Only these explicit, bot-directed admin commands get a reply. We match
+      // the bare command (stripping any "@BotName" suffix). "/start" and every
+      // shop command are intentionally NOT here, so the menu never appears.
       const cmd = (update.message.text ?? "")
         .trim()
         .toLowerCase()
         .split("@")[0]
-      // NOTE: "/start" is intentionally excluded. In groups it must be a no-op
-      // so the shop/product flow never appears there. Only explicit admin
-      // detection commands get a reply.
-      if (["/detectar", "/id", "/status"].includes(cmd)) {
+      const DETECTION_COMMANDS = ["/detectar", "/id", "/status"]
+      if (DETECTION_COMMANDS.includes(cmd)) {
+        console.log(
+          `[v0] group handler: replying to detection command "${cmd}" in chat ${update.message.chat.id} (${update.message.chat.type})`,
+        )
         await replyGroupDetection(ctx, update.message.chat)
+      } else {
+        console.log(
+          `[v0] group handler: ignoring non-command message in chat ${update.message.chat.id} (${update.message.chat.type}) — bot stays silent`,
+        )
       }
     }
     return
@@ -741,6 +747,9 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   // private-chat only. Group/supergroup messages already returned above; this
   // guard ensures nothing with a "/" ever triggers a reply outside private DMs.
   if (msg.chat.type !== "private") return
+  console.log(
+    `[v0] private handler: processing "${msg.text.trim()}" from user ${msg.from.id}`,
+  )
   const chatId = msg.chat.id
   const text = msg.text.trim()
   const senderId = String(msg.from.id)
