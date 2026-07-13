@@ -597,9 +597,14 @@ function buildPixKeyboard(
     ])
   }
   // Public web payment page (QR + code + live status + countdown).
-  rows.push([
-    { text: "🌐 Abrir página de pagamento", url: `${getAppBaseUrl()}/pay/${publicToken}` },
-  ])
+  if (pix.webPageButton.enabled) {
+    rows.push([
+      {
+        text: pix.webPageButton.text,
+        url: `${getAppBaseUrl()}/pay/${publicToken}`,
+      },
+    ])
+  }
   const trailing: InlineButton[] = []
   if (pix.cancelButton.enabled) {
     trailing.push({

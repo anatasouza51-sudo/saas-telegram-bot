@@ -16,6 +16,7 @@ export type PixConfig = {
   aboveCodeText: string
   copyButton: PixButton
   verifyButton: PixButton
+  webPageButton: PixButton
   cancelButton: PixButton
   supportButton: PixButton
   // Minutes until the charge expires (used for countdown + expired state).
@@ -30,6 +31,7 @@ export const DEFAULT_PIX_CONFIG: PixConfig = {
   aboveCodeText: "Copie o código PIX abaixo e pague no app do seu banco:",
   copyButton: { text: "📋 Copiar código PIX", enabled: true },
   verifyButton: { text: "🔄 Já efetuei o pagamento", enabled: true },
+  webPageButton: { text: "🌐 Abrir página de pagamento", enabled: true },
   cancelButton: { text: "❌ Cancelar pedido", enabled: true },
   supportButton: { text: "💬 Suporte", enabled: false },
   expireMinutes: 30,
@@ -52,6 +54,10 @@ export function parsePixConfig(raw: string | null | undefined): PixConfig {
       verifyButton: mergeButton(
         parsed.verifyButton,
         DEFAULT_PIX_CONFIG.verifyButton,
+      ),
+      webPageButton: mergeButton(
+        parsed.webPageButton,
+        DEFAULT_PIX_CONFIG.webPageButton,
       ),
       cancelButton: mergeButton(
         parsed.cancelButton,
