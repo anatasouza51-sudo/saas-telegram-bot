@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { orders } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { rateLimit, clientIpFrom } from "@/lib/security"
 
 /**
  * Public payment status endpoint, keyed by the order's unguessable publicToken.
@@ -10,12 +11,22 @@ import { eq } from "drizzle-orm"
  * No secrets are exposed: only status, delivery flag and expiry are returned.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params
   if (!token) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  // Throttle abusive polling/enumeration per IP. The page polls every few
+  // seconds, so 60/min per IP is comfortably above legitimate usage.
+  const limit = rateLimit(`paystatus:${clientIpFrom(req)}`, {
+    max: 60,
+    windowMs: 60_000,
+  })
+  if (!limit.ok) {
+    return NextResponse.json({ error: "Too Many Requests" }, { status: 429 })
   }
 
   const [order] = await db
