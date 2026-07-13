@@ -18,6 +18,14 @@ export function buildInlineKeyboard(rows: InlineButton[][]) {
 export class TelegramClient {
   constructor(private readonly token: string) {}
 
+  // The numeric prefix of a bot token (`<botId>:<hash>`) IS the bot's user id.
+  // Exposed so discovery logic can reject the bot's own chat without a getMe().
+  get botId(): number | null {
+    const prefix = this.token.split(":")[0]
+    const id = Number(prefix)
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+
   private async callApi<T = unknown>(
     method: string,
     payload: Record<string, unknown>,
@@ -141,10 +149,30 @@ export class TelegramClient {
     // Telegram echoes secret_token back in the X-Telegram-Bot-Api-Secret-Token
     // header on every update, letting us authenticate inbound webhooks.
     // `drop_pending_updates` clears any queue accumulated while disconnected.
+    // `allowed_updates` MUST include my_chat_member/chat_member — these are the
+    // only way to auto-detect the bot being added/removed/promoted in a chat.
+    // (Telegram omits *_member updates from the default set.)
     return this.callApi("setWebhook", {
       url,
       secret_token: secretToken,
       drop_pending_updates: true,
+      allowed_updates: [
+        "message",
+        "channel_post",
+        "callback_query",
+        "my_chat_member",
+        "chat_member",
+      ],
+    })
+  }
+
+  getWebhookInfo() {
+    return this.callApi<TelegramWebhookInfo>("getWebhookInfo", {})
+  }
+
+  deleteWebhook(dropPendingUpdates = false) {
+    return this.callApi("deleteWebhook", {
+      drop_pending_updates: dropPendingUpdates,
     })
   }
 
@@ -163,6 +191,10 @@ export class TelegramClient {
       chat_id: chatId,
       user_id: userId,
     })
+  }
+
+  getChatMemberCount(chatId: string | number) {
+    return this.callApi<number>("getChatMemberCount", { chat_id: chatId })
   }
 
   /* --- File download (server-side only) ------------------------------- */
@@ -357,13 +389,37 @@ function extractMedia(
   }
 }
 
+// Shape of a chat as it appears inside my_chat_member/chat_member updates.
+export type TelegramUpdateChat = {
+  id: number
+  type: "private" | "group" | "supergroup" | "channel"
+  title?: string
+  username?: string
+}
+
+// A ChatMemberUpdated payload: how the bot's (or a user's) membership changed.
+export type TelegramChatMemberUpdated = {
+  chat: TelegramUpdateChat
+  from: { id: number; username?: string; first_name?: string }
+  date: number
+  old_chat_member: TelegramChatMember
+  new_chat_member: TelegramChatMember
+}
+
 // Minimal shapes of the Telegram update payload we consume.
 export type TelegramUpdate = {
   update_id: number
   message?: {
     message_id: number
     from?: { id: number; username?: string; first_name?: string }
-    chat: { id: number }
+    chat: TelegramUpdateChat
+    text?: string
+  }
+  // Posts in a channel the bot administrates. Like `message` but for channels;
+  // used as a passive auto-detection signal for channels already joined.
+  channel_post?: {
+    message_id: number
+    chat: TelegramUpdateChat
     text?: string
   }
   callback_query?: {
@@ -372,6 +428,25 @@ export type TelegramUpdate = {
     message?: { message_id: number; chat: { id: number } }
     data?: string
   }
+  // Sent when the bot's own membership/permissions change in a chat. This is
+  // the primary auto-detection signal for groups and channels.
+  my_chat_member?: TelegramChatMemberUpdated
+  // Sent for other members' changes (requires bot admin). Used to keep data
+  // fresh (e.g. title changes surface via getChat on the next sync).
+  chat_member?: TelegramChatMemberUpdated
+}
+
+// Result of getWebhookInfo — used by the diagnostics panel to explain why
+// detection might not be working (e.g. missing allowed_updates).
+export type TelegramWebhookInfo = {
+  url: string
+  has_custom_certificate: boolean
+  pending_update_count: number
+  ip_address?: string
+  last_error_date?: number
+  last_error_message?: string
+  max_connections?: number
+  allowed_updates?: string[]
 }
 
 export type TelegramUser = {
@@ -390,6 +465,7 @@ export type TelegramChatInfo = {
 }
 
 export type TelegramChatMember = {
+  user?: TelegramUser
   status:
     | "creator"
     | "administrator"
@@ -401,6 +477,11 @@ export type TelegramChatMember = {
   can_edit_messages?: boolean
   can_delete_messages?: boolean
   can_manage_chat?: boolean
+  can_invite_users?: boolean
+  can_pin_messages?: boolean
+  can_promote_members?: boolean
+  can_change_info?: boolean
+  can_restrict_members?: boolean
 }
 
 type TelegramFileObject = {

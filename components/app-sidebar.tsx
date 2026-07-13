@@ -12,7 +12,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NAV_ITEMS, canSee } from "@/lib/nav"
+import {
+  MAIN_NAV,
+  SYSTEM_NAV,
+  isSection,
+  canSee,
+  type NavItem,
+  type NavNode,
+} from "@/lib/nav"
 import { ROLE_LABELS, type Role } from "@/lib/roles"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -63,14 +70,59 @@ export function AppSidebar({
   user: { name: string; email: string; role: Role }
 }) {
   const pathname = usePathname()
-  const items = NAV_ITEMS.filter((item) => canSee(user.role, item.capability))
 
-  const mainItems = items.filter(
-    (i) => !["/telegram", "/gateway", "/admins", "/logs"].includes(i.href),
-  )
-  const systemItems = items.filter((i) =>
-    ["/telegram", "/gateway", "/admins", "/logs"].includes(i.href),
-  )
+  // Filters a section's children to those the current role can see.
+  function visibleChildren(children: NavItem[]) {
+    return children.filter((c) => canSee(user.role, c.capability))
+  }
+
+  // A single link is active on exact ("/") or prefix match.
+  function isItemActive(href: string) {
+    return href === "/" ? pathname === "/" : pathname.startsWith(href)
+  }
+
+  // Renders one top-level node: either a plain link or a grouped section that
+  // points to its first visible tab and stays active across all its routes.
+  function renderNode(node: NavNode) {
+    if (!isSection(node)) {
+      if (!canSee(user.role, node.capability)) return null
+      const Icon = ICONS[node.icon] ?? LayoutDashboard
+      return (
+        <SidebarMenuItem key={node.href}>
+          <SidebarMenuButton
+            isActive={isItemActive(node.href)}
+            render={
+              <Link href={node.href}>
+                <Icon className="h-4 w-4" />
+                <span>{node.title}</span>
+              </Link>
+            }
+          />
+        </SidebarMenuItem>
+      )
+    }
+
+    const children = visibleChildren(node.children)
+    if (children.length === 0) return null
+    const Icon = ICONS[node.icon] ?? LayoutDashboard
+    const landing = children[0].href
+    const active = children.some((c) => pathname.startsWith(c.href))
+    return (
+      <SidebarMenuItem key={node.title}>
+        <SidebarMenuButton
+          isActive={active}
+          render={
+            <Link href={landing}>
+              <Icon className="h-4 w-4" />
+              <span>{node.title}</span>
+            </Link>
+          }
+        />
+      </SidebarMenuItem>
+    )
+  }
+
+  const systemItems = SYSTEM_NAV.filter((i) => canSee(user.role, i.capability))
 
   return (
     <Sidebar>
@@ -94,28 +146,7 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupLabel>Operação</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => {
-                const Icon = ICONS[item.icon] ?? LayoutDashboard
-                const active =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href)
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      isActive={active}
-                      render={
-                        <Link href={item.href}>
-                          <Icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      }
-                    />
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
+            <SidebarMenu>{MAIN_NAV.map((node) => renderNode(node))}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

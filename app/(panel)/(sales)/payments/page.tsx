@@ -1,5 +1,4 @@
 import { requireCapability } from "@/lib/session"
-import { PageHeader } from "@/components/page-header"
 import { OrdersView } from "@/components/orders/orders-view"
 import { StatCard } from "@/components/stat-card"
 import { getOrders } from "@/lib/queries/records"
@@ -17,10 +16,6 @@ export default async function PaymentsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Pagamentos"
-        description="Controle financeiro de todos os pagamentos processados pelo gateway."
-      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Receita aprovada"
