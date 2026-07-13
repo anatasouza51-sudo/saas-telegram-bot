@@ -20,7 +20,12 @@ export function PixSettingsForm({ initial }: { initial: PixConfig }) {
   }
 
   function updateButton(
-    key: "copyButton" | "verifyButton" | "cancelButton" | "supportButton",
+    key:
+      | "copyButton"
+      | "verifyButton"
+      | "webPageButton"
+      | "cancelButton"
+      | "supportButton",
     patch: Partial<PixButton>,
   ) {
     setConfig((c) => ({ ...c, [key]: { ...c[key], ...patch } }))
@@ -38,7 +43,12 @@ export function PixSettingsForm({ initial }: { initial: PixConfig }) {
   }
 
   const buttons: {
-    key: "copyButton" | "verifyButton" | "cancelButton" | "supportButton"
+    key:
+      | "copyButton"
+      | "verifyButton"
+      | "webPageButton"
+      | "cancelButton"
+      | "supportButton"
     title: string
     help: string
   }[] = [
@@ -51,6 +61,11 @@ export function PixSettingsForm({ initial }: { initial: PixConfig }) {
       key: "verifyButton",
       title: "Botão verificar pagamento",
       help: "Permite ao cliente conferir se o pagamento já foi aprovado.",
+    },
+    {
+      key: "webPageButton",
+      title: "Botão abrir página de pagamento",
+      help: "Abre a página web com QR Code, código e status ao vivo do pagamento.",
     },
     {
       key: "cancelButton",
