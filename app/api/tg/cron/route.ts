@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { processSchedules } from "@/lib/tg/scheduler"
 import { processQueue } from "@/lib/tg/queue"
+import { safeEqual } from "@/lib/security"
 
 // Vercel Cron hits this every minute. It must run on the Node.js runtime
 // (multipart/Buffer usage downstream) and never be statically cached.
@@ -15,8 +16,9 @@ async function isAuthorized(): Promise<boolean> {
   const secret = process.env.CRON_SECRET
   if (!secret) return false
   const h = await headers()
-  const auth = h.get("authorization")
-  return auth === `Bearer ${secret}`
+  const auth = h.get("authorization") ?? ""
+  // Constant-time comparison to avoid leaking the secret via response timing.
+  return safeEqual(auth, `Bearer ${secret}`)
 }
 
 async function run() {
