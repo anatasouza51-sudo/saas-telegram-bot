@@ -4,6 +4,9 @@ type InlineButton = {
   text: string
   callback_data?: string
   url?: string
+  // Telegram Bot API 7.11+: a tap copies this text to the user's clipboard.
+  // Perfect for "Copy PIX code" without leaving the chat.
+  copy_text?: { text: string }
 }
 
 export function buildInlineKeyboard(rows: InlineButton[][]) {
@@ -143,6 +146,66 @@ export class TelegramClient {
       chat_id: chatId,
       message_id: messageId,
     })
+  }
+
+  // Edits only the caption + keyboard of an existing photo message in place.
+  // Used to flip the PIX message from "Aguardando" to "Aprovado"/"Expirado".
+  editMessageCaption(
+    chatId: string | number,
+    messageId: number,
+    caption: string,
+    replyMarkup?: ReturnType<typeof buildInlineKeyboard>,
+  ) {
+    return this.callApi<TelegramMessage>("editMessageCaption", {
+      chat_id: chatId,
+      message_id: messageId,
+      caption,
+      parse_mode: "HTML",
+      reply_markup: replyMarkup,
+    })
+  }
+
+  // Sends a photo from raw bytes (multipart), with caption + inline keyboard.
+  // Used for the dynamic PIX QR Code, which is generated per payment and has
+  // no public URL. Returns the sent message so we can persist its message_id.
+  async sendPhotoBytes(
+    chatId: string | number,
+    photo: Buffer | Uint8Array,
+    options?: {
+      caption?: string
+      replyMarkup?: ReturnType<typeof buildInlineKeyboard>
+      filename?: string
+    },
+  ): Promise<{ ok: boolean; description?: string; result?: TelegramMessage }> {
+    if (!this.token) return { ok: false, description: "Token não configurado" }
+    try {
+      const form = new FormData()
+      form.append("chat_id", String(chatId))
+      if (options?.caption) {
+        form.append("caption", options.caption)
+        form.append("parse_mode", "HTML")
+      }
+      if (options?.replyMarkup) {
+        form.append("reply_markup", JSON.stringify(options.replyMarkup))
+      }
+      const blob = new Blob([photo as BlobPart], { type: "image/png" })
+      form.append("photo", blob, options?.filename ?? "pix-qr.png")
+      const res = await fetch(`${API_BASE}${this.token}/sendPhoto`, {
+        method: "POST",
+        body: form,
+      })
+      const json = (await res.json()) as {
+        ok: boolean
+        result?: TelegramMessage
+        description?: string
+      }
+      return json
+    } catch (err) {
+      return {
+        ok: false,
+        description: err instanceof Error ? err.message : "Erro de rede",
+      }
+    }
   }
 
   setWebhook(url: string, secretToken?: string) {

@@ -15,6 +15,13 @@ import {
   type TelegramUpdate,
 } from "@/lib/telegram"
 import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
+import {
+  parsePixConfig,
+  generatePixQrPng,
+  type PixConfig,
+} from "@/lib/pix"
+import { randomBytes } from "node:crypto"
+import { fulfillOrder } from "@/lib/fulfillment"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
@@ -51,6 +58,7 @@ type StoreContext = {
   welcomeMessage: string
   welcomeImageUrl: string
   support: SupportConfig
+  pix: PixConfig
 }
 
 type InlineButton = { text: string; callback_data?: string; url?: string }
@@ -100,6 +108,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
       hours: map["support.hours"] ?? "",
       buttonLabel: map["support.buttonLabel"] || "📞 Falar com Suporte",
     },
+    pix: parsePixConfig(map["pix.config"]),
   }
 }
 
@@ -479,27 +488,247 @@ async function startPurchase(
     return
   }
 
+  const pixCode = charge.pixCode ?? ""
+  const publicToken = randomBytes(24).toString("base64url")
+  const expiresAt = new Date(Date.now() + ctx.pix.expireMinutes * 60_000)
+
   await db
     .update(orders)
-    .set({ paymentId: charge.paymentId })
+    .set({
+      paymentId: charge.paymentId,
+      pixCode,
+      publicToken,
+      expiresAt,
+      pixChatId: String(chatId),
+    })
     .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
 
+  // Build the professional PIX message: order, product, value, expiry, the
+  // copy-paste code, and (below) the QR Code image.
+  const caption = buildPixCaption(ctx, {
+    orderId: order.id,
+    productName: product.name,
+    amount: Number(product.price),
+    pixCode,
+    expiresAt,
+  })
+  const keyboard = buildPixKeyboard(ctx, order.id, pixCode, publicToken)
+
+  const qr = await generatePixQrPng(pixCode)
+  if (qr) {
+    // QR as photo + caption + buttons. Persist the message id so we can edit
+    // it in place when the payment is approved/expired.
+    const sent = await ctx.tg.sendPhotoBytes(chatId, qr, {
+      caption,
+      replyMarkup: keyboard,
+      filename: `pix-${order.id}.png`,
+    })
+    if (sent.ok && sent.result?.message_id) {
+      await db
+        .update(orders)
+        .set({ pixMessageId: sent.result.message_id })
+        .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
+    }
+  } else {
+    // No PIX code returned: fall back to a text message so the flow never breaks.
+    const sent = await ctx.tg.sendMessage(chatId, caption, {
+      replyMarkup: keyboard,
+    })
+    if (sent.ok && sent.result?.message_id) {
+      await db
+        .update(orders)
+        .set({ pixMessageId: sent.result.message_id })
+        .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
+    }
+  }
+}
+
+// Renders the caption/body of the PIX payment message. Kept in HTML so the
+// code shows in a monospace <code> block the user can tap to select/copy.
+function buildPixCaption(
+  ctx: StoreContext,
+  order: {
+    orderId: number
+    productName: string
+    amount: number
+    pixCode: string
+    expiresAt: Date
+  },
+): string {
   const lines = [
-    `<b>Pedido #${order.id}</b> criado!`,
-    `Produto: <b>${escapeHtml(product.name)}</b>`,
-    `Valor: <b>${formatCurrency(Number(product.price))}</b>`,
+    `🧾 <b>Pedido #${order.orderId}</b>`,
     ``,
-    `Pague via PIX para receber o produto automaticamente:`,
+    `Produto: <b>${escapeHtml(order.productName)}</b>`,
+    `Valor: <b>${formatCurrency(order.amount)}</b>`,
+    `⏳ Expira em <b>${ctx.pix.expireMinutes} min</b>`,
   ]
-  if (charge.pixCode) {
-    lines.push("", `<code>${escapeHtml(charge.pixCode)}</code>`)
+  if (order.pixCode) {
+    lines.push("", ctx.pix.aboveCodeText, "", `<code>${escapeHtml(order.pixCode)}</code>`)
+  } else {
+    lines.push("", "⚠️ Não foi possível gerar o código PIX. Fale com o suporte.")
+  }
+  return lines.join("\n")
+}
+
+// Builds the inline keyboard from the admin-configured PIX buttons. Each button
+// only appears when its `enabled` flag is on, and uses its custom label.
+function buildPixKeyboard(
+  ctx: StoreContext,
+  orderId: number,
+  pixCode: string,
+  publicToken: string,
+) {
+  const rows: InlineButton[][] = []
+  const { pix } = ctx
+
+  // Copy button uses Telegram's native copy_text (taps copy the code to the
+  // clipboard, no bot round-trip). Only meaningful when we have a code.
+  if (pix.copyButton.enabled && pixCode) {
+    rows.push([{ text: pix.copyButton.text, copy_text: { text: pixCode } }])
+  }
+  if (pix.verifyButton.enabled) {
+    rows.push([
+      { text: pix.verifyButton.text, callback_data: `pixver:${orderId}` },
+    ])
+  }
+  // Public web payment page (QR + code + live status + countdown).
+  rows.push([
+    { text: "🌐 Abrir página de pagamento", url: `${getAppBaseUrl()}/pay/${publicToken}` },
+  ])
+  const trailing: InlineButton[] = []
+  if (pix.cancelButton.enabled) {
+    trailing.push({
+      text: pix.cancelButton.text,
+      callback_data: `pixcxl:${orderId}`,
+    })
+  }
+  if (trailing.length) rows.push(trailing)
+  if (pix.supportButton.enabled) {
+    rows.push([{ text: pix.supportButton.text, callback_data: "support" }])
+  }
+  return buildInlineKeyboard(rows)
+}
+
+// Edits the PIX message caption in place. The message is normally a photo (QR),
+// but falls back to text when no code was available — try caption first, then
+// text, so either message type flips correctly to approved/expired/cancelled.
+async function editPixMessage(
+  ctx: StoreContext,
+  chatId: number,
+  messageId: number,
+  caption: string,
+  keyboard?: ReturnType<typeof buildInlineKeyboard>,
+) {
+  const res = await ctx.tg.editMessageCaption(chatId, messageId, caption, keyboard)
+  if (!res.ok && !isIgnorableEditError(res.description)) {
+    await ctx.tg.editMessageText(chatId, messageId, caption, keyboard)
+  }
+}
+
+// "Já efetuei o pagamento" — checks the current order status (kept in sync by
+// the gateway webhook) and reacts: approved -> confirm + ensure delivery;
+// expired -> show expired; otherwise -> a gentle "still waiting" toast.
+async function handlePixVerify(
+  ctx: StoreContext,
+  callbackId: string,
+  chatId: number,
+  orderId: number,
+) {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, orderId)))
+
+  if (!order) {
+    await ctx.tg.answerCallbackQuery(callbackId, "Pedido não encontrado.")
+    return
   }
 
-  const keyboard = charge.checkoutUrl
-    ? buildInlineKeyboard([[{ text: "💳 Abrir checkout", url: charge.checkoutUrl }]])
-    : undefined
+  if (order.paymentStatus === "approved" || order.deliveryStatus === "delivered") {
+    await ctx.tg.answerCallbackQuery(callbackId, "Pagamento aprovado! ✅")
+    if (order.pixMessageId) {
+      await editPixMessage(
+        ctx,
+        chatId,
+        order.pixMessageId,
+        [
+          `🧾 <b>Pedido #${order.id}</b>`,
+          ``,
+          ctx.pix.approvedMessage,
+        ].join("\n"),
+      )
+    }
+    // Safety net: if the webhook approved payment but delivery didn't complete,
+    // deliver now (fulfillOrder is idempotent).
+    if (order.deliveryStatus !== "delivered") {
+      await fulfillOrder(orderId)
+    }
+    return
+  }
 
-  await ctx.tg.sendMessage(chatId, lines.join("\n"), { replyMarkup: keyboard })
+  const expired = order.expiresAt ? Date.now() > order.expiresAt.getTime() : false
+  if (expired) {
+    await ctx.tg.answerCallbackQuery(callbackId, "Este pagamento expirou.")
+    if (order.pixMessageId) {
+      await editPixMessage(
+        ctx,
+        chatId,
+        order.pixMessageId,
+        [`🧾 <b>Pedido #${order.id}</b>`, ``, ctx.pix.expiredMessage].join("\n"),
+      )
+    }
+    return
+  }
+
+  await ctx.tg.answerCallbackQuery(
+    callbackId,
+    "Ainda não identificamos seu pagamento. Assim que cair, entregamos automaticamente. ⏳",
+  )
+}
+
+// "Cancelar pedido" — cancels a still-pending order and updates the message.
+async function handlePixCancel(
+  ctx: StoreContext,
+  callbackId: string,
+  chatId: number,
+  orderId: number,
+) {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, orderId)))
+
+  if (!order) {
+    await ctx.tg.answerCallbackQuery(callbackId, "Pedido não encontrado.")
+    return
+  }
+  if (order.paymentStatus === "approved" || order.deliveryStatus === "delivered") {
+    await ctx.tg.answerCallbackQuery(
+      callbackId,
+      "Este pedido já foi aprovado e não pode ser cancelado.",
+    )
+    return
+  }
+
+  await db
+    .update(orders)
+    .set({ paymentStatus: "cancelled", updatedAt: new Date() })
+    .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, orderId)))
+
+  await ctx.tg.answerCallbackQuery(callbackId, "Pedido cancelado.")
+  const mid = order.pixMessageId
+  if (mid) {
+    await editPixMessage(
+      ctx,
+      chatId,
+      mid,
+      [
+        `🧾 <b>Pedido #${order.id}</b>`,
+        ``,
+        `❌ Pedido cancelado. Use /catalogo para comprar novamente.`,
+      ].join("\n"),
+    )
+  }
 }
 
 async function showHistory(ctx: StoreContext, chatId: number, telegramId: string) {
@@ -705,8 +934,14 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     const messageId = cq.message?.message_id ?? null
     const data = cq.data ?? ""
     const firstName = cq.from.first_name ?? "cliente"
-    await ctx.tg.answerCallbackQuery(cq.id)
-    if (!chatId) return
+    if (!chatId) {
+      await ctx.tg.answerCallbackQuery(cq.id)
+      return
+    }
+    // PIX verify/cancel answer with their own contextual toast; everything else
+    // gets a generic immediate ack so the button stops its loading spinner.
+    const isPixAction = data.startsWith("pixver:") || data.startsWith("pixcxl:")
+    if (!isPixAction) await ctx.tg.answerCallbackQuery(cq.id)
 
     // The shop/catalog is a PRIVATE-chat experience only. If inline buttons
     // from an old shop message get clicked inside a group/supergroup/channel,
@@ -737,6 +972,10 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       await renderScreen(ctx, chatId, messageId, await buildHomeScreen(ctx, firstName, 0))
     } else if (data.startsWith("buy:")) {
       await startPurchase(ctx, chatId, Number(data.split(":")[1]), cq.from)
+    } else if (data.startsWith("pixver:")) {
+      await handlePixVerify(ctx, cq.id, chatId, Number(data.split(":")[1]))
+    } else if (data.startsWith("pixcxl:")) {
+      await handlePixCancel(ctx, cq.id, chatId, Number(data.split(":")[1]))
     }
     return
   }
