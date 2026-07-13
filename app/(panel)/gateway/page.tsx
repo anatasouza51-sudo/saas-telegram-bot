@@ -8,7 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { GatewayForm } from "@/components/settings/gateway-form"
+import { PixSettingsForm } from "@/components/settings/pix-settings-form"
 import { getSettings } from "@/lib/settings"
+import { parsePixConfig } from "@/lib/pix-config"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 
@@ -17,7 +19,9 @@ export default async function GatewayPage() {
   const saved = await getSettings(user.storeId, [
     "veopag.publicKey",
     "veopag.secretKey",
+    "pix.config",
   ])
+  const pixConfig = parsePixConfig(saved["pix.config"])
   // The secret key is never sent to the client — only whether one is stored.
   const hasSecretKey = Boolean(saved["veopag.secretKey"])
   // The authenticated owner needs their own signed webhook URL to paste into
@@ -48,6 +52,19 @@ export default async function GatewayPage() {
             }}
             webhookUrl={webhookUrl}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pagamento PIX</CardTitle>
+          <CardDescription>
+            Personalize os textos, os botões e o tempo de expiração exibidos na
+            cobrança PIX — no bot do Telegram e na página de pagamento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PixSettingsForm initial={pixConfig} />
         </CardContent>
       </Card>
     </div>

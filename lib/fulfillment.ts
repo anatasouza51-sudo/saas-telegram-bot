@@ -6,11 +6,12 @@ import {
   stockItems,
   deliveries,
 } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { settings } from "@/lib/db/schema"
 import { escapeHtml } from "@/lib/security"
+import { parsePixConfig } from "@/lib/pix"
 
 type FulfillResult =
   | { ok: true; delivered: string; orderId: number }
@@ -122,9 +123,12 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
 
 async function deliverToCustomer(
   order: {
+    id: number
     ownerId: string
     customerId: number | null
     productName: string | null
+    pixChatId?: string | null
+    pixMessageId?: number | null
   },
   content: string,
 ) {
@@ -135,19 +139,48 @@ async function deliverToCustomer(
     .where(eq(customers.id, order.customerId))
   if (!customer?.telegramId) return
 
-  // Load this store's bot token.
-  const [tokenRow] = await db
-    .select({ value: settings.value })
+  // Load this store's bot token + PIX config (for the approved message text).
+  const rows = await db
+    .select({ key: settings.key, value: settings.value })
     .from(settings)
     .where(
       and(
         eq(settings.ownerId, order.ownerId),
-        eq(settings.key, "telegram.botToken"),
+        inArray(settings.key, ["telegram.botToken", "pix.config"]),
       ),
     )
-  const token = tokenRow?.value
+  const map: Record<string, string> = {}
+  for (const r of rows) map[r.key] = r.value ?? ""
+  const token = map["telegram.botToken"]
   if (!token) return
+  const pix = parsePixConfig(map["pix.config"])
 
+  const client = new TelegramClient(token)
+
+  // First, flip the original PIX message ("Aguardando") to "Aprovado" in place,
+  // removing the payment buttons so it can't be paid/cancelled again.
+  if (order.pixChatId && order.pixMessageId) {
+    const approvedCaption = [
+      `🧾 <b>Pedido #${order.id}</b>`,
+      ``,
+      pix.approvedMessage,
+    ].join("\n")
+    const res = await client.editMessageCaption(
+      order.pixChatId,
+      order.pixMessageId,
+      approvedCaption,
+    )
+    if (!res.ok && !(res.description ?? "").toLowerCase().includes("not modified")) {
+      // Fallback for the text-only variant of the PIX message.
+      await client.editMessageText(
+        order.pixChatId,
+        order.pixMessageId,
+        approvedCaption,
+      )
+    }
+  }
+
+  // Then deliver the product content as a new message.
   const message = [
     `<b>✅ Pagamento aprovado!</b>`,
     ``,
@@ -158,6 +191,5 @@ async function deliverToCustomer(
     `Obrigado pela compra! Use /suporte se precisar de ajuda.`,
   ].join("\n")
 
-  const client = new TelegramClient(token)
   await client.sendMessage(customer.telegramId, message)
 }
