@@ -129,7 +129,7 @@ export function AppSidebar({
     <Sidebar>
       <SidebarHeader className="border-b border-white/5 pb-4">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center animate-pulse-soft">
             <Image 
               src="/ghostbot-final-logo.png" 
               alt="GhostBot Logo" 
@@ -186,7 +186,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter className="border-t border-white/5 p-4">
-        <div className="rounded-2xl bg-white/5 p-1 ring-1 ring-white/10 transition-all hover:bg-white/10">
+        <div className="rounded-2xl bg-white/5 p-1 ring-1 ring-white/10 transition-all hover:bg-white/10 hover:scale-[1.02] active:scale-[0.98]">
           <UserMenu
             name={user.name}
             email={user.email}
