@@ -55,7 +55,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <div className="w-full max-w-[440px] px-4 py-8 animate-in fade-in zoom-in duration-500">
+    <div className="w-full max-w-[440px] px-4 py-8">
       <div className="mb-10 flex flex-col items-center text-center">
         <GhostLogo className="mb-6" />
         
@@ -76,7 +76,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         
         <form
           onSubmit={handleSubmit}
-          className="relative flex flex-col gap-5 rounded-[20px] border border-white/10 bg-card/80 backdrop-blur-xl p-8 shadow-2xl"
+          className="relative flex flex-col gap-5 rounded-[20px] border border-white/10 bg-card/90 p-8 shadow-2xl"
         >
           {isSignUp && (
             <div className="space-y-2">
@@ -116,7 +116,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               <Label htmlFor="password" className="text-white/70">Senha</Label>
               {!isSignUp && (
                 <Link
-                  href="/forgot-password"
+                  href="/forget-password"
                   className="text-xs text-primary hover:text-primary/80 transition-colors"
                 >
                   Esqueci minha senha
