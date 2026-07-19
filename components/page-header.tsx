@@ -12,20 +12,9 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-white/5 bg-[#0a0a0a] px-6 py-5 md:flex-row md:items-center md:justify-between lg:px-8">
+    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] px-6 py-4 lg:px-8">
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="text-primary md:hidden" />
-        <Separator orientation="vertical" className="h-8 bg-white/10 md:hidden" />
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-primary to-accent sm:text-2xl">
-            {title}
-          </h1>
-          {description && (
-            <p className="text-sm font-medium text-muted-foreground/80">
-              {description}
-            </p>
-          )}
-        </div>
+        {/* Title removed for cleaner UI as requested */}
       </div>
       {actions && (
         <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-500">

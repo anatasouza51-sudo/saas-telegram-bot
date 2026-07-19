@@ -31,10 +31,7 @@ export default async function GatewayPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Gateway de Pagamento — VeoPag"
-        description="Conecte sua conta VeoPag para gerar cobranças PIX e receber confirmações automáticas."
-      />
+      {/* PageHeader removed for cleaner UI */}
 
       <Card>
         <CardHeader>

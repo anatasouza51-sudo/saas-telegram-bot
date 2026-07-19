@@ -9,10 +9,7 @@ export default async function AdminsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Administradores"
-        description="Gerencie as contas administrativas e seus níveis de permissão."
-      />
+      {/* PageHeader removed for cleaner UI */}
       <AdminsView admins={admins} currentUserId={user.id} />
     </div>
   )
