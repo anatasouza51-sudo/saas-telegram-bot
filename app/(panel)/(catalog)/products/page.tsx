@@ -1,5 +1,6 @@
 import { ProductsViewRefactored } from "@/components/products/products-view-refactored"
-import { listProductsAdvanced, getProductStats, listCategories } from "@/app/actions/products-refactored"
+import { listProductsAdvanced, getProductStats } from "@/app/actions/products-refactored"
+import { listCategories } from "@/app/actions/products"
 import { requireCapability } from "@/lib/session"
 
 export default async function ProductsPage() {
