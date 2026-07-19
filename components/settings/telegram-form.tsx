@@ -27,12 +27,16 @@ export function TelegramForm({
     startTransition(async () => {
       try {
         // Empty token means "keep the one already stored on the server".
-        await saveTelegramSettings({
+        const res = await saveTelegramSettings({
           botToken: botToken.trim() || undefined,
           adminIds,
         })
         setBotToken("")
-        toast.success("Configurações do Telegram salvas")
+        if (res.webhookRegistered) {
+          toast.success("Configurações salvas e bot conectado automaticamente")
+        } else {
+          toast.success("Configurações do Telegram salvas")
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
       }
@@ -113,14 +117,14 @@ export function TelegramForm({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Endereço exclusivo desta loja que o Telegram chamará. Salve o token e
-          clique em &quot;Conectar bot&quot; para registrar automaticamente.
+          Endereço exclusivo desta loja que o Telegram chamará. O webhook é
+          registrado automaticamente ao salvar as configurações.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={submit} disabled={pending}>
-          {pending ? "Salvando..." : "Salvar configurações"}
+          {pending ? "Salvando..." : "Salvar configurações (conecta bot)"}
         </Button>
         <Button
           variant="secondary"
