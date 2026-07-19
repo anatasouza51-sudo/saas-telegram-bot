@@ -233,6 +233,25 @@ export async function listProductsGroupedByCategory(opts?: {
 /**
  * Calcula estatísticas dos produtos
  */
+/**
+ * Lista todas as categorias (Re-exportado para compatibilidade)
+ */
+export async function listCategories() {
+  const { storeId } = await requireCapability("products.manage")
+  return db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      emoji: categories.emoji,
+      description: categories.description,
+      status: categories.status,
+      position: categories.position,
+    })
+    .from(categories)
+    .where(eq(categories.ownerId, storeId))
+    .orderBy(asc(categories.position), asc(categories.name))
+}
+
 export async function getProductStats(): Promise<ProductStats> {
   const { storeId } = await requireCapability("products.manage")
 
