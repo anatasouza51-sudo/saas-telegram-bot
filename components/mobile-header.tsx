@@ -34,7 +34,7 @@ export function MobileHeader() {
             Ghost<span className="text-primary">Bot</span>
           </span>
           <span className="text-[10px] font-medium text-muted-foreground leading-none tracking-widest uppercase opacity-70">
-            Painel ADM
+            Ghost v2.5.0
           </span>
         </div>
       </button>

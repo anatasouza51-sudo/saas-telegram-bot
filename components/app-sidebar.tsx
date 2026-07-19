@@ -143,7 +143,7 @@ export function AppSidebar({
               GhostBot
             </span>
             <span className="truncate text-[10px] font-medium uppercase tracking-wider text-primary/80">
-              Premium Panel
+              Ghost v2.5.0
             </span>
           </div>
         </div>
