@@ -475,17 +475,17 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-xl p-2.5 text-left text-sm font-medium ring-sidebar-ring outline-hidden transition-all group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-2.5! hover:bg-white/5 hover:text-white focus-visible:ring-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-white/5 data-active:bg-gradient-to-r data-active:from-primary/20 data-active:to-blue-600/10 data-active:text-primary data-active:shadow-[inset_0_0_0_1px_rgba(139,92,246,0.2)] [&_svg]:size-4.5 [&_svg]:shrink-0 [&_svg]:transition-transform group-hover/menu-button:[&_svg]:scale-110 [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-xl p-2.5 text-left text-sm font-medium ring-sidebar-ring outline-hidden transition-all group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-2.5! hover:bg-white/10 hover:text-white focus-visible:ring-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-white/10 data-active:bg-primary data-active:text-white data-active:shadow-[0_0_15px_rgba(0,255,255,0.3)] [&_svg]:size-4.5 [&_svg]:shrink-0 [&_svg]:transition-transform group-hover/menu-button:[&_svg]:scale-110 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {
-        default: "hover:bg-white/5 hover:text-white",
+        default: "hover:bg-white/10 hover:text-white",
         outline:
-          "bg-transparent border border-white/10 hover:bg-white/5 hover:text-white",
+          "bg-transparent border border-white/20 hover:bg-white/10 hover:text-white",
       },
       size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
+        default: "h-10 text-sm",
+        sm: "h-8 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
       },
     },
