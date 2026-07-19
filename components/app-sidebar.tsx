@@ -44,6 +44,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { UserMenu } from "@/components/user-menu"
+import Image from "next/image"
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -128,8 +129,14 @@ export function AppSidebar({
     <Sidebar>
       <SidebarHeader className="border-b border-white/5 pb-4">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-            <Bot className="h-6 w-6 text-white" />
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+            <Image 
+              src="/logo-new.png" 
+              alt="GhostBot Logo" 
+              width={40} 
+              height={40} 
+              className="object-contain"
+            />
           </div>
           <div className="flex flex-col overflow-hidden">
             <span className="text-base font-bold tracking-tight text-white">
