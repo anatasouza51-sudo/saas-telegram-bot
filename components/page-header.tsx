@@ -17,7 +17,7 @@ export function PageHeader({
         <SidebarTrigger className="text-primary md:hidden" />
         <Separator orientation="vertical" className="h-8 bg-white/10 md:hidden" />
         <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+          <h1 className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-primary to-accent sm:text-2xl">
             {title}
           </h1>
           {description && (
