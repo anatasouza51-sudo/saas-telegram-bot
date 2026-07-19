@@ -9,10 +9,7 @@ export default async function LogsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Logs de Atividade"
-        description="Auditoria completa de todas as ações administrativas e do sistema."
-      />
+      {/* PageHeader removed for cleaner UI */}
       <LogsView logs={logs} />
     </div>
   )

@@ -50,10 +50,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title="Visão Geral"
-        description="Acompanhe o desempenho da sua loja no Telegram em tempo real."
-      />
+      {/* PageHeader removed for cleaner UI */}
       <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Primary metrics */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

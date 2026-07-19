@@ -8,7 +8,7 @@ export function GhostLogo({ className }: { className?: string }) {
       
       <div className="relative flex h-20 w-20 items-center justify-center">
         <Image 
-          src="/ghost-logo-v2.png" 
+          src="/ghostbot-final-logo.png" 
           alt="GhostBot Logo" 
           width={80} 
           height={80} 

@@ -131,7 +131,7 @@ export function AppSidebar({
         <div className="flex items-center gap-3 px-2 py-3">
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
             <Image 
-              src="/ghost-logo-v2.png" 
+              src="/ghostbot-final-logo.png" 
               alt="GhostBot Logo" 
               width={40} 
               height={40} 

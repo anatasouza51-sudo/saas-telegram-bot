@@ -25,10 +25,7 @@ export default async function TelegramPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <PageHeader
-        title="Telegram Bot"
-        description="Conecte o bot da sua loja para vender e entregar produtos automaticamente no Telegram."
-      />
+      {/* PageHeader removed for cleaner UI */}
 
       <Card>
         <CardHeader>
