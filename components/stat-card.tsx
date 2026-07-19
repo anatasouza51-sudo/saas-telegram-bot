@@ -17,10 +17,10 @@ export function StatCard({
 }) {
   const toneMap = {
     default: "bg-white/5 text-muted-foreground ring-white/10",
-    primary: "bg-primary/20 text-primary ring-1 ring-primary/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]",
-    success: "bg-success/20 text-success ring-1 ring-success/50 shadow-[0_0_20px_rgba(34,197,94,0.4)]",
-    warning: "bg-warning/20 text-warning ring-1 ring-warning/50 shadow-[0_0_20px_rgba(234,179,8,0.4)]",
-    destructive: "bg-destructive/20 text-destructive ring-1 ring-destructive/50 shadow-[0_0_20px_rgba(239,68,68,0.4)]",
+    primary: "bg-primary/10 text-primary border border-primary/20",
+    success: "bg-success/10 text-success border border-success/20",
+    warning: "bg-warning/10 text-warning border border-warning/20",
+    destructive: "bg-destructive/10 text-destructive border border-destructive/20",
   }
 
   return (

@@ -12,7 +12,7 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-white/5 bg-[#0a0a0a]/60 px-6 py-5 backdrop-blur-xl md:flex-row md:items-center md:justify-between lg:px-8">
+    <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-white/5 bg-[#0a0a0a] px-6 py-5 md:flex-row md:items-center md:justify-between lg:px-8">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="text-primary md:hidden" />
         <Separator orientation="vertical" className="h-8 bg-white/10 md:hidden" />
