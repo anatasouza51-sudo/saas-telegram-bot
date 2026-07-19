@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'BotStore — Painel de Vendas via Telegram',
+  title: 'GhostBot — Painel de Vendas via Telegram',
   description:
     'Plataforma SaaS para gerenciamento e venda de produtos digitais via Telegram Bot, com estoque, pedidos, pagamentos e entrega automática.',
   generator: 'v0.app',
