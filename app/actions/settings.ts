@@ -12,15 +12,43 @@ import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
 export async function saveTelegramSettings(input: {
   botToken?: string
   adminIds: string
-}) {
+}): Promise<{ ok: boolean; webhookRegistered?: boolean }> {
   const user = await requireCapability("telegram.manage")
   // Only overwrite the token when a new value is provided. The client never
   // receives the stored token, so an empty field means "keep current".
   const token = input.botToken?.trim()
+  let webhookRegistered = false
+
   if (token) {
     await saveSetting(user.storeId, "telegram.botToken", token)
   }
   await saveSetting(user.storeId, "telegram.adminIds", input.adminIds)
+
+  // Auto-register the webhook whenever admin IDs change or a new token is saved.
+  // This guarantees the bot always stays connected — no need for a separate
+  // "Connect" step. If the webhook registration fails we still return success
+  // for the settings save (the admin can retry from the panel).
+  const storedToken = await getSetting(user.storeId, "telegram.botToken")
+  if (storedToken) {
+    try {
+      const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
+      const secretToken = await getOrCreateWebhookSecret(user.storeId, "telegram")
+      const client = new TelegramClient(storedToken)
+      const res = await client.setWebhook(url, secretToken)
+      if (res.ok) {
+        webhookRegistered = true
+        await logActivity({
+          storeId: user.storeId,
+          action: "Webhook do Telegram registrado automaticamente ao salvar configurações",
+          category: "settings",
+          actor: user,
+        })
+      }
+    } catch {
+      // Non-fatal: the admin can still click "Connect bot" to retry.
+    }
+  }
+
   await logActivity({
     storeId: user.storeId,
     action: "Configurações do Telegram atualizadas",
@@ -28,7 +56,7 @@ export async function saveTelegramSettings(input: {
     actor: user,
   })
   revalidatePath("/telegram")
-  return { ok: true }
+  return { ok: true, webhookRegistered }
 }
 
 export async function saveGatewaySettings(input: {
