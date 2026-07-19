@@ -18,7 +18,7 @@ export function MobileHeader() {
         onClick={toggleSidebar}
         className="group relative flex items-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95"
       >
-        <div className="relative">
+        <div className="relative animate-pulse-soft">
           {/* Outer Glow for Logo */}
           <div className="absolute -inset-1 bg-primary/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           <Image 
@@ -41,7 +41,7 @@ export function MobileHeader() {
 
       <div className="relative flex items-center gap-2">
         {/* Modern Trigger Container */}
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/10 active:scale-90">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 transition-all hover:bg-white/10 hover:border-primary/30 active:scale-90">
           <SidebarTrigger className="text-white scale-110" />
         </div>
       </div>
