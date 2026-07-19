@@ -51,8 +51,8 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        description="Visão geral das vendas, pagamentos e estoque."
+        title="Visão Geral"
+        description="Acompanhe o desempenho da sua loja no Telegram em tempo real."
       />
       <div className="flex flex-col gap-6 p-4 md:p-6">
         {/* Primary metrics */}
