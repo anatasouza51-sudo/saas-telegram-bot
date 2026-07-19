@@ -12,7 +12,7 @@ import type { SalesPoint } from "@/lib/queries/dashboard"
 const chartConfig = {
   revenue: {
     label: "Receita",
-    color: "var(--chart-1)",
+    color: "#8b5cf6",
   },
 } satisfies ChartConfig
 
@@ -30,8 +30,8 @@ export function SalesChart({ data }: { data: SalesPoint[] }) {
       <AreaChart data={formatted} margin={{ left: 4, right: 12, top: 8 }}>
         <defs>
           <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.4} />
-            <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.02} />
+            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.5} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid vertical={false} strokeOpacity={0.15} />

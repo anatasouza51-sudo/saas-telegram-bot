@@ -3,57 +3,57 @@ import { cn } from "@/lib/utils"
 const PAYMENT_STYLES: Record<string, { label: string; className: string }> = {
   pending: {
     label: "Pendente",
-    className: "bg-warning/15 text-warning border-warning/30",
+    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
   },
   approved: {
     label: "Aprovado",
-    className: "bg-success/15 text-success border-success/30",
+    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
   },
   refused: {
     label: "Recusado",
-    className: "bg-destructive/15 text-destructive border-destructive/30",
+    className: "bg-destructive/10 text-destructive border-destructive/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
   },
   cancelled: {
     label: "Cancelado",
-    className: "bg-muted text-muted-foreground border-border",
+    className: "bg-white/5 text-muted-foreground border-white/10",
   },
 }
 
 const DELIVERY_STYLES: Record<string, { label: string; className: string }> = {
   pending: {
     label: "Aguardando",
-    className: "bg-warning/15 text-warning border-warning/30",
+    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
   },
   delivered: {
     label: "Entregue",
-    className: "bg-success/15 text-success border-success/30",
+    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
   },
   cancelled: {
     label: "Cancelado",
-    className: "bg-muted text-muted-foreground border-border",
+    className: "bg-white/5 text-muted-foreground border-white/10",
   },
 }
 
 const GENERIC_STYLES: Record<string, { label: string; className: string }> = {
   active: {
     label: "Ativo",
-    className: "bg-success/15 text-success border-success/30",
+    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
   },
   inactive: {
     label: "Inativo",
-    className: "bg-muted text-muted-foreground border-border",
+    className: "bg-white/5 text-muted-foreground border-white/10",
   },
   available: {
     label: "Disponível",
-    className: "bg-success/15 text-success border-success/30",
+    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
   },
   reserved: {
     label: "Reservado",
-    className: "bg-warning/15 text-warning border-warning/30",
+    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
   },
   sold: {
     label: "Vendido",
-    className: "bg-primary/15 text-primary border-primary/30",
+    className: "bg-primary/10 text-primary border-primary/20 shadow-[0_0_10px_rgba(139,92,246,0.1)]",
   },
 }
 

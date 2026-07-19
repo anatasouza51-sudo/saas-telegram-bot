@@ -126,17 +126,17 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Bot className="h-5 w-5" />
+      <SidebarHeader className="border-b border-white/5 pb-4">
+        <div className="flex items-center gap-3 px-2 py-3">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+            <Bot className="h-6 w-6 text-white" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-none text-sidebar-foreground">
-              BotStore
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-base font-bold tracking-tight text-white">
+              GhostBot
             </span>
-            <span className="mt-1 text-xs text-muted-foreground">
-              Painel de Vendas
+            <span className="truncate text-[10px] font-medium uppercase tracking-wider text-primary/80">
+              Premium Panel
             </span>
           </div>
         </div>
@@ -178,12 +178,14 @@ export function AppSidebar({
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <UserMenu
-          name={user.name}
-          email={user.email}
-          roleLabel={ROLE_LABELS[user.role]}
-        />
+      <SidebarFooter className="border-t border-white/5 p-4">
+        <div className="rounded-2xl bg-white/5 p-1 ring-1 ring-white/10 transition-all hover:bg-white/10">
+          <UserMenu
+            name={user.name}
+            email={user.email}
+            roleLabel={ROLE_LABELS[user.role]}
+          />
+        </div>
       </SidebarFooter>
     </Sidebar>
   )
