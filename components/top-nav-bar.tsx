@@ -63,9 +63,9 @@ export const TopNavBar = memo(({
 
   return (
     <>
-      {/* Top Navigation Bar — Compacta e responsiva */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-3 py-2 sm:px-4 sm:py-3 md:px-8 shadow-lg">
-        <div className="flex items-center justify-between gap-2 h-14">
+      {/* Top Navigation Bar — Altura fixa de 56px (h-14) no mobile */}
+      <nav className="fixed top-0 left-0 right-0 z-[100] h-14 sm:h-16 md:h-[73px] backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-3 sm:px-4 md:px-8 shadow-lg flex items-center">
+        <div className="flex items-center justify-between gap-2 w-full">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5 flex-shrink-0 group">
             <div className="relative w-8 h-8 flex items-center justify-center">
@@ -106,35 +106,8 @@ export const TopNavBar = memo(({
 
           {/* Right Section */}
           <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
-            {/* Search — Hidden on mobile */}
-            <div className={`hidden sm:flex items-center transition-all duration-300 ${searchOpen ? "w-40 md:w-56" : "w-8"}`}>
-              {searchOpen ? (
-                <div className="relative w-full">
-                  <Input
-                    type="search"
-                    placeholder="Buscar..."
-                    className="w-full bg-white/5 border-blue-500/20 text-white placeholder:text-muted-foreground focus:border-blue-500/40 focus:bg-white/10 text-xs h-8"
-                    autoFocus
-                    onBlur={closeSearch}
-                  />
-                  <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={openSearch}
-                  className="hover:bg-white/5 h-8 w-8"
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* Notifications */}
             <NotificationsPopover />
 
-            {/* Settings */}
             <Button
               variant="ghost"
               size="icon"
@@ -144,17 +117,6 @@ export const TopNavBar = memo(({
             >
               <Settings className="w-4 h-4" />
             </Button>
-
-            {/* User Info — Desktop only */}
-            <div className="hidden md:flex items-center gap-2 pl-3 border-l border-white/5">
-              <div className="flex flex-col items-end text-right">
-                <p className="text-xs font-medium text-white">{user.name}</p>
-                <p className="text-[10px] text-muted-foreground">{ROLE_LABELS[user.role]}</p>
-              </div>
-              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            </div>
 
             {/* Mobile Menu Toggle */}
             <Button
@@ -184,16 +146,16 @@ export const TopNavBar = memo(({
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — Posicionado exatamente abaixo da navbar (top-14) */}
       {mobileMenuOpen && (
-        <div className="fixed top-14 left-0 right-0 z-40 bg-slate-950/95 border-b border-blue-500/10 max-h-[calc(100vh-56px)] overflow-y-auto lg:hidden">
-          <div className="px-3 py-2 space-y-1">
+        <div className="fixed top-14 left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-56px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300">
+          <div className="px-3 py-3 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href)
@@ -202,13 +164,13 @@ export const TopNavBar = memo(({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className="w-5 h-5 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               )
@@ -217,12 +179,12 @@ export const TopNavBar = memo(({
             {/* Mobile User Info */}
             <div className="mt-4 pt-4 border-t border-white/5">
               <div className="flex items-center gap-3 px-3 py-2">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white truncate">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{ROLE_LABELS[user.role]}</p>
+                  <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{ROLE_LABELS[user.role]}</p>
                 </div>
               </div>
             </div>
