@@ -24,8 +24,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Removido maximumScale e userScalable: false para permitir que o navegador
+  // e o "Modo Desktop" funcionem como esperado.
   colorScheme: 'dark',
   themeColor: '#0f1220',
 }
