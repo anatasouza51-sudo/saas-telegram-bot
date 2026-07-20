@@ -63,7 +63,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         </div>
         
         <h1 className="text-3xl font-black tracking-tighter text-white sm:text-4xl uppercase italic">
-          {isSignUp ? "Join the" : "Welcome to"} <span className="text-primary">Ghost</span>Bot
+          {isSignUp ? "Faça parte do" : "Bem-vindo ao"} <span className="text-primary">Ghost</span>Bot
         </h1>
         
         <p className="mt-4 text-sm text-muted-foreground leading-relaxed max-w-[340px] opacity-80">
@@ -90,7 +90,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: John Doe"
+                  placeholder="Ex: João Silva"
                   required
                   className="pl-11 h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20"
                 />
@@ -182,19 +182,19 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <span className="flex items-center gap-2">
-                {isSignUp ? "Initialize System" : "Authorize Access"}
+                {isSignUp ? "Inicializar Sistema" : "Autorizar Acesso"}
                 <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
               </span>
             )}
           </Button>
 
           <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            {isSignUp ? "Already a member? " : "New operator? "}
+            {isSignUp ? "Já é um membro? " : "Novo operador? "}
             <Link
               href={isSignUp ? "/sign-in" : "/sign-up"}
               className="text-primary hover:text-primary/80 transition-colors"
             >
-              {isSignUp ? "Sign In" : "Register Now"}
+              {isSignUp ? "Entrar" : "Registrar Agora"}
             </Link>
           </p>
         </form>
