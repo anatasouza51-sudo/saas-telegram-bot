@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/session"
+export const dynamic = "force-dynamic"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { CheckoutFunnel } from "@/components/checkout-funnel"

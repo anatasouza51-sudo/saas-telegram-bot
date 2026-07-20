@@ -1,11 +1,9 @@
 import "server-only"
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { can, type Role } from "@/lib/roles"
-
 export type { Role } from "@/lib/roles"
-
 export type SessionUser = {
   id: string
   name: string
@@ -17,11 +15,26 @@ export type SessionUser = {
 }
 
 /**
+ * Build a Cookie header string from next/headers cookies().
+ * Works around Next.js 16 compatibility issues with headers()
+ * in certain rendering contexts (PRR, edge, etc.).
+ */
+async function buildCookieHeader(): Promise<string> {
+  const cookieStore = await cookies()
+  const entries = cookieStore.getAll()
+  return entries.map(c => `${c.name}=${c.value}`).join("; ")
+}
+
+/**
  * Returns the current session user or null. Does not redirect.
+ * Uses cookie header built from cookies() for better Next.js 16 compatibility.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    const session = await auth.api.getSession({ headers: await headers() })
+    const cookieHeader = await buildCookieHeader()
+    const session = await auth.api.getSession({
+      headers: new Headers({ cookie: cookieHeader }),
+    })
     if (!session?.user) return null
     const u = session.user as typeof session.user & {
       role?: string

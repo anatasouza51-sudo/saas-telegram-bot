@@ -3,6 +3,8 @@ import type { ReactNode } from "react"
 import { TopNavBar } from "@/components/top-nav-bar"
 import { MobileHeader } from "@/components/mobile-header"
 
+export const dynamic = "force-dynamic"
+
 export default async function PanelLayout({
   children,
 }: {
