@@ -235,34 +235,37 @@ export function PostsWorkspace({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="w-full">
-        {/* TabsList com scroll horizontal no mobile para evitar amontoamento */}
-        <div className="overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-auto sm:w-full h-auto p-1 bg-slate-900/50 border border-white/5 rounded-2xl">
-            <TabsTrigger value="new" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+    <div className="flex flex-col gap-6 w-full max-w-full overflow-hidden">
+      <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="w-full flex flex-col">
+        {/* 
+          TabsList com scroll horizontal e largura flexível. 
+          Isso resolve a causa raiz de forçar largura de desktop.
+        */}
+        <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
+          <TabsList className="flex h-auto p-1 bg-slate-900/50 border border-white/5 rounded-2xl w-max sm:w-full min-w-full">
+            <TabsTrigger value="new" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <Megaphone className="w-4 h-4" /> Nova postagem
             </TabsTrigger>
-            <TabsTrigger value="scheduled" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+            <TabsTrigger value="scheduled" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <CalendarClock className="w-4 h-4" /> Agendadas
             </TabsTrigger>
-            <TabsTrigger value="history" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+            <TabsTrigger value="history" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <History className="w-4 h-4" /> Histórico
             </TabsTrigger>
-            <TabsTrigger value="drafts" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+            <TabsTrigger value="drafts" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <FileText className="w-4 h-4" /> Rascunhos
             </TabsTrigger>
-            <TabsTrigger value="templates" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+            <TabsTrigger value="templates" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <LayoutTemplate className="w-4 h-4" /> Templates
             </TabsTrigger>
-            <TabsTrigger value="stats" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap">
+            <TabsTrigger value="stats" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
               <BarChart3 className="w-4 h-4" /> Estatísticas
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="mt-4">
-          <TabsContent value="new">
+        <div className="mt-4 w-full">
+          <TabsContent value="new" className="w-full">
             <PostEditor
               key={editing?.id ?? (prefill ? "tpl" : "blank")}
               channels={channels}
@@ -277,11 +280,11 @@ export function PostsWorkspace({
             />
           </TabsContent>
 
-          <TabsContent value="scheduled">
+          <TabsContent value="scheduled" className="w-full">
             <ScheduleList schedules={schedules} onCancel={onCancelSchedule} />
           </TabsContent>
 
-          <TabsContent value="history">
+          <TabsContent value="history" className="w-full">
             <PostList
               posts={history}
               statusLabels={STATUS_LABELS}
@@ -290,7 +293,7 @@ export function PostsWorkspace({
             />
           </TabsContent>
 
-          <TabsContent value="drafts">
+          <TabsContent value="drafts" className="w-full">
             <PostList
               posts={drafts}
               statusLabels={STATUS_LABELS}
@@ -300,11 +303,11 @@ export function PostsWorkspace({
             />
           </TabsContent>
 
-          <TabsContent value="templates">
+          <TabsContent value="templates" className="w-full">
             <TemplateList templates={templates} onUse={useTemplate} />
           </TabsContent>
 
-          <TabsContent value="stats">
+          <TabsContent value="stats" className="w-full">
             <PostStatsCards stats={stats} channelCount={channels.length} />
           </TabsContent>
         </div>
@@ -343,9 +346,9 @@ function TemplateList({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
       {templates.map((t) => (
-        <Card key={t.id} className="flex flex-col gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl">
+        <Card key={t.id} className="flex flex-col gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate font-black text-white text-base">{t.name}</p>
@@ -396,7 +399,7 @@ function ScheduleList({
     )
   }
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 w-full">
       {active.map((s) => {
         let recurrenceLabel = "Uma vez"
         try {
@@ -406,7 +409,7 @@ function ScheduleList({
         return (
           <Card
             key={s.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full"
           >
             <div className="min-w-0">
               <p className="truncate font-black text-white text-base">
@@ -458,9 +461,9 @@ function PostList({
     )
   }
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 w-full">
       {posts.map((post) => (
-        <Card key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl">
+        <Card key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 mb-1">
               <p className="truncate font-black text-white text-base">
