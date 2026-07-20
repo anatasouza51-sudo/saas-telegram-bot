@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import Image from "next/image"
 import {
   Search,
-  Bell,
   Settings,
   Menu,
   X,
@@ -22,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ROLE_LABELS, type Role } from "@/lib/roles"
+import { NotificationsPopover } from "@/components/notifications-popover"
+import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -37,11 +38,12 @@ const NAV_ITEMS = [
 export const TopNavBar = memo(({
   user,
 }: {
-  user: { name: string; email: string; role: Role }
+  user: { name: string; email: string; role: Role; id: string; storeId: string }
 }) => {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
   const openSearch = useCallback(() => setSearchOpen(true), [])
@@ -118,20 +120,15 @@ export const TopNavBar = memo(({
             </div>
 
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-white/5 relative"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
-            </Button>
+            <NotificationsPopover />
 
             {/* Settings */}
             <Button
               variant="ghost"
               size="icon"
               className="hover:bg-white/5"
+              onClick={() => setProfileDialogOpen(true)}
+              aria-label="Configurações de perfil"
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -163,6 +160,13 @@ export const TopNavBar = memo(({
           </div>
         </div>
       </nav>
+
+      {/* Profile Settings Dialog */}
+      <ProfileSettingsDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        user={user}
+      />
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (

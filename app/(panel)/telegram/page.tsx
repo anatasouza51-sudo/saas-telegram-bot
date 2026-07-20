@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { TelegramForm } from "@/components/settings/telegram-form"
+import { TelegramFormImproved as TelegramForm } from "@/components/settings/telegram-form-improved"
 import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
 import { getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
