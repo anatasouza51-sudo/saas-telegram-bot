@@ -63,7 +63,7 @@ export default async function DashboardPage() {
     <div className="pt-28 pb-12 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
       <div className="mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-          Bem-vindo, <span>{user?.name || "Operador"}</span>
+          Bem-vindo, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user?.name || "Operador"}</span>
         </h1>
         <p className="text-lg text-muted-foreground">Seu desempenho real em tempo real</p>
       </div>
