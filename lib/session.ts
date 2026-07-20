@@ -32,15 +32,22 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const cookieHeader = await buildCookieHeader()
     if (!cookieHeader) return null
 
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    
     const res = await fetch(
-      `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/get-session`,
+      `${baseUrl}/api/auth/get-session`,
       {
         headers: { cookie: cookieHeader },
         cache: "no-store",
       },
     )
-
-    if (!res.ok) return null
+    
+    if (!res.ok) {
+      console.error("[getSessionUser] Fetch failed:", res.status, res.statusText)
+      return null
+    }
 
     const data = await res.json() as any
     if (!data?.user) return null
