@@ -36,11 +36,18 @@ main {
   background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(88, 28, 135, 0.1) 100%);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .card:hover {
   border-color: rgba(178, 75, 243, 0.2);
   box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+}
+
+@media (max-width: 640px) {
+  .card {
+    border-radius: 0.5rem;
+  }
 }
 
 /* Corrige a tabela para ter scroll horizontal em mobile */
@@ -110,6 +117,28 @@ header:empty {
   }
   
   .page-container {
-    padding: 1rem;
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+  
+  /* Reduz padding das cards em mobile */
+  .card {
+    border-radius: 0.5rem;
+  }
+  
+  /* Melhora o espaçamento de tabelas em mobile */
+  .table-container {
+    border-radius: 0.5rem;
+  }
+  
+  /* Botões menores em mobile */
+  button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Inputs menores em mobile */
+  input, textarea, select {
+    font-size: 16px; /* Previne zoom automático em iOS */
   }
 }
