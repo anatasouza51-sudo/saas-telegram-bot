@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatDateTime } from "@/lib/format"
-import { getLogs, clearAllLogs } from "@/app/actions/logs"
+import { getRecentLogs } from "@/app/actions/logs"
 
 type LogEntry = {
   id: string
@@ -49,7 +49,7 @@ export function NotificationsPopover() {
   const loadLogs = async () => {
     setLoading(true)
     try {
-      const data = await getLogs()
+      const data = await getRecentLogs(20)
       setLogs(data || [])
       setUnreadCount(0)
     } catch (error) {
@@ -60,13 +60,8 @@ export function NotificationsPopover() {
   }
 
   const handleClearAll = async () => {
-    try {
-      await clearAllLogs()
-      setLogs([])
-      setUnreadCount(0)
-    } catch (error) {
-      console.error("Erro ao limpar logs:", error)
-    }
+    // A função clearAllLogs não existe no momento no servidor
+    console.warn("Limpeza de logs não implementada no servidor")
   }
 
   return (
