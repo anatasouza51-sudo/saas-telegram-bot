@@ -1,4 +1,4 @@
-/* Layout Fixes - Corrige problemas de espaçamento e design no painel */
+/* Layout Fixes - Otimizado para celular e desktop */
 
 /* Garante que o main ocupe todo o espaço disponível */
 main {
@@ -15,7 +15,7 @@ main {
   padding: 1.5rem 1rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .page-container {
     padding: 1.5rem 1.5rem;
   }
@@ -42,12 +42,6 @@ main {
 .card:hover {
   border-color: rgba(178, 75, 243, 0.2);
   box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
-}
-
-@media (max-width: 640px) {
-  .card {
-    border-radius: 0.5rem;
-  }
 }
 
 /* Corrige a tabela para ter scroll horizontal em mobile */
@@ -110,20 +104,21 @@ header:empty {
   display: none;
 }
 
-/* Corrige o alinhamento do conteúdo em telas pequenas */
+/* ===== MOBILE OPTIMIZATIONS ===== */
 @media (max-width: 640px) {
   .hidden-mobile {
     display: none;
   }
   
   .page-container {
-    padding: 0.75rem;
+    padding: 1rem 0.75rem;
     gap: 1rem;
   }
   
   /* Reduz padding das cards em mobile */
   .card {
     border-radius: 0.5rem;
+    padding: 1rem;
   }
   
   /* Melhora o espaçamento de tabelas em mobile */
@@ -131,14 +126,78 @@ header:empty {
     border-radius: 0.5rem;
   }
   
-  /* Botões menores em mobile */
+  /* Botões com tamanho adequado para toque */
   button {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
   }
   
-  /* Inputs menores em mobile */
+  /* Inputs com tamanho adequado para toque */
   input, textarea, select {
     font-size: 16px; /* Previne zoom automático em iOS */
+    min-height: 44px;
+    padding: 0.75rem;
+  }
+  
+  /* Texto maior em mobile */
+  body {
+    font-size: 16px;
+  }
+  
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+  }
+  
+  p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  /* Grid com 1 coluna em mobile */
+  .grid-responsive {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Ícones maiores em mobile */
+  svg {
+    min-width: 24px;
+    min-height: 24px;
+  }
+  
+  /* Espaçamento maior entre elementos */
+  .space-y-2 {
+    --space-y: 0.75rem;
+  }
+  
+  .space-y-4 {
+    --space-y: 1rem;
+  }
+  
+  /* Cards de métrica com tamanho melhor */
+  [class*="metric"] {
+    padding: 1.25rem;
+    min-height: 120px;
+  }
+}
+
+/* ===== TABLET OPTIMIZATIONS ===== */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .page-container {
+    padding: 1.25rem 1rem;
+    gap: 1.25rem;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
