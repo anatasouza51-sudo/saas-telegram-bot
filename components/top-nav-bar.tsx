@@ -49,7 +49,6 @@ export const TopNavBar = memo(({
   const openSearch = useCallback(() => setSearchOpen(true), [])
   const closeSearch = useCallback(() => setSearchOpen(false), [])
 
-  // Bloqueia scroll quando menu está aberto
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden"
@@ -63,27 +62,27 @@ export const TopNavBar = memo(({
 
   return (
     <>
-      {/* Top Navigation Bar — Altura fixa de 56px (h-14) no mobile */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] h-14 sm:h-16 md:h-[73px] backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-3 sm:px-4 md:px-8 shadow-lg flex items-center">
-        <div className="flex items-center justify-between gap-2 w-full">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-1.5 flex-shrink-0 group">
-            <div className="relative w-8 h-8 flex items-center justify-center">
+      {/* Top Navigation Bar — Aumentada para h-16 (64px) no mobile e h-20 no desktop */}
+      <nav className="fixed top-0 left-0 right-0 z-[100] h-16 sm:h-18 md:h-20 backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-4 sm:px-6 md:px-10 shadow-lg flex items-center">
+        <div className="flex items-center justify-between gap-4 w-full">
+          {/* Logo - Aumentado */}
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
+            <div className="relative w-10 h-10 flex items-center justify-center">
               <Image
                 src="/ghostbot-final-logo.png"
                 alt="GhostBot"
-                width={32}
-                height={32}
-                className="object-contain transition-transform duration-300 group-hover:scale-105"
+                width={40}
+                height={40}
+                className="object-contain transition-transform duration-300 group-hover:scale-110"
               />
             </div>
-            <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline">
+            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline tracking-tighter">
               GhostBot
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-2">
             {NAV_ITEMS.slice(0, 5).map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href)
@@ -91,45 +90,45 @@ export const TopNavBar = memo(({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
                     isActive
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/10"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                 </Link>
               )
             })}
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+          {/* Right Section - Ícones maiores */}
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             <NotificationsPopover />
 
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-white/5 h-8 w-8"
+              className="hover:bg-white/5 h-10 w-10 sm:h-11 sm:w-11"
               onClick={() => setProfileDialogOpen(true)}
               aria-label="Configurações"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-6 h-6 sm:w-5 sm:h-5" />
             </Button>
 
-            {/* Mobile Menu Toggle */}
+            {/* Mobile Menu Toggle - Ícone bem grande */}
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden hover:bg-white/5 h-8 w-8"
+              className="lg:hidden hover:bg-white/5 h-10 w-10"
               onClick={toggleMobileMenu}
               aria-label="Menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5" />
+                <X className="w-7 h-7" />
               ) : (
-                <Menu className="w-5 h-5" />
+                <Menu className="w-7 h-7" />
               )}
             </Button>
           </div>
@@ -146,16 +145,16 @@ export const TopNavBar = memo(({
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-md lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Mobile Menu — Posicionado exatamente abaixo da navbar (top-14) */}
+      {/* Mobile Menu — Começa abaixo da nova altura da navbar (top-16) */}
       {mobileMenuOpen && (
-        <div className="fixed top-14 left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-56px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300">
-          <div className="px-3 py-3 space-y-1">
+        <div className="fixed top-16 left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-64px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300 shadow-2xl">
+          <div className="px-4 py-4 space-y-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href)
@@ -164,27 +163,27 @@ export const TopNavBar = memo(({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-4 px-4 py-4 rounded-xl text-base font-bold transition-all duration-200 ${
                     isActive
                       ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Icon className="w-5 h-5 shrink-0" />
+                  <Icon className="w-6 h-6 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               )
             })}
 
             {/* Mobile User Info */}
-            <div className="mt-4 pt-4 border-t border-white/5">
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <div className="flex items-center gap-4 px-4 py-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-lg shadow-blue-500/20">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{ROLE_LABELS[user.role]}</p>
+                  <p className="text-base font-bold text-white truncate">{user.name}</p>
+                  <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest">{ROLE_LABELS[user.role]}</p>
                 </div>
               </div>
             </div>
