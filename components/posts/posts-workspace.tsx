@@ -102,7 +102,7 @@ function PostBadge({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
         BADGE_STYLES[status] ?? "bg-muted text-muted-foreground border-border",
       )}
     >
@@ -235,36 +235,48 @@ export function PostsWorkspace({
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-4 w-full max-w-full overflow-hidden">
       <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="w-full flex flex-col">
         {/* 
-          TabsList com scroll horizontal e largura flexível. 
-          Isso resolve a causa raiz de forçar largura de desktop.
+          Abas com scroll horizontal no mobile.
+          Cada aba mostra apenas o ícone no mobile e texto+ícone no sm+.
         */}
-        <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
-          <TabsList className="flex h-auto p-1 bg-slate-900/50 border border-white/5 rounded-2xl w-max sm:w-full min-w-full">
-            <TabsTrigger value="new" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <Megaphone className="w-4 h-4" /> Nova postagem
+        <div className="w-full overflow-x-auto pb-1 scrollbar-hide -mx-0">
+          <TabsList className="flex h-auto p-1 bg-slate-900/50 border border-white/5 rounded-xl w-max min-w-full">
+            <TabsTrigger value="new" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <Megaphone className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Nova postagem</span>
+              <span className="xs:hidden sm:hidden">Nova</span>
             </TabsTrigger>
-            <TabsTrigger value="scheduled" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <CalendarClock className="w-4 h-4" /> Agendadas
+            <TabsTrigger value="scheduled" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Agendadas</span>
+              <span className="sm:hidden">Agenda</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <History className="w-4 h-4" /> Histórico
+            <TabsTrigger value="history" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <History className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Histórico</span>
+              <span className="sm:hidden">Hist.</span>
             </TabsTrigger>
-            <TabsTrigger value="drafts" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <FileText className="w-4 h-4" /> Rascunhos
+            <TabsTrigger value="drafts" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Rascunhos</span>
+              <span className="sm:hidden">Rasc.</span>
             </TabsTrigger>
-            <TabsTrigger value="templates" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <LayoutTemplate className="w-4 h-4" /> Templates
+            <TabsTrigger value="templates" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <LayoutTemplate className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Templates</span>
+              <span className="sm:hidden">Templ.</span>
             </TabsTrigger>
-            <TabsTrigger value="stats" className="rounded-xl py-2.5 px-4 text-xs font-bold gap-2 whitespace-nowrap flex-1">
-              <BarChart3 className="w-4 h-4" /> Estatísticas
+            <TabsTrigger value="stats" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Estatísticas</span>
+              <span className="sm:hidden">Stats</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="mt-4 w-full">
+        <div className="mt-3 w-full">
           <TabsContent value="new" className="w-full">
             <PostEditor
               key={editing?.id ?? (prefill ? "tpl" : "blank")}
@@ -337,8 +349,8 @@ function TemplateList({
 
   if (templates.length === 0) {
     return (
-      <Card className="p-8 text-center bg-slate-900/40 border-white/5 rounded-2xl">
-        <LayoutTemplate className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
+      <Card className="p-6 text-center bg-slate-900/40 border-white/5 rounded-2xl">
+        <LayoutTemplate className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
         <p className="text-sm text-muted-foreground font-medium">Nenhum template salvo ainda.</p>
         <p className="text-xs text-muted-foreground/60 mt-1">Ao montar uma postagem, use "Salvar como template" para reaproveitar depois.</p>
       </Card>
@@ -346,34 +358,34 @@ function TemplateList({
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
       {templates.map((t) => (
-        <Card key={t.id} className="flex flex-col gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
-          <div className="flex items-start justify-between gap-3">
+        <Card key={t.id} className="flex flex-col gap-3 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-black text-white text-base">{t.name}</p>
+              <p className="truncate font-black text-white text-sm">{t.name}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mt-0.5">
                 {t.category}
               </p>
             </div>
           </div>
-          <div className="bg-black/20 rounded-xl p-3 min-h-[80px]">
-            <p className="line-clamp-3 text-sm text-muted-foreground leading-relaxed italic">
+          <div className="bg-black/20 rounded-xl p-2.5 min-h-[60px]">
+            <p className="line-clamp-3 text-xs text-muted-foreground leading-relaxed italic">
               {t.text?.replace(/<[^>]+>/g, "") || "Sem texto"}
             </p>
           </div>
-          <div className="mt-auto flex items-center gap-2 pt-2">
-            <Button size="lg" className="flex-1 h-11 bg-primary text-black font-black uppercase text-xs rounded-xl" onClick={() => onUse(t)}>
-              <Wand2 className="w-4 h-4 mr-2" /> Usar
+          <div className="mt-auto flex items-center gap-2 pt-1">
+            <Button size="sm" className="flex-1 h-9 bg-primary text-black font-black uppercase text-xs rounded-xl" onClick={() => onUse(t)}>
+              <Wand2 className="w-3.5 h-3.5 mr-1.5" /> Usar
             </Button>
             <Button
               variant="outline"
               size="icon"
-              className="h-11 w-11 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+              className="h-9 w-9 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
               onClick={() => onDelete(t.id)}
               aria-label="Excluir template"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         </Card>
@@ -392,14 +404,14 @@ function ScheduleList({
   const active = schedules.filter((s) => s.active)
   if (active.length === 0) {
     return (
-      <Card className="p-8 text-center bg-slate-900/40 border-white/5 rounded-2xl">
-        <CalendarClock className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
+      <Card className="p-6 text-center bg-slate-900/40 border-white/5 rounded-2xl">
+        <CalendarClock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
         <p className="text-sm text-muted-foreground font-medium">Nenhum agendamento ativo.</p>
       </Card>
     )
   }
   return (
-    <div className="grid gap-4 w-full">
+    <div className="grid gap-3 w-full">
       {active.map((s) => {
         let recurrenceLabel = "Uma vez"
         try {
@@ -409,28 +421,28 @@ function ScheduleList({
         return (
           <Card
             key={s.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full"
+            className="flex flex-col gap-3 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full"
           >
             <div className="min-w-0">
-              <p className="truncate font-black text-white text-base">
+              <p className="truncate font-black text-white text-sm">
                 {s.postTitle ?? `Postagem #${s.postId}`}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <p className="text-sm text-muted-foreground font-medium">
+                <p className="text-xs text-muted-foreground font-medium">
                   Próximo envio: <span className="text-blue-400">{s.nextRunAt ? new Date(s.nextRunAt).toLocaleString("pt-BR") : "—"}</span>
                 </p>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
                   {recurrenceLabel}
                 </span>
               </div>
             </div>
             <Button
               variant="outline"
-              size="lg"
-              className="h-11 sm:h-10 px-6 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 font-bold text-xs uppercase"
+              size="sm"
+              className="w-full h-9 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 font-bold text-xs uppercase"
               onClick={() => onCancel(s.id)}
             >
-              <Ban className="w-4 h-4 mr-2" /> Cancelar
+              <Ban className="w-3.5 h-3.5 mr-1.5" /> Cancelar agendamento
             </Button>
           </Card>
         )
@@ -454,45 +466,58 @@ function PostList({
 }) {
   if (posts.length === 0) {
     return (
-      <Card className="p-8 text-center bg-slate-900/40 border-white/5 rounded-2xl">
-        <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
+      <Card className="p-6 text-center bg-slate-900/40 border-white/5 rounded-2xl">
+        <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
         <p className="text-sm text-muted-foreground font-medium">{emptyLabel}</p>
       </Card>
     )
   }
   return (
-    <div className="grid gap-4 w-full">
-      {posts.map((post) => (
-        <Card key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 mb-1">
-              <p className="truncate font-black text-white text-base">
-                {post.title ?? `Postagem #${post.id}`}
+    <div className="grid gap-3 w-full">
+      {posts.map((p) => (
+        <Card
+          key={p.id}
+          className="flex flex-col gap-2 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-black text-white text-sm">
+                {p.title ?? `Postagem #${p.id}`}
               </p>
-              <PostBadge status={post.status}>
-                {statusLabels[post.status] ?? post.status}
-              </PostBadge>
-            </div>
-            <div className="bg-black/20 rounded-xl px-3 py-2">
-              <p className="line-clamp-2 text-sm text-muted-foreground italic leading-relaxed">
-                {post.text?.replace(/<[^>]+>/g, "") || "Sem texto"}
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                {p.sentAt
+                  ? new Date(p.sentAt).toLocaleString("pt-BR")
+                  : new Date(p.updatedAt).toLocaleString("pt-BR")}
               </p>
             </div>
+            <PostBadge status={p.status}>
+              {statusLabels[p.status] ?? p.status}
+            </PostBadge>
           </div>
-          <div className="flex items-center gap-2 pt-2 sm:pt-0">
-            {onEdit ? (
-              <Button variant="outline" size="lg" className="flex-1 sm:flex-none h-11 sm:h-10 px-6 rounded-xl border-white/10 hover:bg-primary/10 hover:text-primary font-bold text-xs uppercase" onClick={() => onEdit(post)}>
-                <Pencil className="w-4 h-4 mr-2" /> Editar
+          {p.text && (
+            <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+              {p.text.replace(/<[^>]+>/g, "")}
+            </p>
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 rounded-xl border-white/10 hover:bg-white/10 font-bold text-xs uppercase"
+                onClick={() => onEdit(p)}
+              >
+                <Pencil className="w-3 h-3 mr-1.5" /> Editar
               </Button>
-            ) : null}
+            )}
             <Button
               variant="outline"
               size="icon"
-              className="h-11 w-11 sm:h-10 sm:w-10 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
-              onClick={() => onDelete(post.id)}
+              className="h-8 w-8 rounded-xl border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+              onClick={() => onDelete(p.id)}
               aria-label="Excluir postagem"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         </Card>
