@@ -56,10 +56,10 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="pt-4 pb-8 px-3 sm:px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
+    <div className="pt-3 pb-8 px-3 sm:px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-0.5">
           Bem-vindo, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user?.name || "Operador"}</span>
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">Seu desempenho real em tempo real</p>
@@ -119,37 +119,75 @@ export default async function DashboardPage() {
               Nenhum pedido registrado ainda.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-blue-500/10 hover:bg-transparent">
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs">#</TableHead>
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs">Cliente</TableHead>
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs hidden sm:table-cell">Produto</TableHead>
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs">Valor</TableHead>
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs">Pagamento</TableHead>
-                    <TableHead className="text-muted-foreground text-[10px] sm:text-xs hidden md:table-cell">Entrega</TableHead>
-                    <TableHead className="text-right text-muted-foreground text-[10px] sm:text-xs">Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentOrders.map((o) => (
-                    <TableRow
-                      key={o.id}
-                      className="border-blue-500/10 hover:bg-blue-500/5 transition-colors duration-200"
-                    >
-                      <TableCell className="font-mono text-[9px] sm:text-xs text-muted-foreground p-2 sm:p-4">{o.id}</TableCell>
-                      <TableCell className="text-white text-[9px] sm:text-xs p-2 sm:p-4">{o.customerName || (o.customerUsername ? `@${o.customerUsername}` : "—")}</TableCell>
-                      <TableCell className="max-w-[120px] sm:max-w-[200px] truncate text-muted-foreground text-[9px] sm:text-xs p-2 sm:p-4 hidden sm:table-cell">{o.productName || "—"}</TableCell>
-                      <TableCell className="font-medium text-white text-[9px] sm:text-xs p-2 sm:p-4 whitespace-nowrap">{formatCurrency(o.amount || 0)}</TableCell>
-                      <TableCell className="p-2 sm:p-4"><PaymentStatusBadge status={o.paymentStatus} /></TableCell>
-                      <TableCell className="p-2 sm:p-4 hidden md:table-cell"><DeliveryStatusBadge status={o.deliveryStatus} /></TableCell>
-                      <TableCell className="text-right text-[9px] sm:text-xs text-muted-foreground p-2 sm:p-4 whitespace-nowrap">{formatDateTime(o.createdAt)}</TableCell>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-blue-500/10 hover:bg-transparent">
+                      <TableHead className="text-muted-foreground text-xs">#</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Cliente</TableHead>
+                      <TableHead className="text-muted-foreground text-xs hidden md:table-cell">Produto</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Valor</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Pagamento</TableHead>
+                      <TableHead className="text-muted-foreground text-xs hidden lg:table-cell">Entrega</TableHead>
+                      <TableHead className="text-right text-muted-foreground text-xs">Data</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {recentOrders.map((o) => (
+                      <TableRow
+                        key={o.id}
+                        className="border-blue-500/10 hover:bg-blue-500/5 transition-colors duration-200"
+                      >
+                        <TableCell className="font-mono text-xs text-muted-foreground p-3">{o.id}</TableCell>
+                        <TableCell className="text-white text-xs p-3">{o.customerName || (o.customerUsername ? `@${o.customerUsername}` : "—")}</TableCell>
+                        <TableCell className="max-w-[150px] truncate text-muted-foreground text-xs p-3 hidden md:table-cell">{o.productName || "—"}</TableCell>
+                        <TableCell className="font-medium text-white text-xs p-3 whitespace-nowrap">{formatCurrency(o.amount || 0)}</TableCell>
+                        <TableCell className="p-3"><PaymentStatusBadge status={o.paymentStatus} /></TableCell>
+                        <TableCell className="p-3 hidden lg:table-cell"><DeliveryStatusBadge status={o.deliveryStatus} /></TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground p-3 whitespace-nowrap">{formatDateTime(o.createdAt)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-3 px-3 py-3">
+                {recentOrders.map((o) => (
+                  <div
+                    key={o.id}
+                    className="rounded-lg border border-blue-500/10 bg-blue-500/5 p-3 space-y-2"
+                  >
+                    {/* ID e Data */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">#{o.id}</span>
+                      <span className="text-xs text-muted-foreground/70">{formatDateTime(o.createdAt)}</span>
+                    </div>
+
+                    {/* Cliente e Produto */}
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-white">
+                        {o.customerName || (o.customerUsername ? `@${o.customerUsername}` : "—")}
+                      </p>
+                      {o.productName && (
+                        <p className="text-xs text-muted-foreground truncate">{o.productName}</p>
+                      )}
+                    </div>
+
+                    {/* Valor e Status */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-blue-500/10">
+                      <span className="font-medium text-white text-sm">{formatCurrency(o.amount || 0)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <PaymentStatusBadge status={o.paymentStatus} />
+                        <DeliveryStatusBadge status={o.deliveryStatus} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
