@@ -1,6 +1,7 @@
 import "server-only"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 import { can, type Role } from "@/lib/roles"
 export type { Role } from "@/lib/roles"
 
@@ -14,51 +15,39 @@ export type SessionUser = {
 }
 
 /**
- * Builds a Cookie header string from next/headers cookies().
- */
-async function buildCookieHeader(): Promise<string> {
-  const cookieStore = await cookies()
-  const entries = cookieStore.getAll()
-  return entries.map((c) => `${c.name}=${c.value}`).join("; ")
-}
-
-/**
  * Returns the current session user or null. Does not redirect.
- * Uses HTTP fetch to /api/auth/get-session to avoid Next.js 16
- * compatibility issues with auth.api.getSession() in SSR contexts.
+ *
+ * Works around Next.js 16.2.x compatibility issue where
+ * auth.api.getSession({ headers: await headers() }) crashes in SSR
+ * because Next.js HeadersReadonly is incompatible with new Headers()
+ * inside better-auth's dispatch layer.
+ *
+ * Solution: build a plain Headers object from cookies() and pass it
+ * directly, bypassing the problematic Next.js headers() helper.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    const cookieHeader = await buildCookieHeader()
-    if (!cookieHeader) return null
+    const cookieStore = await cookies()
+    const entries = cookieStore.getAll()
+    if (!entries.length) return null
 
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    
-    const res = await fetch(
-      `${baseUrl}/api/auth/get-session`,
-      {
-        headers: { cookie: cookieHeader },
-        cache: "no-store",
-      },
-    )
-    
-    if (!res.ok) {
-      console.error("[getSessionUser] Fetch failed:", res.status, res.statusText)
-      return null
+    const cookieHeader = entries.map((c) => `${c.name}=${c.value}`).join("; ")
+    const h = new Headers()
+    h.set("cookie", cookieHeader)
+
+    const session = await auth.api.getSession({ headers: h })
+    if (!session?.user) return null
+
+    const u = session.user as typeof session.user & {
+      role?: string
+      ownerId?: string | null
     }
-
-    const data = await res.json() as any
-    if (!data?.user) return null
-
-    const u = data.user
-    const ownerId = (u as any).ownerId ?? null
+    const ownerId = u.ownerId ?? null
     return {
       id: u.id,
       name: u.name,
       email: u.email,
-      role: ((u as any).role as Role) || "support",
+      role: (u.role as Role) || "support",
       ownerId,
       storeId: ownerId ?? u.id,
     }
