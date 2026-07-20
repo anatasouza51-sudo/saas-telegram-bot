@@ -13,10 +13,10 @@ export default async function PanelLayout({
   const user = await requireUser()
 
   return (
-    <div className="pt-14 md:pt-[73px]">
+    <div className="min-h-screen bg-slate-950">
       <TopNavBar user={user} />
       <MobileHeader />
-      <main className="min-h-[calc(100vh-56px)] bg-slate-950">
+      <main className="pt-14 md:pt-[73px]">
         {children}
       </main>
     </div>
