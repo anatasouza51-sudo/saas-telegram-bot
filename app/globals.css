@@ -49,18 +49,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --animate-bounce-slow: bounce-slow 3s infinite;
-  --animate-pulse-soft: pulse-soft 4s ease-in-out infinite;
-  --animate-fade-in-up: fade-in-up 0.5s ease-out forwards;
-  --animate-mesh: mesh 20s ease infinite;
-  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
-  --animate-slide-in-from-top: slide-in-from-top 0.4s ease-out forwards;
-  --animate-scale-in: scale-in 0.3s ease-out forwards;
+  --animate-bounce-slow: bounce-slow 2.5s infinite;
+  --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
+  --animate-fade-in-up: fade-in-up 0.3s ease-out forwards;
+  --animate-mesh: mesh 15s ease infinite;
+  --animate-glow-pulse: glow-pulse 2.5s ease-in-out infinite;
+  --animate-slide-in-from-top: slide-in-from-top 0.3s ease-out forwards;
+  --animate-scale-in: scale-in 0.2s ease-out forwards;
 }
 
 @keyframes bounce-slow {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  50% { transform: translateY(-3px); }
 }
 
 @keyframes pulse-soft {
@@ -80,8 +80,8 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.7; }
 }
 
 @keyframes slide-in-from-top {
