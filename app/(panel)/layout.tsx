@@ -1,12 +1,6 @@
 import { requireUser } from "@/lib/session"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
 import type { ReactNode } from "react"
-import { MobileHeader } from "@/components/mobile-header"
+import { TopNavBar } from "@/components/top-nav-bar"
 
 export default async function PanelLayout({
   children,
@@ -16,21 +10,21 @@ export default async function PanelLayout({
   const user = await requireUser()
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      <SidebarInset className="min-w-0 bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
-        <MobileHeader />
-        <div className="relative min-h-screen">
-          {/* Background decoration */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[100px] rounded-full" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[100px] rounded-full" />
-          </div>
-          <div className="relative z-10 animate-fade-in-up">
-            {children}
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 relative overflow-hidden">
+      {/* Animated background orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-[50%] left-[50%] w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
+      </div>
+
+      {/* Top Navigation */}
+      <TopNavBar user={user} />
+
+      {/* Main Content */}
+      <main className="relative z-10">
+        {children}
+      </main>
+    </div>
   )
 }
