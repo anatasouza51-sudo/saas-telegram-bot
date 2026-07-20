@@ -48,7 +48,7 @@ export function TopNavBar({
   return (
     <>
       {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-gradient-to-r from-blue-950/40 via-purple-950/40 to-blue-950/40 border-b border-blue-500/10 px-4 md:px-8 py-4">
+      <nav className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl bg-slate-950/80 border-b border-blue-500/20 px-4 md:px-8 py-4 shadow-2xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
