@@ -1,10 +1,15 @@
 import { requireUser } from "@/lib/session"
 export const dynamic = "force-dynamic"
+import { MetricCard } from "@/components/metric-card"
 import {
   getDashboardStats,
   getRecentOrders,
   getSalesChart,
 } from "@/lib/queries/dashboard"
+import {
+  DollarSign, ShoppingCart, TrendingUp, Users
+} from "lucide-react"
+import { formatCurrency, formatNumber } from "@/lib/format"
 
 export default async function DashboardPage() {
   const user = await requireUser()
@@ -14,18 +19,10 @@ export default async function DashboardPage() {
     pendingPayments: 0, approvedPayments: 0, refusedPayments: 0,
     totalCustomers: 0, totalProducts: 0, lowStockCount: 0
   }
-  let recentOrders: any[] = []
-  let salesData: any[] = []
 
   try {
-    const [fetchedStats, fetchedOrders, fetchedChart] = await Promise.all([
-      getDashboardStats(user.storeId).catch(() => null),
-      getRecentOrders(user.storeId).catch(() => []),
-      getSalesChart(user.storeId, 14).catch(() => []),
-    ])
+    const fetchedStats = await getDashboardStats(user.storeId).catch(() => null)
     if (fetchedStats) stats = fetchedStats
-    if (fetchedOrders) recentOrders = fetchedOrders
-    if (fetchedChart) salesData = fetchedChart
   } catch (e) {
     console.error("Error loading dashboard data:", e)
   }
@@ -33,10 +30,12 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1>Dashboard - {user.name}</h1>
-      <p>Revenue: {stats.totalRevenue}</p>
-      <p>Sales: {stats.totalSales}</p>
-      <p>Orders: {recentOrders.length}</p>
-      <p>Chart data: {salesData.length}</p>
+      <div className="grid grid-cols-2 gap-4">
+        <MetricCard title="Receita Total" value={formatCurrency(stats?.totalRevenue || 0)} icon={DollarSign} color="blue" />
+        <MetricCard title="Total de Vendas" value={formatNumber(stats?.totalSales || 0)} icon={ShoppingCart} color="purple" />
+        <MetricCard title="Taxa de Conversão" value={`${(stats?.conversionRate || 0).toFixed(1)}%`} icon={TrendingUp} color="green" />
+        <MetricCard title="Clientes Ativos" value={formatNumber(stats?.totalCustomers || 0)} icon={Users} color="yellow" />
+      </div>
     </div>
   )
 }
