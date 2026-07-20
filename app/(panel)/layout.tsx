@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/session"
 import type { ReactNode } from "react"
 import { TopNavBar } from "@/components/top-nav-bar"
+import { MobileHeader } from "@/components/mobile-header"
 
 export default async function PanelLayout({
   children,
@@ -15,11 +16,11 @@ export default async function PanelLayout({
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-[50%] left-[50%] w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      {/* Top Navigation */}
+      {/* Navigation */}
       <TopNavBar user={user} />
+      <MobileHeader />
 
       {/* Main Content */}
       <main className="relative z-10">

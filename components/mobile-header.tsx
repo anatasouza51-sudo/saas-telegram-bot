@@ -1,11 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
-
 export function MobileHeader() {
-  const { toggleSidebar } = useSidebar()
-
   return (
     <header className="sticky top-0 z-50 flex h-20 items-center justify-between px-6 md:hidden">
       {/* Glassmorphism Background */}
@@ -14,19 +10,14 @@ export function MobileHeader() {
       {/* Subtle Gradient Glow */}
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
-      <button 
-        onClick={toggleSidebar}
-        className="group relative flex items-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95"
-      >
+      <div className="group relative flex items-center gap-3 transition-all duration-300">
         <div className="relative animate-pulse-soft">
-          {/* Outer Glow for Logo */}
-          <div className="absolute -inset-1 bg-primary/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           <Image 
             src="/ghostbot-final-logo.png" 
             alt="GhostBot Logo" 
             width={38} 
             height={38} 
-            className="relative object-contain drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]"
+            className="relative object-contain"
           />
         </div>
         <div className="flex flex-col items-start">
@@ -36,13 +27,6 @@ export function MobileHeader() {
           <span className="text-[10px] font-medium text-muted-foreground leading-none tracking-widest uppercase opacity-70">
             Ghost v2.5.0
           </span>
-        </div>
-      </button>
-
-      <div className="relative flex items-center gap-2">
-        {/* Modern Trigger Container */}
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 transition-all hover:bg-white/10 hover:border-primary/30 active:scale-90">
-          <SidebarTrigger className="text-white scale-110" />
         </div>
       </div>
     </header>
