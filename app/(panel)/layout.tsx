@@ -13,10 +13,16 @@ export default async function PanelLayout({
   const user = await requireUser()
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      {/* Navbar fixa no topo */}
       <TopNavBar user={user} />
       <MobileHeader />
-      <main className="pt-14 md:pt-[73px]">
+      
+      {/* 
+        Espaçamento superior para compensar a navbar fixa.
+        h-14 (56px) no mobile, md:pt-[73px] no desktop.
+      */}
+      <main className="flex-1 pt-14 sm:pt-16 md:pt-[73px]">
         {children}
       </main>
     </div>
