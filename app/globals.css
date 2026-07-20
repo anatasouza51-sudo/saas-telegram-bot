@@ -98,7 +98,6 @@
 /* Premium dark theme — Azul & Roxo */
 :root {
   color-scheme: dark;
-  font-size: 14px;
   --background: oklch(0.12 0.01 260);
   --foreground: oklch(0.97 0.005 264);
   --card: oklch(0.18 0.02 260);
@@ -125,16 +124,13 @@
   --radius: 0.7rem;
 }
 
-/* Prevenção de fontes gigantes em qualquer dispositivo */
+/* Normalização de fontes por breakpoint — Sem forçar mobile em desktop */
 @media (max-width: 640px) {
-  :root { font-size: 13px; }
-  h1 { font-size: 1.5rem !important; }
-  h2 { font-size: 1.25rem !important; }
-  p, span, div { font-size: 0.95rem; }
+  :root { font-size: 14px; }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
-  :root { font-size: 14px; }
+  :root { font-size: 15px; }
 }
 
 @media (min-width: 1025px) {
@@ -144,4 +140,12 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground antialiased; }
+  h1 { @apply text-2xl font-bold sm:text-3xl md:text-4xl; }
+  h2 { @apply text-xl font-bold sm:text-2xl; }
+}
+
+.bg-mesh {
+  background: linear-gradient(-45deg, #050505, #0a0a2e, #1a0a4a, #050505);
+  background-size: 400% 400%;
+  animation: mesh 15s ease infinite;
 }
