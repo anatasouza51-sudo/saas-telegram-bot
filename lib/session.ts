@@ -20,20 +20,28 @@ export type SessionUser = {
  * Returns the current session user or null. Does not redirect.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) return null
-  const u = session.user as typeof session.user & {
-    role?: string
-    ownerId?: string | null
-  }
-  const ownerId = u.ownerId ?? null
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: (u.role as Role) || "support",
-    ownerId,
-    storeId: ownerId ?? u.id,
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user) return null
+    const u = session.user as typeof session.user & {
+      role?: string
+      ownerId?: string | null
+    }
+    const ownerId = u.ownerId ?? null
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: (u.role as Role) || "support",
+      ownerId,
+      storeId: ownerId ?? u.id,
+    }
+  } catch (error) {
+    // If the session lookup fails (e.g. database error, secret mismatch,
+    // cookie signature failure), treat the user as unauthenticated and
+    // redirect to sign-in instead of crashing the whole page.
+    console.error("[getSessionUser] Session lookup failed:", error)
+    return null
   }
 }
 
