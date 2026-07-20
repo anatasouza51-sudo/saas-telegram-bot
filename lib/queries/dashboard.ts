@@ -22,105 +22,61 @@ export async function getDashboardStats(
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 
-  const [
-    revenueRow,
-    salesRow,
-    salesTodayRow,
-    pendingRow,
-    approvedRow,
-    refusedRow,
-    customersRow,
-    productsRow,
-  ] = await Promise.all([
+  // Combined order stats query to reduce roundtrips
+  const [orderStats, customersCount, productsCount, lowStockCountResult] = await Promise.all([
     db
-      .select({ total: sql<number>`coalesce(sum(${orders.amount}), 0)::float` })
+      .select({
+        totalRevenue: sql<number>`coalesce(sum(case when ${orders.paymentStatus} = 'approved' then ${orders.amount} else 0 end), 0)::float`,
+        totalSales: sql<number>`count(case when ${orders.paymentStatus} = 'approved' then 1 end)::int`,
+        salesToday: sql<number>`count(case when ${orders.paymentStatus} = 'approved' and ${orders.createdAt} >= ${startOfToday} then 1 end)::int`,
+        pendingPayments: sql<number>`count(case when ${orders.paymentStatus} = 'pending' then 1 end)::int`,
+        approvedPayments: sql<number>`count(case when ${orders.paymentStatus} = 'approved' then 1 end)::int`,
+        refusedPayments: sql<number>`count(case when ${orders.paymentStatus} = 'refused' then 1 end)::int`,
+      })
       .from(orders)
-      .where(
-        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(orders)
-      .where(
-        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(orders)
+      .where(eq(orders.ownerId, storeId)),
+    
+    db.select({ count: sql<number>`count(*)::int` }).from(customers).where(eq(customers.ownerId, storeId)),
+    db.select({ count: sql<number>`count(*)::int` }).from(products).where(eq(products.ownerId, storeId)),
+    
+    // Optimized low stock count in a single subquery if possible, or keep filtered logic
+    db.select({
+      count: sql<number>`count(*)::int`
+    })
+    .from(
+      db.select({
+        id: products.id,
+      })
+      .from(products)
+      .leftJoin(stockItems, eq(stockItems.productId, products.id))
       .where(
         and(
-          eq(orders.ownerId, storeId),
-          eq(orders.paymentStatus, "approved"),
-          gte(orders.createdAt, startOfToday),
-        ),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(orders)
-      .where(
-        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "pending")),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(orders)
-      .where(
-        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "approved")),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(orders)
-      .where(
-        and(eq(orders.ownerId, storeId), eq(orders.paymentStatus, "refused")),
-      ),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(customers)
-      .where(eq(customers.ownerId, storeId)),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(products)
-      .where(eq(products.ownerId, storeId)),
+          eq(products.ownerId, storeId),
+          eq(products.status, "active"),
+          eq(products.deliveryType, "stock")
+        )
+      )
+      .groupBy(products.id, products.lowStockThreshold)
+      .having(sql`count(${stockItems.id}) filter (where ${stockItems.status} = 'available') <= ${products.lowStockThreshold}`)
+      .as('low_stock_products')
+    )
   ])
 
-  // Low stock: products with fewer available stock items than their threshold
-  const lowStock = await db
-    .select({
-      productId: products.id,
-      threshold: products.lowStockThreshold,
-      available: sql<number>`count(${stockItems.id}) filter (where ${stockItems.status} = 'available')::int`,
-    })
-    .from(products)
-    .leftJoin(stockItems, eq(stockItems.productId, products.id))
-    .where(
-      and(
-        eq(products.ownerId, storeId),
-        eq(products.status, "active"),
-        eq(products.deliveryType, "stock"),
-      ),
-    )
-    .groupBy(products.id, products.lowStockThreshold)
-
-  const lowStockCount = lowStock.filter(
-    (p) => Number(p.available) <= Number(p.threshold),
-  ).length
-
-  const totalOrders =
-    (pendingRow[0]?.count ?? 0) +
-    (approvedRow[0]?.count ?? 0) +
-    (refusedRow[0]?.count ?? 0)
-  const approved = approvedRow[0]?.count ?? 0
+  const stats = orderStats[0]
+  const totalOrders = (stats?.pendingPayments ?? 0) + (stats?.approvedPayments ?? 0) + (stats?.refusedPayments ?? 0)
+  const approved = stats?.approvedPayments ?? 0
   const conversionRate = totalOrders > 0 ? (approved / totalOrders) * 100 : 0
 
   return {
-    totalRevenue: Number(revenueRow[0]?.total ?? 0),
-    totalSales: salesRow[0]?.count ?? 0,
-    salesToday: salesTodayRow[0]?.count ?? 0,
-    pendingPayments: pendingRow[0]?.count ?? 0,
+    totalRevenue: Number(stats?.totalRevenue ?? 0),
+    totalSales: stats?.totalSales ?? 0,
+    salesToday: stats?.salesToday ?? 0,
+    pendingPayments: stats?.pendingPayments ?? 0,
     approvedPayments: approved,
-    refusedPayments: refusedRow[0]?.count ?? 0,
-    totalCustomers: customersRow[0]?.count ?? 0,
-    totalProducts: productsRow[0]?.count ?? 0,
-    lowStockCount,
+    refusedPayments: stats?.refusedPayments ?? 0,
+    totalCustomers: customersCount[0]?.count ?? 0,
+    totalProducts: productsCount[0]?.count ?? 0,
+    lowStockCount: lowStockCountResult[0]?.count ?? 0,
     conversionRate,
   }
 }

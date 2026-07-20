@@ -32,24 +32,20 @@ import {
 export default async function DashboardPage() {
   const user = await requireUser()
   
-  let stats: any = {
+  // Parallel data fetching for instant loading
+  const [statsResult, recentOrdersResult, salesDataResult] = await Promise.allSettled([
+    getDashboardStats(user.storeId),
+    getRecentOrders(user.storeId),
+    getSalesChart(user.storeId, 14)
+  ])
+
+  const stats = statsResult.status === 'fulfilled' ? statsResult.value : {
     totalRevenue: 0, totalSales: 0, salesToday: 0, conversionRate: 0,
     pendingPayments: 0, approvedPayments: 0, refusedPayments: 0,
     totalCustomers: 0, totalProducts: 0, lowStockCount: 0
   }
-  let recentOrders: any[] = []
-  let salesData: any[] = []
-
-  try {
-    const fetchedStats = await getDashboardStats(user.storeId).catch(() => null)
-    if (fetchedStats) stats = fetchedStats
-    const fetchedOrders = await getRecentOrders(user.storeId).catch(() => [])
-    if (fetchedOrders) recentOrders = fetchedOrders
-    const fetchedChart = await getSalesChart(user.storeId, 14).catch(() => [])
-    if (fetchedChart) salesData = fetchedChart
-  } catch (e) {
-    console.error("Error loading dashboard data:", e)
-  }
+  const recentOrders = recentOrdersResult.status === 'fulfilled' ? recentOrdersResult.value : []
+  const salesData = salesDataResult.status === 'fulfilled' ? salesDataResult.value : []
 
   const totalCheckouts = (stats?.pendingPayments || 0) + (stats?.approvedPayments || 0) + (stats?.refusedPayments || 0)
   const approvedSales = stats?.approvedPayments || 0
@@ -60,7 +56,7 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="pt-28 pb-12 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
+    <div className="pt-8 pb-12 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
       <div className="mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
           Bem-vindo, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user?.name || "Operador"}</span>

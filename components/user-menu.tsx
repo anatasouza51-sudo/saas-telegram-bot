@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -14,7 +15,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ChevronsUpDown, LogOut } from "lucide-react"
 
-export function UserMenu({
+export const UserMenu = memo(({
   name,
   email,
   roleLabel,
@@ -22,20 +23,21 @@ export function UserMenu({
   name: string
   email: string
   roleLabel: string
-}) {
+}) => {
   const router = useRouter()
-  const initials = name
+  
+  const initials = useMemo(() => name
     .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase()
+    .toUpperCase(), [name])
 
-  async function handleSignOut() {
+  const handleSignOut = useCallback(async () => {
     await authClient.signOut()
     router.push("/sign-in")
     router.refresh()
-  }
+  }, [router])
 
   return (
     <DropdownMenu>
@@ -74,4 +76,5 @@ export function UserMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
+})
+UserMenu.displayName = "UserMenu"

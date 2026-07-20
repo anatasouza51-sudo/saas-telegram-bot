@@ -1,14 +1,13 @@
 "use client"
 
+import { memo, useState, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
 import Image from "next/image"
 import {
   Search,
   Bell,
   Settings,
-  LogOut,
   Menu,
   X,
   LayoutDashboard,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ROLE_LABELS, type Role } from "@/lib/roles"
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -34,21 +34,23 @@ const NAV_ITEMS = [
   { label: "Logs", href: "/logs", icon: ScrollText },
 ]
 
-import { ROLE_LABELS, type Role } from "@/lib/roles"
-
-export function TopNavBar({
+export const TopNavBar = memo(({
   user,
 }: {
   user: { name: string; email: string; role: Role }
-}) {
+}) => {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
+  const openSearch = useCallback(() => setSearchOpen(true), [])
+  const closeSearch = useCallback(() => setSearchOpen(false), [])
+
   return (
     <>
-      {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl bg-slate-950/80 border-b border-blue-500/20 px-4 md:px-8 py-4 shadow-2xl">
+      {/* Top Navigation Bar - Reduced blur and shadow for performance */}
+      <nav className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-4 md:px-8 py-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
@@ -58,7 +60,7 @@ export function TopNavBar({
                 alt="GhostBot"
                 width={40}
                 height={40}
-                className="object-contain group-hover:scale-110 transition-transform duration-300"
+                className="object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden md:inline">
@@ -75,9 +77,9 @@ export function TopNavBar({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-300 border border-blue-500/50"
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -97,9 +99,9 @@ export function TopNavBar({
                   <Input
                     type="search"
                     placeholder="Buscar..."
-                    className="w-full bg-white/10 border-blue-500/30 text-white placeholder:text-muted-foreground focus:border-blue-500/60 focus:bg-white/15"
+                    className="w-full bg-white/5 border-blue-500/20 text-white placeholder:text-muted-foreground focus:border-blue-500/40 focus:bg-white/10"
                     autoFocus
-                    onBlur={() => setSearchOpen(false)}
+                    onBlur={closeSearch}
                   />
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
@@ -107,8 +109,8 @@ export function TopNavBar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setSearchOpen(true)}
-                  className="hover:bg-white/10"
+                  onClick={openSearch}
+                  className="hover:bg-white/5"
                 >
                   <Search className="w-5 h-5" />
                 </Button>
@@ -119,17 +121,17 @@ export function TopNavBar({
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-white/10 relative"
+              className="hover:bg-white/5 relative"
             >
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
             </Button>
 
             {/* Settings */}
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-white/10"
+              className="hover:bg-white/5"
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -138,8 +140,8 @@ export function TopNavBar({
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden hover:bg-white/10"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden hover:bg-white/5"
+              onClick={toggleMobileMenu}
             >
               {mobileMenuOpen ? (
                 <X className="w-5 h-5" />
@@ -149,12 +151,12 @@ export function TopNavBar({
             </Button>
 
             {/* User Menu */}
-            <div className="hidden md:flex items-center gap-2 pl-4 border-l border-white/10">
+            <div className="hidden md:flex items-center gap-2 pl-4 border-l border-white/5">
               <div className="flex flex-col items-end">
                 <p className="text-sm font-medium text-white">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role]}</p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
                 {user.name.charAt(0).toUpperCase()}
               </div>
             </div>
@@ -164,8 +166,8 @@ export function TopNavBar({
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed top-20 left-0 right-0 z-40 backdrop-blur-xl bg-gradient-to-b from-blue-950/80 to-purple-950/80 border-b border-blue-500/10 p-4 lg:hidden animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="space-y-2">
+        <div className="fixed top-[73px] left-0 right-0 z-40 backdrop-blur-md bg-slate-950/95 border-b border-blue-500/10 p-4 lg:hidden">
+          <div className="space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href)
@@ -174,9 +176,9 @@ export function TopNavBar({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-300 border border-blue-500/50"
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -190,4 +192,5 @@ export function TopNavBar({
       )}
     </>
   )
-}
+})
+TopNavBar.displayName = "TopNavBar"
