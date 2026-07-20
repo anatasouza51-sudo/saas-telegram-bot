@@ -34,10 +34,12 @@ const NAV_ITEMS = [
   { label: "Logs", href: "/logs", icon: ScrollText },
 ]
 
+import { ROLE_LABELS, type Role } from "@/lib/roles"
+
 export function TopNavBar({
   user,
 }: {
-  user: { name: string; email: string; role: string }
+  user: { name: string; email: string; role: Role }
 }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -150,7 +152,7 @@ export function TopNavBar({
             <div className="hidden md:flex items-center gap-2 pl-4 border-l border-white/10">
               <div className="flex flex-col items-end">
                 <p className="text-sm font-medium text-white">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.role}</p>
+                <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role]}</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
                 {user.name.charAt(0).toUpperCase()}
