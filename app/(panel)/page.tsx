@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/session"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { SalesChart } from "@/components/sales-chart"
+import { CheckoutFunnel } from "@/components/checkout-funnel"
 import {
   Card,
   CardContent,
@@ -48,11 +49,23 @@ export default async function DashboardPage() {
     getSalesChart(user.storeId, 14),
   ])
 
+  // Mock funnel data - in production, this would come from actual data
+  const funnelStages = [
+    { label: "Checkouts", value: 2314, percentage: 100 },
+    { label: "Dados Pessoais", value: 1511, percentage: 65.3 },
+    { label: "Método de Pagamento", value: 943, percentage: 40.8 },
+    { label: "Isto Gerado", value: 410, percentage: 17.7 },
+    { label: "Vendas", value: 243, percentage: 10.5 },
+  ]
+
+  const totalCheckouts = funnelStages[0].value
+  const totalSales = funnelStages[funnelStages.length - 1].value
+  const totalConversion = (totalSales / totalCheckouts) * 100
+
   return (
     <>
-      {/* PageHeader removed for cleaner UI */}
       <div className="flex flex-col gap-6 p-4 md:p-6">
-        {/* Primary metrics */}
+        {/* Primary metrics - 4 columns */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Receita total"
@@ -82,7 +95,33 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Payment & catalog metrics */}
+        {/* Main content area - Chart + Funnel */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Sales chart - takes 2 columns */}
+          <div className="lg:col-span-2">
+            <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20">
+              {/* Glow effect background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+              
+              <CardHeader className="relative z-10">
+                <CardTitle>Vendas dos últimos 14 dias</CardTitle>
+                <CardDescription>
+                  Receita diária de pagamentos aprovados.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <SalesChart data={salesData} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Checkout Funnel - takes 1 column */}
+          <div className="lg:col-span-1">
+            <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
+          </div>
+        </div>
+
+        {/* Secondary metrics - 6 columns */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
           <StatCard
             title="Pendentes"
@@ -120,28 +159,18 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Vendas dos últimos 14 dias</CardTitle>
-            <CardDescription>
-              Receita diária de pagamentos aprovados.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SalesChart data={salesData} />
-          </CardContent>
-        </Card>
-
         {/* Recent orders */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20">
+          {/* Glow effect background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+          
+          <CardHeader className="relative z-10">
             <CardTitle>Últimos pedidos</CardTitle>
             <CardDescription>
               Pedidos mais recentes recebidos via Telegram.
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-0">
+          <CardContent className="relative z-10 px-0">
             {recentOrders.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-muted-foreground">
                 Nenhum pedido registrado ainda.

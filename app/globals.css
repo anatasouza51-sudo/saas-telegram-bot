@@ -76,46 +76,46 @@
   100% { background-position: 0% 50%; }
 }
 
-/* Premium dark theme — dark only */
+/* Premium dark theme — Azul & Roxo */
 :root {
   color-scheme: dark;
-  --background: oklch(0.17 0.015 264);
+  --background: oklch(0.12 0.01 260);  /* Fundo muito escuro com toque azul */
   --foreground: oklch(0.97 0.005 264);
-  --card: oklch(0.21 0.017 264);
+  --card: oklch(0.18 0.02 260);        /* Card com toque azul */
   --card-foreground: oklch(0.97 0.005 264);
-  --popover: oklch(0.21 0.017 264);
+  --popover: oklch(0.18 0.02 260);
   --popover-foreground: oklch(0.97 0.005 264);
-  --primary: oklch(0.7 0.25 250); /* Neon Cyan/Blue */
+  --primary: oklch(0.7 0.25 200);      /* Azul Neon (#00D9FF) */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.2 0.05 250);
   --secondary-foreground: oklch(0.98 0.01 250);
-  --muted: oklch(0.18 0.02 250);
-  --muted-foreground: oklch(0.7 0.05 250);
-  --accent: oklch(0.6 0.3 300); /* Neon Purple */
+  --muted: oklch(0.18 0.02 260);
+  --muted-foreground: oklch(0.7 0.05 260);
+  --accent: oklch(0.6 0.3 280);        /* Roxo Neon (#B24BF3) */
   --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.6 0.3 25); /* Neon Red/Pink */
+  --destructive: oklch(0.6 0.3 25);    /* Neon Red/Pink */
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.8 0.3 150); /* Neon Green */
+  --success: oklch(0.8 0.3 150);       /* Neon Green */
   --success-foreground: oklch(0.1 0.05 150);
-  --warning: oklch(0.85 0.2 90); /* Neon Yellow */
+  --warning: oklch(0.85 0.2 90);       /* Neon Yellow */
   --warning-foreground: oklch(0.1 0.05 90);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.62 0.17 254);
-  --chart-1: oklch(0.62 0.17 254);
-  --chart-2: oklch(0.68 0.15 155);
+  --ring: oklch(0.7 0.25 200);         /* Azul para ring */
+  --chart-1: oklch(0.7 0.25 200);      /* Azul */
+  --chart-2: oklch(0.6 0.3 280);       /* Roxo */
   --chart-3: oklch(0.78 0.14 75);
   --chart-4: oklch(0.65 0.19 300);
   --chart-5: oklch(0.7 0.13 200);
   --radius: 0.7rem;
   --sidebar: #050505;
   --sidebar-foreground: oklch(0.9 0.01 264);
-  --sidebar-primary: oklch(0.62 0.17 254);
+  --sidebar-primary: oklch(0.7 0.25 200);  /* Azul para sidebar */
   --sidebar-primary-foreground: oklch(0.99 0.01 254);
-  --sidebar-accent: rgba(255, 255, 255, 0.05);
+  --sidebar-accent: rgba(178, 75, 243, 0.1); /* Roxo com transparência */
   --sidebar-accent-foreground: oklch(0.97 0.005 264);
-  --sidebar-border: rgba(255, 255, 255, 0.05);
-  --sidebar-ring: oklch(0.62 0.17 254);
+  --sidebar-border: rgba(0, 217, 255, 0.1); /* Azul com transparência */
+  --sidebar-ring: oklch(0.7 0.25 200);      /* Azul para ring */
 }
 
 @layer base {
@@ -132,7 +132,7 @@
 }
 
 .bg-mesh {
-  background: linear-gradient(-45deg, #050505, #0a0a1a, #1a0a2a, #050505);
+  background: linear-gradient(-45deg, #050505, #0a0a2e, #1a0a4a, #050505);
   background-size: 400% 400%;
   animation: mesh 15s ease infinite;
 }

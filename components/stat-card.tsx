@@ -16,18 +16,31 @@ export function StatCard({
   tone?: "default" | "success" | "warning" | "destructive" | "primary"
 }) {
   const toneMap = {
-    default: "bg-white/5 text-muted-foreground ring-white/10",
-    primary: "bg-primary/10 text-primary border border-primary/20",
-    success: "bg-success/10 text-success border border-success/20",
-    warning: "bg-warning/10 text-warning border border-warning/20",
-    destructive: "bg-destructive/10 text-destructive border border-destructive/20",
+    default: "bg-gradient-to-br from-white/10 to-white/5 text-muted-foreground ring-1 ring-white/20 shadow-lg shadow-blue-500/5",
+    primary: "bg-gradient-to-br from-blue-600/20 to-blue-400/10 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/20",
+    success: "bg-gradient-to-br from-green-600/20 to-green-400/10 text-green-400 border border-green-500/30 shadow-lg shadow-green-500/20",
+    warning: "bg-gradient-to-br from-yellow-600/20 to-yellow-400/10 text-yellow-400 border border-yellow-500/30 shadow-lg shadow-yellow-500/20",
+    destructive: "bg-gradient-to-br from-red-600/20 to-red-400/10 text-red-400 border border-red-500/30 shadow-lg shadow-red-500/20",
+  }
+
+  const iconToneMap = {
+    default: "bg-gradient-to-br from-blue-500/30 to-purple-500/20 text-blue-300 ring-1 ring-blue-400/40",
+    primary: "bg-gradient-to-br from-blue-500/40 to-blue-400/30 text-blue-200 ring-1 ring-blue-400/50",
+    success: "bg-gradient-to-br from-green-500/40 to-green-400/30 text-green-200 ring-1 ring-green-400/50",
+    warning: "bg-gradient-to-br from-yellow-500/40 to-yellow-400/30 text-yellow-200 ring-1 ring-yellow-400/50",
+    destructive: "bg-gradient-to-br from-red-500/40 to-red-400/30 text-red-200 ring-1 ring-red-400/50",
   }
 
   return (
-    <Card className="relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
+    <Card className="relative overflow-hidden group border-0 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10">
+      {/* Glow background effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+      
+      {/* Icon background decoration */}
+      <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300">
         <Icon className="h-24 w-24 -mr-8 -mt-8 rotate-12" />
       </div>
+      
       <CardContent className="flex items-center justify-between gap-4 p-6 relative z-10">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
@@ -42,8 +55,8 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ring-1 transition-transform group-hover:scale-110 duration-300",
-            toneMap[tone],
+            "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
+            iconToneMap[tone],
           )}
         >
           <Icon className="h-7 w-7" />
