@@ -124,17 +124,9 @@
   --radius: 0.7rem;
 }
 
-/* Normalização de fontes por breakpoint — Sem forçar mobile em desktop */
-@media (max-width: 640px) {
-  :root { font-size: 14px; }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  :root { font-size: 15px; }
-}
-
-@media (min-width: 1025px) {
-  :root { font-size: 16px; }
+/* Fontes maiores no mobile — Base 16px como no desktop */
+:root {
+  font-size: 16px;
 }
 
 @layer base {
