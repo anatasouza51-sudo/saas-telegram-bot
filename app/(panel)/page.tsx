@@ -40,11 +40,36 @@ import {
 
 export default async function DashboardPage() {
   const user = await requireUser()
-  const [stats, recentOrders, salesData] = await Promise.all([
-    getDashboardStats(user.storeId),
-    getRecentOrders(user.storeId),
-    getSalesChart(user.storeId, 14),
-  ])
+  
+  // Failsafe data fetching
+  let stats = {
+    totalRevenue: 0,
+    totalSales: 0,
+    salesToday: 0,
+    conversionRate: 0,
+    pendingPayments: 0,
+    approvedPayments: 0,
+    refusedPayments: 0,
+    totalCustomers: 0,
+    totalProducts: 0,
+    lowStockCount: 0
+  }
+  let recentOrders: any[] = []
+  let salesData: any[] = []
+
+  try {
+    const [fetchedStats, fetchedOrders, fetchedChart] = await Promise.all([
+      getDashboardStats(user.storeId).catch(() => stats),
+      getRecentOrders(user.storeId).catch(() => []),
+      getSalesChart(user.storeId, 14).catch(() => []),
+    ])
+    
+    if (fetchedStats) stats = fetchedStats
+    if (fetchedOrders) recentOrders = fetchedOrders
+    if (fetchedChart) salesData = fetchedChart
+  } catch (error) {
+    console.error("Dashboard data fetch error:", error)
+  }
 
   // Mock funnel data
   const funnelStages = [
@@ -69,11 +94,11 @@ export default async function DashboardPage() {
         <p className="text-lg text-muted-foreground">Seu desempenho em tempo real</p>
       </div>
 
-      {/* Primary Metrics - 4 Columns */}
+      {/* Primary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         <MetricCard
           title="Receita Total"
-          value={formatCurrency(stats.totalRevenue)}
+          value={formatCurrency(stats.totalRevenue || 0)}
           icon={DollarSign}
           color="blue"
           trend="up"
@@ -81,7 +106,7 @@ export default async function DashboardPage() {
         />
         <MetricCard
           title="Total de Vendas"
-          value={formatNumber(stats.totalSales)}
+          value={formatNumber(stats.totalSales || 0)}
           icon={ShoppingCart}
           color="purple"
           trend="up"
@@ -89,7 +114,7 @@ export default async function DashboardPage() {
         />
         <MetricCard
           title="Taxa de Conversão"
-          value={`${stats.conversionRate.toFixed(1)}%`}
+          value={`${(stats.conversionRate || 0).toFixed(1)}%`}
           icon={TrendingUp}
           color="green"
           trend="up"
@@ -97,7 +122,7 @@ export default async function DashboardPage() {
         />
         <MetricCard
           title="Clientes Ativos"
-          value={formatNumber(stats.totalCustomers)}
+          value={formatNumber(stats.totalCustomers || 0)}
           icon={Users}
           color="yellow"
           trend="up"
@@ -105,9 +130,8 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Main Content - 2 Columns */}
+      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-        {/* Sales Chart - 2 columns */}
         <div className="lg:col-span-2">
           <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20 h-full">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
@@ -116,58 +140,63 @@ export default async function DashboardPage() {
               <CardDescription>Receita diária de pagamentos aprovados</CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <SalesChart data={salesData} />
+              {salesData && salesData.length > 0 ? (
+                <SalesChart data={salesData} />
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  Sem dados para exibir no gráfico
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Checkout Funnel - 1 column */}
         <div className="lg:col-span-1">
           <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
         </div>
       </div>
 
-      {/* Secondary Metrics - 6 Columns */}
+      {/* Secondary Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
         <MetricCard
           title="Produtos"
-          value={formatNumber(stats.totalProducts)}
+          value={formatNumber(stats.totalProducts || 0)}
           icon={Package}
           color="blue"
         />
         <MetricCard
           title="Estoque Baixo"
-          value={formatNumber(stats.lowStockCount)}
+          value={formatNumber(stats.lowStockCount || 0)}
           icon={AlertTriangle}
-          color={stats.lowStockCount > 0 ? "red" : "green"}
+          color={(stats.lowStockCount || 0) > 0 ? "red" : "green"}
         />
         <MetricCard
           title="Aprovados"
-          value={formatNumber(stats.approvedPayments)}
+          value={formatNumber(stats.approvedPayments || 0)}
           icon={CheckCircle2}
           color="green"
         />
         <MetricCard
           title="Pendentes"
-          value={formatNumber(stats.pendingPayments)}
+          value={formatNumber(stats.pendingPayments || 0)}
           icon={Zap}
           color="yellow"
         />
         <MetricCard
           title="Recusados"
-          value={formatNumber(stats.refusedPayments)}
+          value={formatNumber(stats.refusedPayments || 0)}
           icon={AlertTriangle}
           color="red"
         />
         <MetricCard
           title="Vendas Hoje"
-          value={formatNumber(stats.salesToday)}
+          value={formatNumber(stats.salesToday || 0)}
           icon={TrendingUp}
           color="purple"
         />
       </div>
 
-      {/* Recent Orders Section */}
+      {/* Recent Orders */}
       <div className="animate-fade-in-up">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
@@ -178,7 +207,7 @@ export default async function DashboardPage() {
           </CardHeader>
           
           <CardContent className="relative z-10 px-0">
-            {recentOrders.length === 0 ? (
+            {!recentOrders || recentOrders.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-muted-foreground">
                 Nenhum pedido registrado ainda.
               </p>
@@ -215,7 +244,7 @@ export default async function DashboardPage() {
                           {o.productName || "—"}
                         </TableCell>
                         <TableCell className="font-medium text-white">
-                          {formatCurrency(o.amount)}
+                          {formatCurrency(o.amount || 0)}
                         </TableCell>
                         <TableCell>
                           <PaymentStatusBadge status={o.paymentStatus} />
