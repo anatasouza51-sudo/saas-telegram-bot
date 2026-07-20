@@ -32,7 +32,6 @@ import {
 export default async function DashboardPage() {
   const user = await requireUser()
 
-  // Parallel data fetching for instant loading
   const [statsResult, recentOrdersResult, salesDataResult] = await Promise.allSettled([
     getDashboardStats(user.storeId),
     getRecentOrders(user.storeId),
@@ -57,13 +56,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="pt-6 pb-12 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto min-h-screen">
-      {/* Header - Aumentado drasticamente para impacto visual */}
-      <div className="mb-10 sm:mb-12">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white mb-2 leading-[1.1] tracking-tighter">
-          Bem-vindo, <br className="sm:hidden" />
-          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user?.name || "Operador"}</span>
+      {/* Header - Revertido para o tamanho que o usuário gostou antes */}
+      <div className="mb-8 sm:mb-10">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2 leading-tight tracking-tighter">
+          Bem-vindo, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user?.name || "Operador"}</span>
         </h1>
-        <p className="text-base sm:text-lg text-muted-foreground font-medium">Seu desempenho real em tempo real.</p>
+        <p className="text-sm sm:text-base text-muted-foreground font-medium">Seu desempenho real em tempo real.</p>
       </div>
 
       {/* Top Metrics Grid */}
