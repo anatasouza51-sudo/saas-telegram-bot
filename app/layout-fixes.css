@@ -1,0 +1,115 @@
+/* Layout Fixes - Corrige problemas de espaçamento e design no painel */
+
+/* Garante que o main ocupe todo o espaço disponível */
+main {
+  min-height: calc(100vh - 73px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Padroniza o espaçamento das páginas */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding: 1.5rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 1.5rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* Garante que os Cards tenham espaçamento consistente */
+.card {
+  border-radius: 0.875rem;
+  border: 1px solid rgba(0, 217, 255, 0.1);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(88, 28, 135, 0.1) 100%);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(178, 75, 243, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+}
+
+/* Corrige a tabela para ter scroll horizontal em mobile */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.875rem;
+}
+
+/* Garante que os botões tenham espaçamento consistente */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .button-group {
+    gap: 0.75rem;
+  }
+}
+
+/* Corrige o alinhamento dos filtros */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .filter-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Garante que as grids tenham espaçamento consistente */
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+@media (min-width: 768px) {
+  .grid-responsive {
+    gap: 1.5rem;
+  }
+}
+
+/* Corrige o espaçamento das listas */
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Garante que o PageHeader não ocupe espaço quando vazio */
+header:empty {
+  display: none;
+}
+
+/* Corrige o alinhamento do conteúdo em telas pequenas */
+@media (max-width: 640px) {
+  .hidden-mobile {
+    display: none;
+  }
+  
+  .page-container {
+    padding: 1rem;
+  }
+}

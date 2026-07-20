@@ -40,19 +40,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   listChannels,
   syncAllChannels,
   setChatPurpose,
   restartTelegramIntegration,
-  addChannelManually,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
 import { PURPOSES } from "@/lib/tg/purposes"
-import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
+
 import { toast } from "sonner"
 import {
   Search,
@@ -64,8 +62,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   Radio,
-  Info,
-  PlusCircle,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -168,9 +164,7 @@ export function ChannelsView({
   const [page, setPage] = useState(1)
   const [syncing, startSync] = useTransition()
   const [pending, startTransition] = useTransition()
-  const [manualOpen, setManualOpen] = useState(false)
-  const [manualInput, setManualInput] = useState("")
-  const [adding, startAdding] = useTransition()
+
   const searchRef = useRef(search)
   searchRef.current = search
 
@@ -246,24 +240,7 @@ export function ChannelsView({
     })
   }
 
-  function handleManualAdd() {
-    const value = manualInput.trim()
-    if (!value) {
-      toast.error("Informe o ID ou @username do grupo/canal.")
-      return
-    }
-    startAdding(async () => {
-      const res = await addChannelManually(value)
-      if (res.ok) {
-        toast.success(`"${res.title}" adicionado com sucesso.`)
-        setManualInput("")
-        setManualOpen(false)
-        await refresh()
-      } else {
-        toast.error(res.error ?? "Falha ao adicionar.")
-      }
-    })
-  }
+
 
   function handlePurpose(id: number, purpose: string) {
     startTransition(async () => {
@@ -288,41 +265,6 @@ export function ChannelsView({
           sincronizar grupos e canais.
         </div>
       )}
-
-      <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <div className="flex flex-col gap-2 text-pretty">
-          <p>
-            {
-              "Não há cadastro manual. Ao adicionar o bot a um grupo ou canal, ele aparece aqui automaticamente."
-            }
-          </p>
-          <p className="font-medium text-foreground">
-            {"O bot já está no grupo mas não apareceu?"}
-          </p>
-          <p>
-            {
-              "O Telegram não permite listar os grupos do bot — a detecção depende de um evento. Como o bot usa modo privacidade, ele não vê mensagens comuns. Para registrar um grupo onde o bot já está, faça uma destas ações:"
-            }
-          </p>
-          <ul className="ml-4 list-disc space-y-1">
-            <li>
-              {"Envie "}
-              <code className="rounded bg-muted px-1 font-mono text-foreground">
-                /detectar
-              </code>
-              {" dentro do grupo ou canal (funciona mesmo com privacidade)."}
-            </li>
-            <li>
-              {
-                "Ou remova e adicione o bot novamente, ou altere as permissões de administrador dele."
-              }
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <DiagnosticsPanel initial={diagnostics} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
@@ -400,59 +342,6 @@ export function ChannelsView({
             <RotateCcw className="mr-2 h-4 w-4" />
             Reiniciar Integração
           </Button>
-          <Dialog open={manualOpen} onOpenChange={setManualOpen}>
-            <DialogTrigger
-              render={
-                <Button variant="outline" disabled={!botConfigured}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Adicionar manualmente
-                </Button>
-              }
-            />
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Adicionar grupo ou canal</DialogTitle>
-                <DialogDescription className="text-pretty">
-                  {
-                    "Cole o Chat ID (ex.: -1001234567890) ou o @username do canal. O bot já precisa estar dentro do grupo/canal — vamos validar isso pela API."
-                  }
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-2">
-                <Input
-                  placeholder="-1001234567890 ou @baguerastore"
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      !e.nativeEvent.isComposing &&
-                      e.keyCode !== 229
-                    ) {
-                      handleManualAdd()
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground text-pretty">
-                  {
-                    "Dica: para descobrir o Chat ID, encaminhe uma mensagem do grupo para @userinfobot, ou envie /detectar dentro do próprio grupo."
-                  }
-                </p>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setManualOpen(false)}
-                  disabled={adding}
-                >
-                  Cancelar
-                </Button>
-                <Button onClick={handleManualAdd} disabled={adding}>
-                  {adding ? "Validando..." : "Adicionar"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 

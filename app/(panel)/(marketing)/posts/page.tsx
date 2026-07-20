@@ -30,7 +30,7 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto">
       <PostsWorkspace
         channels={channels as never}
         posts={posts as never}
