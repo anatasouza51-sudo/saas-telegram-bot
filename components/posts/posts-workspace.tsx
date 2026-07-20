@@ -14,6 +14,8 @@ import {
   Ban,
   Pencil,
   Wand2,
+  Copy,
+  ClipboardList,
 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -21,9 +23,10 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { PostEditor } from "@/components/posts/post-editor"
 import { PostStatsCards } from "@/components/posts/post-stats-cards"
+import { PostReport } from "@/components/posts/post-report"
 import type { MediaItem } from "@/components/media/media-thumb"
 import type { ButtonRows } from "@/lib/tg/buttons"
-import { cancelSchedule, deletePost } from "@/app/actions/tg-posts"
+import { cancelSchedule, deletePost, duplicatePost } from "@/app/actions/tg-posts"
 import { deleteTemplate } from "@/app/actions/tg-templates"
 
 type Channel = {
@@ -83,6 +86,25 @@ type Template = {
   buttons: string | null
 }
 
+type PostReportItem = {
+  postId: number
+  title: string | null
+  status: string
+  sentAt: string | null
+  queue: Array<{
+    id: number
+    postId: number
+    chatId: string
+    status: string
+    attempts: number
+    lastError: string | null
+    sentMessageId: number | null
+    scheduledFor: string
+    createdAt: string
+    updatedAt: string
+  }>
+}
+
 const BADGE_STYLES: Record<string, string> = {
   draft: "bg-muted text-muted-foreground border-border",
   scheduled: "bg-warning/15 text-warning border-warning/30",
@@ -127,6 +149,7 @@ export function PostsWorkspace({
   stats,
   media,
   templates,
+  reports,
   botName,
   cdnReady,
 }: {
@@ -136,6 +159,7 @@ export function PostsWorkspace({
   stats: Stats
   media: MediaItem[]
   templates: Template[]
+  reports: PostReportItem[]
   botName: string
   cdnReady: boolean
 }) {
@@ -181,6 +205,16 @@ export function PostsWorkspace({
     setEditing(post)
     setTab("new")
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function onDuplicatePost(post: Post) {
+    try {
+      const result = await duplicatePost(post.id)
+      toast.success(`Postagem duplicada como rascunho #${result.newId}`)
+      router.refresh()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao duplicar")
+    }
   }
 
   function useTemplate(tpl: Template) {
@@ -237,16 +271,13 @@ export function PostsWorkspace({
   return (
     <div className="flex flex-col gap-4 w-full max-w-full overflow-hidden">
       <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="w-full flex flex-col">
-        {/* 
-          Abas com scroll horizontal no mobile.
-          Cada aba mostra apenas o ícone no mobile e texto+ícone no sm+.
-        */}
-        <div className="w-full overflow-x-auto pb-1 scrollbar-hide -mx-0">
+        {/* Abas com scroll horizontal no mobile */}
+        <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
           <TabsList className="flex h-auto p-1 bg-slate-900/50 border border-white/5 rounded-xl w-max min-w-full">
             <TabsTrigger value="new" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
               <Megaphone className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xs:inline sm:inline">Nova postagem</span>
-              <span className="xs:hidden sm:hidden">Nova</span>
+              <span className="hidden sm:inline">Nova postagem</span>
+              <span className="sm:hidden">Nova</span>
             </TabsTrigger>
             <TabsTrigger value="scheduled" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
               <CalendarClock className="w-3.5 h-3.5 shrink-0" />
@@ -257,6 +288,11 @@ export function PostsWorkspace({
               <History className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Histórico</span>
               <span className="sm:hidden">Hist.</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
+              <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Relatórios</span>
+              <span className="sm:hidden">Relat.</span>
             </TabsTrigger>
             <TabsTrigger value="drafts" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center">
               <FileText className="w-3.5 h-3.5 shrink-0" />
@@ -301,8 +337,14 @@ export function PostsWorkspace({
               posts={history}
               statusLabels={STATUS_LABELS}
               emptyLabel="Nenhuma postagem enviada ainda."
+              onEdit={editPost}
+              onDuplicate={onDuplicatePost}
               onDelete={onDeletePost}
             />
+          </TabsContent>
+
+          <TabsContent value="reports" className="w-full">
+            <PostReport reports={reports} />
           </TabsContent>
 
           <TabsContent value="drafts" className="w-full">
@@ -311,6 +353,7 @@ export function PostsWorkspace({
               statusLabels={STATUS_LABELS}
               emptyLabel="Nenhum rascunho salvo."
               onEdit={editPost}
+              onDuplicate={onDuplicatePost}
               onDelete={onDeletePost}
             />
           </TabsContent>
@@ -456,12 +499,14 @@ function PostList({
   statusLabels,
   emptyLabel,
   onEdit,
+  onDuplicate,
   onDelete,
 }: {
   posts: Post[]
   statusLabels: Record<string, string>
   emptyLabel: string
   onEdit?: (post: Post) => void
+  onDuplicate?: (post: Post) => void
   onDelete: (id: number) => void
 }) {
   if (posts.length === 0) {
@@ -508,6 +553,16 @@ function PostList({
                 onClick={() => onEdit(p)}
               >
                 <Pencil className="w-3 h-3 mr-1.5" /> Editar
+              </Button>
+            )}
+            {onDuplicate && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 rounded-xl border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/20 font-bold text-xs uppercase"
+                onClick={() => onDuplicate(p)}
+              >
+                <Copy className="w-3 h-3 mr-1.5" /> Duplicar
               </Button>
             )}
             <Button

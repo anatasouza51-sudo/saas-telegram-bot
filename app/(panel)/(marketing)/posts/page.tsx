@@ -1,6 +1,6 @@
 import { PostsWorkspace } from "@/components/posts/posts-workspace"
 import { listChannels } from "@/app/actions/tg-channels"
-import { listPosts, listSchedules, getPostStats } from "@/app/actions/tg-posts"
+import { listPosts, listSchedules, getPostStats, getPostReports } from "@/app/actions/tg-posts"
 import { listMedia } from "@/app/actions/tg-media"
 import { listTemplates } from "@/app/actions/tg-templates"
 import { getStoreTelegram } from "@/lib/tg/config"
@@ -10,7 +10,7 @@ export default async function PostsPage() {
   const user = await requireCapability("posts.manage")
   const tg = await getStoreTelegram(user.storeId)
 
-  const [channels, posts, schedules, stats, media, templates] =
+  const [channels, posts, schedules, stats, media, templates, reports] =
     await Promise.all([
       listChannels(),
       listPosts("all"),
@@ -18,6 +18,7 @@ export default async function PostsPage() {
       getPostStats(),
       listMedia(),
       listTemplates(),
+      getPostReports(),
     ])
 
   // Resolve the bot's display name for the live preview (best-effort).
@@ -38,6 +39,7 @@ export default async function PostsPage() {
         stats={stats as never}
         media={media as never}
         templates={templates as never}
+        reports={reports as never}
         botName={botName}
         cdnReady={Boolean(tg.client && tg.cdnChatId)}
       />
