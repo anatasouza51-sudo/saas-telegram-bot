@@ -20,20 +20,20 @@ type QueueItem = {
   id: number
   postId: number
   chatId: string
-  status: "pending" | "processing" | "sent" | "failed"
+  status: string
   attempts: number
   lastError: string | null
   sentMessageId: number | null
-  scheduledFor: Date
-  createdAt: Date
-  updatedAt: Date
+  scheduledFor: string | Date
+  createdAt: string | Date
+  updatedAt: string | Date
 }
 
 type PostReport = {
   postId: number
   title: string | null
   status: string
-  sentAt: Date | null
+  sentAt: string | null | Date
   queue: QueueItem[]
 }
 

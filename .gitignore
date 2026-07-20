@@ -8,8 +8,13 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+.env
+
+# TypeScript
+.tsbuildinfo
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
+package-lock.json
