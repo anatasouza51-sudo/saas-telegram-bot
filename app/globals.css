@@ -99,72 +99,49 @@
 :root {
   color-scheme: dark;
   font-size: 14px;
-  --background: oklch(0.12 0.01 260);  /* Fundo muito escuro com toque azul */
+  --background: oklch(0.12 0.01 260);
   --foreground: oklch(0.97 0.005 264);
-  --card: oklch(0.18 0.02 260);        /* Card com toque azul */
+  --card: oklch(0.18 0.02 260);
   --card-foreground: oklch(0.97 0.005 264);
   --popover: oklch(0.18 0.02 260);
   --popover-foreground: oklch(0.97 0.005 264);
-  --primary: oklch(0.7 0.25 200);      /* Azul Neon (#00D9FF) */
+  --primary: oklch(0.7 0.25 200);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.2 0.05 250);
   --secondary-foreground: oklch(0.98 0.01 250);
   --muted: oklch(0.18 0.02 260);
   --muted-foreground: oklch(0.7 0.05 260);
-  --accent: oklch(0.6 0.3 280);        /* Roxo Neon (#B24BF3) */
+  --accent: oklch(0.6 0.3 280);
   --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.6 0.3 25);    /* Neon Red/Pink */
+  --destructive: oklch(0.6 0.3 25);
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.8 0.3 150);       /* Neon Green */
+  --success: oklch(0.8 0.3 150);
   --success-foreground: oklch(0.1 0.05 150);
-  --warning: oklch(0.85 0.2 90);       /* Neon Yellow */
+  --warning: oklch(0.85 0.2 90);
   --warning-foreground: oklch(0.1 0.05 90);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.25 200);         /* Azul para ring */
-  --chart-1: oklch(0.7 0.25 200);      /* Azul */
-  --chart-2: oklch(0.6 0.3 280);       /* Roxo */
-  --chart-3: oklch(0.78 0.14 75);
-  --chart-4: oklch(0.65 0.19 300);
-  --chart-5: oklch(0.7 0.13 200);
+  --ring: oklch(0.7 0.25 200);
   --radius: 0.7rem;
-  --sidebar: #050505;
-  --sidebar-foreground: oklch(0.9 0.01 264);
-  --sidebar-primary: oklch(0.7 0.25 200);  /* Azul para sidebar */
-  --sidebar-primary-foreground: oklch(0.99 0.01 254);
-  --sidebar-accent: rgba(178, 75, 243, 0.1); /* Roxo com transparência */
-  --sidebar-accent-foreground: oklch(0.97 0.005 264);
-  --sidebar-border: rgba(0, 217, 255, 0.1); /* Azul com transparência */
-  --sidebar-ring: oklch(0.7 0.25 200);      /* Azul para ring */
 }
 
-@media (min-width: 640px) {
-  :root {
-    font-size: 15px;
-  }
+/* Prevenção de fontes gigantes em qualquer dispositivo */
+@media (max-width: 640px) {
+  :root { font-size: 13px; }
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  p, span, div { font-size: 0.95rem; }
 }
 
-@media (min-width: 1024px) {
-  :root {
-    font-size: 16px;
-  }
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root { font-size: 14px; }
+}
+
+@media (min-width: 1025px) {
+  :root { font-size: 16px; }
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-.animate-in-up {
-  animation: fade-in-up 0.5s ease-out forwards;
-}
-
-.bg-mesh {
-  background: linear-gradient(-45deg, #050505, #0a0a2e, #1a0a4a, #050505);
-  background-size: 400% 400%;
-  animation: mesh 15s ease infinite;
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground antialiased; }
 }

@@ -35,11 +35,11 @@ const colorMap = {
 }
 
 const iconColorMap = {
-  blue: "bg-blue-500/20 text-blue-300",
-  purple: "bg-purple-500/20 text-purple-300",
-  green: "bg-green-500/20 text-green-300",
-  red: "bg-red-500/20 text-red-300",
-  yellow: "bg-yellow-500/20 text-yellow-300",
+  blue: "text-blue-400/30",
+  purple: "text-purple-400/30",
+  green: "text-green-400/30",
+  red: "text-red-400/30",
+  yellow: "text-yellow-400/30",
 }
 
 const valueColorMap = {
@@ -74,39 +74,38 @@ export const MetricCard = memo(({
       "relative overflow-hidden rounded-xl border bg-gradient-to-br p-3 sm:p-4 transition-all duration-200 active:scale-[0.98]",
       colorMap[color]
     )}>
-      <div className="flex items-start justify-between gap-3">
-        {/* Texto */}
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate mb-1">
-            {title}
-          </p>
-          <p className={cn("text-xl sm:text-2xl font-bold leading-none truncate", valueColorMap[color])}>
-            {value}
-          </p>
-          {trend && trendValue && (
-            <div className="flex items-center gap-1 mt-1.5">
-              {trend === "up" ? (
-                <TrendingUp className="w-3 h-3 text-green-400 shrink-0" />
-              ) : (
-                <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
-              )}
-              <span className={cn(
-                "text-[10px] sm:text-xs font-semibold",
-                trend === "up" ? "text-green-400" : "text-red-400"
-              )}>
-                {trendValue}
-              </span>
-            </div>
-          )}
-        </div>
+      {/* Ícone de fundo - Sem risco de sobreposição de layout */}
+      <div className="absolute top-2 right-2 opacity-20">
+        {Icon && <Icon className={cn("h-8 w-8 sm:h-10 sm:w-10", iconColorMap[color])} />}
+      </div>
 
-        {/* Ícone - Agora com tamanho fixo e sem flutuação absoluta */}
-        <div className={cn(
-          "flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl",
-          iconColorMap[color]
-        )}>
-          {Icon && <Icon className="h-4 w-4 sm:h-5 sm:w-5" />}
-        </div>
+      <div className="relative z-10 flex flex-col">
+        {/* Título */}
+        <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 pr-8 truncate">
+          {title}
+        </p>
+        
+        {/* Valor */}
+        <p className={cn("text-xl sm:text-2xl font-bold leading-tight truncate", valueColorMap[color])}>
+          {value}
+        </p>
+
+        {/* Tendência */}
+        {trend && trendValue && (
+          <div className="flex items-center gap-1 mt-1">
+            {trend === "up" ? (
+              <TrendingUp className="w-3 h-3 text-green-400 shrink-0" />
+            ) : (
+              <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
+            )}
+            <span className={cn(
+              "text-[10px] sm:text-xs font-semibold",
+              trend === "up" ? "text-green-400" : "text-red-400"
+            )}>
+              {trendValue}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
