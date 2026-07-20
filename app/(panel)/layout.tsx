@@ -18,7 +18,7 @@ export default async function PanelLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset className="min-w-0 bg-[#0a0a0a]">
+      <SidebarInset className="min-w-0 bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
         <MobileHeader />
         <div className="relative min-h-screen">
           {/* Background decoration */}
