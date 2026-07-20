@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useMemo } from "react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   ChartContainer,
@@ -16,14 +17,27 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function SalesChart({ data }: { data: SalesPoint[] }) {
-  const formatted = data.map((d) => ({
+// Memoized formatters to avoid recreation on each render
+const compactCurrency = new Intl.NumberFormat("pt-BR", {
+  notation: "compact",
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 1,
+});
+
+const fullCurrency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
+  const formatted = useMemo(() => data.map((d) => ({
     ...d,
     label: new Date(d.date + "T00:00:00").toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
     }),
-  }))
+  })), [data])
 
   return (
     <ChartContainer config={chartConfig} className="h-[280px] w-full">
@@ -34,7 +48,7 @@ export function SalesChart({ data }: { data: SalesPoint[] }) {
             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid vertical={false} strokeOpacity={0.15} />
+        <CartesianGrid vertical={false} strokeOpacity={0.1} />
         <XAxis
           dataKey="label"
           tickLine={false}
@@ -46,24 +60,14 @@ export function SalesChart({ data }: { data: SalesPoint[] }) {
           tickLine={false}
           axisLine={false}
           width={48}
-          tickFormatter={(v) =>
-            new Intl.NumberFormat("pt-BR", {
-              notation: "compact",
-              style: "currency",
-              currency: "BRL",
-              maximumFractionDigits: 1,
-            }).format(v as number)
-          }
+          tickFormatter={(v) => compactCurrency.format(v as number)}
         />
         <ChartTooltip
           content={
             <ChartTooltipContent
               labelFormatter={(v) => `Dia ${v}`}
               formatter={(value) => [
-                new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                }).format(value as number),
+                fullCurrency.format(value as number),
                 " Receita",
               ]}
             />
@@ -75,8 +79,10 @@ export function SalesChart({ data }: { data: SalesPoint[] }) {
           fill="url(#fillRevenue)"
           stroke="var(--color-revenue)"
           strokeWidth={2}
+          isAnimationActive={false} // Disable heavy animations for performance
         />
       </AreaChart>
     </ChartContainer>
   )
-}
+})
+SalesChart.displayName = "SalesChart"
