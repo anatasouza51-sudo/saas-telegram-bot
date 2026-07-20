@@ -98,7 +98,7 @@
 /* Premium dark theme — Azul & Roxo */
 :root {
   color-scheme: dark;
-  font-size: 16px;
+  font-size: 14px;
   --background: oklch(0.12 0.01 260);  /* Fundo muito escuro com toque azul */
   --foreground: oklch(0.97 0.005 264);
   --card: oklch(0.18 0.02 260);        /* Card com toque azul */
@@ -136,6 +136,18 @@
   --sidebar-accent-foreground: oklch(0.97 0.005 264);
   --sidebar-border: rgba(0, 217, 255, 0.1); /* Azul com transparência */
   --sidebar-ring: oklch(0.7 0.25 200);      /* Azul para ring */
+}
+
+@media (min-width: 640px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    font-size: 16px;
+  }
 }
 
 @layer base {
