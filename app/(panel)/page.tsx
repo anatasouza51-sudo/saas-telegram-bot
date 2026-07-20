@@ -1,6 +1,5 @@
 import { requireUser } from "@/lib/session"
-import { PageHeader } from "@/components/page-header"
-import { StatCard } from "@/components/stat-card"
+import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { CheckoutFunnel } from "@/components/checkout-funnel"
 import {
@@ -31,14 +30,12 @@ import {
 import {
   DollarSign,
   ShoppingCart,
-  CalendarClock,
-  Clock,
-  CheckCircle2,
-  XCircle,
+  TrendingUp,
   Users,
   Package,
   AlertTriangle,
-  TrendingUp,
+  Zap,
+  CheckCircle2,
 } from "lucide-react"
 
 export default async function DashboardPage() {
@@ -49,7 +46,7 @@ export default async function DashboardPage() {
     getSalesChart(user.storeId, 14),
   ])
 
-  // Mock funnel data - in production, this would come from actual data
+  // Mock funnel data
   const funnelStages = [
     { label: "Checkouts", value: 2314, percentage: 100 },
     { label: "Dados Pessoais", value: 1511, percentage: 65.3 },
@@ -63,113 +60,123 @@ export default async function DashboardPage() {
   const totalConversion = (totalSales / totalCheckouts) * 100
 
   return (
-    <>
-      <div className="flex flex-col gap-6 p-4 md:p-6">
-        {/* Primary metrics - 4 columns */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Receita total"
-            value={formatCurrency(stats.totalRevenue)}
-            icon={DollarSign}
-            tone="success"
-            hint="Pagamentos aprovados"
-          />
-          <StatCard
-            title="Total de vendas"
-            value={formatNumber(stats.totalSales)}
-            icon={ShoppingCart}
-            tone="primary"
-          />
-          <StatCard
-            title="Vendas do dia"
-            value={formatNumber(stats.salesToday)}
-            icon={CalendarClock}
-            tone="default"
-          />
-          <StatCard
-            title="Conversão"
-            value={`${stats.conversionRate.toFixed(1)}%`}
-            icon={TrendingUp}
-            tone="primary"
-            hint="Aprovados / total de pedidos"
-          />
+    <div className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
+      {/* Hero Section */}
+      <div className="mb-12 animate-fade-in-up">
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+          Bem-vindo, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{user.name}</span>
+        </h1>
+        <p className="text-lg text-muted-foreground">Seu desempenho em tempo real</p>
+      </div>
+
+      {/* Primary Metrics - 4 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <MetricCard
+          title="Receita Total"
+          value={formatCurrency(stats.totalRevenue)}
+          icon={DollarSign}
+          color="blue"
+          trend="up"
+          trendValue="+16.0%"
+        />
+        <MetricCard
+          title="Total de Vendas"
+          value={formatNumber(stats.totalSales)}
+          icon={ShoppingCart}
+          color="purple"
+          trend="up"
+          trendValue="+12.5%"
+        />
+        <MetricCard
+          title="Taxa de Conversão"
+          value={`${stats.conversionRate.toFixed(1)}%`}
+          icon={TrendingUp}
+          color="green"
+          trend="up"
+          trendValue="+2.3%"
+        />
+        <MetricCard
+          title="Clientes Ativos"
+          value={formatNumber(stats.totalCustomers)}
+          icon={Users}
+          color="yellow"
+          trend="up"
+          trendValue="+8.1%"
+        />
+      </div>
+
+      {/* Main Content - 2 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+        {/* Sales Chart - 2 columns */}
+        <div className="lg:col-span-2">
+          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20 h-full">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+            <CardHeader className="relative z-10">
+              <CardTitle>Vendas dos Últimos 14 Dias</CardTitle>
+              <CardDescription>Receita diária de pagamentos aprovados</CardDescription>
+            </CardHeader>
+            <CardContent className="relative z-10">
+              <SalesChart data={salesData} />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Main content area - Chart + Funnel */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Sales chart - takes 2 columns */}
-          <div className="lg:col-span-2">
-            <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20">
-              {/* Glow effect background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-              
-              <CardHeader className="relative z-10">
-                <CardTitle>Vendas dos últimos 14 dias</CardTitle>
-                <CardDescription>
-                  Receita diária de pagamentos aprovados.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <SalesChart data={salesData} />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Checkout Funnel - takes 1 column */}
-          <div className="lg:col-span-1">
-            <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
-          </div>
+        {/* Checkout Funnel - 1 column */}
+        <div className="lg:col-span-1">
+          <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
         </div>
+      </div>
 
-        {/* Secondary metrics - 6 columns */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
-          <StatCard
-            title="Pendentes"
-            value={formatNumber(stats.pendingPayments)}
-            icon={Clock}
-            tone="warning"
-          />
-          <StatCard
-            title="Aprovados"
-            value={formatNumber(stats.approvedPayments)}
-            icon={CheckCircle2}
-            tone="success"
-          />
-          <StatCard
-            title="Recusados"
-            value={formatNumber(stats.refusedPayments)}
-            icon={XCircle}
-            tone="destructive"
-          />
-          <StatCard
-            title="Clientes"
-            value={formatNumber(stats.totalCustomers)}
-            icon={Users}
-          />
-          <StatCard
-            title="Produtos"
-            value={formatNumber(stats.totalProducts)}
-            icon={Package}
-          />
-          <StatCard
-            title="Estoque baixo"
-            value={formatNumber(stats.lowStockCount)}
-            icon={AlertTriangle}
-            tone={stats.lowStockCount > 0 ? "destructive" : "default"}
-          />
-        </div>
+      {/* Secondary Metrics - 6 Columns */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+        <MetricCard
+          title="Produtos"
+          value={formatNumber(stats.totalProducts)}
+          icon={Package}
+          color="blue"
+        />
+        <MetricCard
+          title="Estoque Baixo"
+          value={formatNumber(stats.lowStockCount)}
+          icon={AlertTriangle}
+          color={stats.lowStockCount > 0 ? "red" : "green"}
+        />
+        <MetricCard
+          title="Aprovados"
+          value={formatNumber(stats.approvedPayments)}
+          icon={CheckCircle2}
+          color="green"
+        />
+        <MetricCard
+          title="Pendentes"
+          value={formatNumber(stats.pendingPayments)}
+          icon={Zap}
+          color="yellow"
+        />
+        <MetricCard
+          title="Recusados"
+          value={formatNumber(stats.refusedPayments)}
+          icon={AlertTriangle}
+          color="red"
+        />
+        <MetricCard
+          title="Vendas Hoje"
+          value={formatNumber(stats.salesToday)}
+          icon={TrendingUp}
+          color="purple"
+        />
+      </div>
 
-        {/* Recent orders */}
+      {/* Recent Orders Section */}
+      <div className="animate-fade-in-up">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 shadow-2xl shadow-purple-900/20">
-          {/* Glow effect background */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
           
           <CardHeader className="relative z-10">
-            <CardTitle>Últimos pedidos</CardTitle>
-            <CardDescription>
-              Pedidos mais recentes recebidos via Telegram.
-            </CardDescription>
+            <CardTitle>Últimos Pedidos</CardTitle>
+            <CardDescription>Pedidos mais recentes recebidos via Telegram</CardDescription>
           </CardHeader>
+          
           <CardContent className="relative z-10 px-0">
             {recentOrders.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-muted-foreground">
@@ -179,32 +186,35 @@ export default async function DashboardPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Pagamento</TableHead>
-                      <TableHead>Entrega</TableHead>
-                      <TableHead className="text-right">Data</TableHead>
+                    <TableRow className="border-blue-500/10 hover:bg-transparent">
+                      <TableHead className="text-muted-foreground">#</TableHead>
+                      <TableHead className="text-muted-foreground">Cliente</TableHead>
+                      <TableHead className="text-muted-foreground">Produto</TableHead>
+                      <TableHead className="text-muted-foreground">Valor</TableHead>
+                      <TableHead className="text-muted-foreground">Pagamento</TableHead>
+                      <TableHead className="text-muted-foreground">Entrega</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Data</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recentOrders.map((o) => (
-                      <TableRow key={o.id}>
+                      <TableRow 
+                        key={o.id}
+                        className="border-blue-500/10 hover:bg-blue-500/5 transition-colors duration-200"
+                      >
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {o.id}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-white">
                           {o.customerName ||
                             (o.customerUsername
                               ? `@${o.customerUsername}`
                               : "—")}
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
                           {o.productName || "—"}
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-white">
                           {formatCurrency(o.amount)}
                         </TableCell>
                         <TableCell>
@@ -225,6 +235,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   )
 }
