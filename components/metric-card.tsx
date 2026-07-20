@@ -71,16 +71,16 @@ export const MetricCard = memo(({
 
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-all duration-200 active:scale-[0.98]",
+      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-3 sm:p-4 transition-all duration-200 active:scale-[0.98]",
       colorMap[color]
     )}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         {/* Texto */}
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate mb-1">
+          <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate mb-1">
             {title}
           </p>
-          <p className={cn("text-2xl font-bold leading-none truncate", valueColorMap[color])}>
+          <p className={cn("text-xl sm:text-2xl font-bold leading-none truncate", valueColorMap[color])}>
             {value}
           </p>
           {trend && trendValue && (
@@ -91,7 +91,7 @@ export const MetricCard = memo(({
                 <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
               )}
               <span className={cn(
-                "text-xs font-semibold",
+                "text-[10px] sm:text-xs font-semibold",
                 trend === "up" ? "text-green-400" : "text-red-400"
               )}>
                 {trendValue}
@@ -100,12 +100,12 @@ export const MetricCard = memo(({
           )}
         </div>
 
-        {/* Ícone */}
+        {/* Ícone - Agora com tamanho fixo e sem flutuação absoluta */}
         <div className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          "flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl",
           iconColorMap[color]
         )}>
-          {Icon && <Icon className="h-5 w-5" />}
+          {Icon && <Icon className="h-4 w-4 sm:h-5 sm:w-5" />}
         </div>
       </div>
     </div>
