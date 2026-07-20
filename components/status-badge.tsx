@@ -3,15 +3,15 @@ import { cn } from "@/lib/utils"
 const PAYMENT_STYLES: Record<string, { label: string; className: string }> = {
   pending: {
     label: "Pendente",
-    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
+    className: "bg-warning/10 text-warning border-warning/20",
   },
   approved: {
     label: "Aprovado",
-    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
+    className: "bg-success/10 text-success border-success/20",
   },
   refused: {
     label: "Recusado",
-    className: "bg-destructive/10 text-destructive border-destructive/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
+    className: "bg-destructive/10 text-destructive border-destructive/20",
   },
   cancelled: {
     label: "Cancelado",
@@ -22,11 +22,11 @@ const PAYMENT_STYLES: Record<string, { label: string; className: string }> = {
 const DELIVERY_STYLES: Record<string, { label: string; className: string }> = {
   pending: {
     label: "Aguardando",
-    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
+    className: "bg-warning/10 text-warning border-warning/20",
   },
   delivered: {
     label: "Entregue",
-    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
+    className: "bg-success/10 text-success border-success/20",
   },
   cancelled: {
     label: "Cancelado",
@@ -37,7 +37,7 @@ const DELIVERY_STYLES: Record<string, { label: string; className: string }> = {
 const GENERIC_STYLES: Record<string, { label: string; className: string }> = {
   active: {
     label: "Ativo",
-    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
+    className: "bg-success/10 text-success border-success/20",
   },
   inactive: {
     label: "Inativo",
@@ -45,15 +45,15 @@ const GENERIC_STYLES: Record<string, { label: string; className: string }> = {
   },
   available: {
     label: "Disponível",
-    className: "bg-success/10 text-success border-success/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
+    className: "bg-success/10 text-success border-success/20",
   },
   reserved: {
     label: "Reservado",
-    className: "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
+    className: "bg-warning/10 text-warning border-warning/20",
   },
   sold: {
     label: "Vendido",
-    className: "bg-primary/10 text-primary border-primary/20 shadow-[0_0_10px_rgba(139,92,246,0.1)]",
+    className: "bg-primary/10 text-primary border-primary/20",
   },
 }
 
