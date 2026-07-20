@@ -9,11 +9,10 @@ export default async function SignInPage() {
   if (user) redirect("/")
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-mesh p-4 relative overflow-hidden">
-      {/* Simplified Background - Reduced animation complexity for better performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[100px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 blur-[100px] rounded-full" />
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
+      {/* Fundo simplificado - Sem animações pesadas */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(0,217,255,0.05),transparent_70%)]" />
       </div>
 
       <div className="relative z-10 w-full flex justify-center">
