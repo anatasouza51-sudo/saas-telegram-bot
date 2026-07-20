@@ -124,25 +124,16 @@
   --radius: 0.7rem;
 }
 
-/* 
-  CORREÇÃO CRÍTICA: Forçar fonte base grande no mobile.
-  Evita que o navegador reduza a escala ao detectar layouts complexos.
-*/
-html {
-  font-size: 16px !important;
-}
-
-@media (max-width: 768px) {
-  html {
-    font-size: 18px !important; /* Fonte ainda maior no mobile para legibilidade */
-  }
+/* Fontes maiores no mobile — Base 16px como no desktop */
+:root {
+  font-size: 16px;
 }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground antialiased; }
-  h1 { @apply text-3xl font-black sm:text-4xl md:text-5xl lg:text-6xl tracking-tighter; }
-  h2 { @apply text-2xl font-bold sm:text-3xl; }
+  h1 { @apply text-2xl font-bold sm:text-3xl md:text-4xl; }
+  h2 { @apply text-xl font-bold sm:text-2xl; }
 }
 
 .bg-mesh {
