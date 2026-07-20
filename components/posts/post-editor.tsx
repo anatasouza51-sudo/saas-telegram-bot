@@ -247,234 +247,251 @@ export function PostEditor({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-      {/* Editor column */}
-      <div className="flex flex-col gap-6">
-        <Card className="flex flex-col gap-6 p-5 sm:p-8 bg-slate-900/40 border-white/5 rounded-2xl shadow-2xl">
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Título interno (opcional)</Label>
-            <Input
-              id="post-title"
-              placeholder="Ex.: Promoção de fim de semana"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="h-12 bg-white/5 border-white/10 rounded-xl px-4 text-base focus:border-primary/40 focus:ring-primary/10 transition-all"
-            />
+    <div className="flex flex-col gap-4 w-full">
+      {/* Editor principal */}
+      <Card className="flex flex-col gap-4 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-2xl w-full">
+        {/* Título */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            Título interno (opcional)
+          </Label>
+          <Input
+            id="post-title"
+            placeholder="Ex.: Promoção de fim de semana"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm focus:border-primary/40 focus:ring-primary/10 transition-all"
+          />
+        </div>
+
+        {/* Mensagem */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Mensagem
+            </Label>
+            <Select
+              value={parseMode}
+              onValueChange={(v) => setParseMode((v as "HTML" | "Markdown") ?? "HTML")}
+            >
+              <SelectTrigger size="sm" className="w-28 h-7 bg-white/5 border-white/10 rounded-lg text-xs font-bold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="HTML">HTML</SelectItem>
+                <SelectItem value="Markdown">Markdown</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between ml-1">
-              <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mensagem</Label>
-              <Select
-                value={parseMode}
-                onValueChange={(v) => setParseMode((v as "HTML" | "Markdown") ?? "HTML")}
+          {/* Toolbar de formatação */}
+          <div className="flex gap-1 p-1 bg-black/20 rounded-xl w-fit">
+            <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Negrito">
+              <Bold className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Itálico">
+              <Italic className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Código">
+              <Code className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Link">
+              <Link2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Textarea
+            id="post-text"
+            ref={textareaRef}
+            rows={8}
+            placeholder="Escreva sua mensagem..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="bg-white/5 border-white/10 rounded-xl p-3 text-sm focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
+          />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            {text.length} caracteres · Formatação {parseMode}
+          </p>
+        </div>
+
+        {/* Mídia */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mídia</Label>
+          <div className="flex flex-wrap gap-2">
+            {media.map((m) => (
+              <div
+                key={m.id}
+                className="relative w-16 h-16 overflow-hidden rounded-xl border border-white/10 group shrink-0"
               >
-                <SelectTrigger size="sm" className="w-32 h-8 bg-white/5 border-white/10 rounded-lg text-xs font-bold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HTML">HTML</SelectItem>
-                  <SelectItem value="Markdown">Markdown</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Toolbar de formatação - Botões Maiores */}
-            <div className="flex flex-wrap gap-2 p-1 bg-black/20 rounded-xl w-fit">
-              <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-10 w-10 hover:bg-white/10 rounded-lg" aria-label="Negrito">
-                <Bold className="h-5 w-5" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-10 w-10 hover:bg-white/10 rounded-lg" aria-label="Itálico">
-                <Italic className="h-5 w-5" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-10 w-10 hover:bg-white/10 rounded-lg" aria-label="Código">
-                <Code className="h-5 w-5" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-10 w-10 hover:bg-white/10 rounded-lg" aria-label="Link">
-                <Link2 className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <Textarea
-              id="post-text"
-              ref={textareaRef}
-              rows={10}
-              placeholder="Escreva sua mensagem..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="bg-white/5 border-white/10 rounded-2xl p-4 text-base focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[200px]"
-            />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">
-              {text.length} caracteres · Formatação {parseMode}
-            </p>
-          </div>
-
-          {/* Media - Grid de miniaturas maiores */}
-          <div className="flex flex-col gap-3">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Mídia</Label>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-              {media.map((m) => (
-                <div
-                  key={m.id}
-                  className="relative aspect-square overflow-hidden rounded-xl border border-white/10 group"
+                <img
+                  src={`/api/tg/media/${m.id}`}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMedia((prev) => prev.filter((x) => x.id !== m.id))}
+                  className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 hover:bg-red-500 transition-colors"
+                  aria-label="Remover mídia"
                 >
-                  <img
-                    src={`/api/tg/media/${m.id}`}
-                    alt=""
-                    className="h-full w-full object-cover transition-transform group-hover:scale-110"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setMedia((prev) => prev.filter((x) => x.id !== m.id))}
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 hover:bg-red-500 transition-colors"
-                    aria-label="Remover mídia"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                className="aspect-square flex-col gap-2 p-0 bg-white/5 border-white/10 border-dashed hover:bg-primary/10 hover:border-primary/30 rounded-xl"
-                onClick={() => setPickerOpen(true)}
-              >
-                <ImagePlus className="h-6 w-6 text-primary/60" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Adicionar</span>
-              </Button>
-            </div>
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-16 h-16 flex-col gap-1 p-0 bg-white/5 border-white/10 border-dashed hover:bg-primary/10 hover:border-primary/30 rounded-xl shrink-0"
+              onClick={() => setPickerOpen(true)}
+            >
+              <ImagePlus className="h-5 w-5 text-primary/60" />
+              <span className="text-[8px] font-black uppercase tracking-widest">Adicionar</span>
+            </Button>
           </div>
+        </div>
 
-          {/* Buttons - Redesenhado */}
-          <div className="flex flex-col gap-3 pt-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Botões inline</Label>
-            <ButtonBuilder rows={buttons} onChange={setButtons} />
+        {/* Botões inline */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Botões inline</Label>
+          <ButtonBuilder rows={buttons} onChange={setButtons} />
+        </div>
+      </Card>
+
+      {/* Destinos da Mensagem — aparece em mobile abaixo do editor */}
+      <Card className="flex flex-col gap-3 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
+        <div className="flex items-center justify-between">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destinos da Mensagem</Label>
+          <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">{targets.size} selecionados</span>
+        </div>
+        {audience.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic bg-white/5 p-3 rounded-xl border border-dashed border-white/10">
+            Nenhum grupo/canal de audiência configurado.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {groups.length > 0 && (
+              <TargetGroup
+                icon={<Users className="h-3.5 w-3.5" />}
+                label="Grupos de Audiência"
+                items={groups}
+                targets={targets}
+                onToggle={toggleTarget}
+              />
+            )}
+            {chans.length > 0 && (
+              <TargetGroup
+                icon={<Megaphone className="h-3.5 w-3.5" />}
+                label="Canais de Transmissão"
+                items={chans}
+                targets={targets}
+                onToggle={toggleTarget}
+              />
+            )}
           </div>
-        </Card>
+        )}
+      </Card>
 
-        {/* Actions - Mobile Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Button onClick={handlePublish} disabled={isPending} className="h-14 bg-primary text-black font-black uppercase text-sm rounded-2xl shadow-xl shadow-primary/10">
-            <Send className="mr-2 h-5 w-5" />
-            Publicar agora
-          </Button>
+      {/* Ações — botões proporcionais para mobile */}
+      <div className="flex flex-col gap-2 w-full">
+        <Button
+          onClick={handlePublish}
+          disabled={isPending}
+          className="w-full h-11 bg-primary text-black font-black uppercase text-xs rounded-xl shadow-lg shadow-primary/10"
+        >
+          <Send className="mr-2 h-4 w-4" />
+          Publicar agora
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setScheduleOpen((s) => !s)}
+          disabled={isPending}
+          className="w-full h-10 bg-white/5 border-white/10 text-white font-black uppercase text-xs rounded-xl"
+        >
+          <CalendarClock className="mr-2 h-4 w-4" />
+          Agendar
+        </Button>
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            variant="outline"
-            onClick={() => setScheduleOpen((s) => !s)}
+            variant="ghost"
+            onClick={handleSaveDraft}
             disabled={isPending}
-            className="h-14 bg-white/5 border-white/10 text-white font-black uppercase text-sm rounded-2xl"
+            className="h-9 text-muted-foreground hover:text-white font-bold uppercase text-[10px] rounded-xl"
           >
-            <CalendarClock className="mr-2 h-5 w-5" />
-            Agendar
-          </Button>
-          <Button variant="ghost" onClick={handleSaveDraft} disabled={isPending} className="h-12 text-muted-foreground hover:text-white font-bold uppercase text-xs">
-            <Save className="mr-2 h-4 w-4" />
+            <Save className="mr-1.5 h-3.5 w-3.5" />
             Salvar rascunho
           </Button>
           <Button
             variant="ghost"
             onClick={handleSaveTemplate}
             disabled={isPending}
-            className="h-12 text-muted-foreground hover:text-white font-bold uppercase text-xs"
+            className="h-9 text-muted-foreground hover:text-white font-bold uppercase text-[10px] rounded-xl"
           >
-            <LayoutTemplate className="mr-2 h-4 w-4" />
-            Salvar como template
+            <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
+            Salvar template
           </Button>
         </div>
-
-        {scheduleOpen && (
-          <Card className="flex flex-col gap-6 p-6 bg-slate-900/60 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center gap-2">
-              <CalendarClock className="w-5 h-5 text-primary" />
-              <Label className="text-sm font-black uppercase tracking-widest">Configurar Agendamento</Label>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="run-at" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                  Data e hora de envio
-                </Label>
-                <Input
-                  id="run-at"
-                  type="datetime-local"
-                  value={runAt}
-                  onChange={(e) => setRunAt(e.target.value)}
-                  className="h-12 bg-white/5 border-white/10 rounded-xl px-4"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Frequência</Label>
-                <Select
-                  value={recurrence}
-                  onValueChange={(v) =>
-                    setRecurrence((v as Recurrence["kind"]) ?? "once")
-                  }
-                >
-                  <SelectTrigger className="h-12 bg-white/5 border-white/10 rounded-xl px-4">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RECURRENCE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={handleSchedule} disabled={isPending} className="w-full h-12 bg-primary text-black font-black uppercase text-xs rounded-xl">
-              Confirmar Agendamento
-            </Button>
-          </Card>
-        )}
       </div>
 
-      {/* Sidebar - Preview & Targets */}
-      <div className="flex flex-col gap-6">
-        {/* Targets */}
-        <Card className="flex flex-col gap-4 p-6 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl">
-          <div className="flex items-center justify-between mb-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destinos da Mensagem</Label>
-            <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">{targets.size} selecionados</span>
+      {/* Painel de agendamento */}
+      {scheduleOpen && (
+        <Card className="flex flex-col gap-4 p-4 bg-slate-900/60 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-primary" />
+            <Label className="text-xs font-black uppercase tracking-widest">Configurar Agendamento</Label>
           </div>
-          {audience.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic bg-white/5 p-4 rounded-xl border border-dashed border-white/10">
-              Nenhum grupo/canal de audiência configurado.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {groups.length > 0 && (
-                <TargetGroup
-                  icon={<Users className="h-4 w-4" />}
-                  label="Grupos de Audiência"
-                  items={groups}
-                  targets={targets}
-                  onToggle={toggleTarget}
-                />
-              )}
-              {chans.length > 0 && (
-                <TargetGroup
-                  icon={<Megaphone className="h-4 w-4" />}
-                  label="Canais de Transmissão"
-                  items={chans}
-                  targets={targets}
-                  onToggle={toggleTarget}
-                />
-              )}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="run-at" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Data e hora de envio
+              </Label>
+              <Input
+                id="run-at"
+                type="datetime-local"
+                value={runAt}
+                onChange={(e) => setRunAt(e.target.value)}
+                className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm"
+              />
             </div>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Frequência</Label>
+              <Select
+                value={recurrence}
+                onValueChange={(v) =>
+                  setRecurrence((v as Recurrence["kind"]) ?? "once")
+                }
+              >
+                <SelectTrigger className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RECURRENCE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button
+            onClick={handleSchedule}
+            disabled={isPending}
+            className="w-full h-10 bg-primary text-black font-black uppercase text-xs rounded-xl"
+          >
+            Confirmar Agendamento
+          </Button>
         </Card>
+      )}
 
-        {/* Preview - Apenas no Desktop ou Tablet */}
-        <div className="hidden md:block">
-          <PostPreview
-            botName={botName}
-            text={text}
-            parseMode={parseMode}
-            media={media}
-            buttons={buttons}
-          />
-        </div>
+      {/* Preview — apenas em telas maiores */}
+      <div className="hidden md:block">
+        <PostPreview
+          botName={botName}
+          text={text}
+          parseMode={parseMode}
+          media={media}
+          buttons={buttons}
+        />
       </div>
 
       <MediaPicker
@@ -508,12 +525,12 @@ function TargetGroup({
   onToggle: (id: string) => void
 }) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
         {icon}
         {label}
       </div>
-      <div className="grid gap-2">
+      <div className="flex flex-col gap-1.5">
         {items.map((item) => {
           const active = targets.has(item.chatId)
           return (
@@ -522,21 +539,21 @@ function TargetGroup({
               type="button"
               onClick={() => onToggle(item.chatId)}
               className={cn(
-                "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all active:scale-[0.98]",
+                "flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.98]",
                 active
                   ? "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5"
                   : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
               )}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">{item.title}</p>
+                <p className="truncate text-xs font-bold">{item.title}</p>
                 <p className="truncate text-[10px] opacity-60 font-medium">@{item.chatId}</p>
               </div>
               <div className={cn(
-                "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all",
+                "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
                 active ? "border-primary bg-primary text-black" : "border-white/20"
               )}>
-                {active && <Send className="w-3 h-3" />}
+                {active && <Send className="w-2.5 h-2.5" />}
               </div>
             </button>
           )
