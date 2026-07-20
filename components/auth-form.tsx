@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useCallback, memo } from "react"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,41 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react"
 import { GhostLogo } from "@/components/ghost-logo"
+
+// Memoized input components to prevent re-renders of the entire form on every keystroke
+const FormInput = memo(({ 
+  id, 
+  label, 
+  icon: Icon, 
+  type = "text", 
+  value, 
+  onChange, 
+  placeholder, 
+  required = false, 
+  minLength,
+  rightElement
+}: any) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between ml-1">
+      <Label htmlFor={id} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</Label>
+      {rightElement}
+    </div>
+    <div className="relative">
+      {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />}
+      <Input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        minLength={minLength}
+        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20`}
+      />
+    </div>
+  </div>
+))
+FormInput.displayName = "FormInput"
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const [email, setEmail] = useState("")
@@ -21,7 +56,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
   const isSignUp = mode === "sign-up"
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -52,13 +87,16 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       setError((err as Error).message)
       setLoading(false)
     }
-  }
+  }, [isSignUp, email, password, confirmPassword, name])
+
+  const togglePassword = useCallback(() => setShowPassword(prev => !prev), [])
 
   return (
     <div className="w-full max-w-[460px] px-4 py-8">
       <div className="mb-10 flex flex-col items-center text-center">
         <div className="relative mb-6">
-          <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-50 animate-pulse" />
+          {/* Reduced blur and animation complexity */}
+          <div className="absolute -inset-4 bg-primary/10 blur-xl rounded-full opacity-40" />
           <GhostLogo className="relative" />
         </div>
         
@@ -74,108 +112,91 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       </div>
 
       <div className="relative group">
-        {/* Animated border glow */}
-        <div className="absolute -inset-[1px] bg-gradient-to-r from-primary via-accent to-primary rounded-[24px] blur-sm opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-mesh" />
+        {/* Optimized glow: removed animate-mesh, simplified opacity */}
+        <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/40 to-accent/40 rounded-[24px] blur-sm opacity-20 transition duration-500" />
         
         <form
           onSubmit={handleSubmit}
-          className="relative flex flex-col gap-6 rounded-[23px] border border-white/10 bg-black/40 backdrop-blur-2xl p-8 shadow-2xl"
+          className="relative flex flex-col gap-6 rounded-[23px] border border-white/10 bg-black/60 backdrop-blur-md p-8 shadow-xl"
         >
           {isSignUp && (
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome Completo</Label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: João Silva"
-                  required
-                  className="pl-11 h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20"
-                />
-              </div>
-            </div>
+            <FormInput
+              id="name"
+              label="Nome Completo"
+              icon={User}
+              value={name}
+              onChange={setName}
+              placeholder="Ex: João Silva"
+              required
+            />
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Endereço de Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-                className="pl-11 h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20"
-              />
-            </div>
-          </div>
+          <FormInput
+            id="email"
+            label="Endereço de Email"
+            icon={Mail}
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="seu@email.com"
+            required
+          />
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between ml-1">
-              <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Senha de Acesso</Label>
-              {!isSignUp && (
+          <FormInput
+            id="password"
+            label="Senha de Acesso"
+            icon={Lock}
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            minLength={8}
+            required
+            rightElement={
+              !isSignUp ? (
                 <Link
                   href="/forget-password"
                   className="text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
                 >
                   Recuperar
                 </Link>
-              )}
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={8}
-                required
-                className="pl-11 pr-11 h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
+              ) : null
+            }
+          />
 
           {isSignUp && (
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Confirmar Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
-                <Input
-                  id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  minLength={8}
-                  required
-                  className="pl-11 h-13 bg-white/5 border-white/5 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20"
-                />
-              </div>
-            </div>
+            <FormInput
+              id="confirmPassword"
+              label="Confirmar Senha"
+              icon={Lock}
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              placeholder="••••••••"
+              minLength={8}
+              required
+            />
           )}
 
+          {/* Password toggle button handled separately to keep FormInput generic */}
+          <button
+            type="button"
+            onClick={togglePassword}
+            className="absolute right-12 top-[calc(50%+44px)] -translate-y-1/2 text-muted-foreground hover:text-white transition-colors z-10"
+            style={{ top: isSignUp ? '282px' : '196px' }}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+
           {error && (
-            <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-2">
+            <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-xs font-medium text-destructive">
               {error}
             </div>
           )}
 
           <Button 
             type="submit" 
-            className="w-full h-13 mt-2 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-sm rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all active:scale-[0.98] group/btn" 
+            className="w-full h-13 mt-2 bg-primary hover:bg-primary/90 text-black font-black uppercase tracking-widest text-sm rounded-xl transition-all active:scale-[0.98] group/btn" 
             disabled={loading}
           >
             {loading ? (

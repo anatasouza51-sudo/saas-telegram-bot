@@ -49,7 +49,7 @@ export function SectionTabs({
     tabs[0]
 
   return (
-    <header className="sticky top-0 z-10 flex flex-col gap-5 border-b border-white/5 bg-[#0a0a0a]/60 px-6 py-5 backdrop-blur-xl lg:px-8">
+    <header className="sticky top-[73px] z-10 flex flex-col gap-5 border-b border-white/5 bg-[#0a0a0a]/60 px-6 py-5 backdrop-blur-xl lg:px-8">
       <div className="flex items-center gap-4">
         <div className="min-w-0 space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">

@@ -12,7 +12,7 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] px-6 py-4 lg:px-8">
+    <header className="sticky top-[73px] z-10 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] px-6 py-4 lg:px-8">
       <div className="flex items-center gap-4">
         {/* Title removed for cleaner UI as requested */}
       </div>

@@ -13,10 +13,12 @@ export default async function PanelLayout({
   const user = await requireUser()
 
   return (
-    <div>
+    <div className="pt-[73px]">
       <TopNavBar user={user} />
       <MobileHeader />
-      {children}
+      <main>
+        {children}
+      </main>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatNumber } from "@/lib/format"
 
@@ -9,28 +10,24 @@ export interface FunnelStage {
   percentage: number
 }
 
-export function CheckoutFunnel({
+export const CheckoutFunnel = memo(({
   stages,
   totalConversion,
 }: {
   stages: FunnelStage[]
   totalConversion: number
-}) {
+}) => {
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-blue-950/40 border border-blue-500/20 hover:border-purple-500/30 transition-colors shadow-2xl shadow-purple-900/20">
-      {/* Glow effect background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-      
+    <Card className="relative overflow-hidden bg-blue-950/20 border border-blue-500/10 hover:border-purple-500/20 transition-colors shadow-xl">
       <CardHeader className="relative z-10">
         <CardTitle className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-pulse" />
+          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-400" />
           FUNIL DE CHECKOUT
         </CardTitle>
         <CardDescription>Jornada completa do checkout</CardDescription>
       </CardHeader>
 
       <CardContent className="relative z-10 space-y-4">
-        {/* Funnel visualization */}
         <div className="space-y-3">
           {stages.map((stage, index) => {
             const width = (stage.value / (stages[0]?.value || 1)) * 100
@@ -45,32 +42,21 @@ export function CheckoutFunnel({
                   <span className="text-white font-bold">{formatNumber(stage.value)}</span>
                 </div>
                 
-                {/* Funnel bar */}
                 <div className="relative h-10 bg-white/5 rounded-lg overflow-hidden border border-white/10">
                   <div
                     className={`h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-3 ${
                       index % 2 === 0
-                        ? "bg-gradient-to-r from-blue-600/30 to-blue-400/20"
-                        : "bg-gradient-to-r from-purple-600/30 to-purple-400/20"
+                        ? "bg-blue-600/30"
+                        : "bg-purple-600/30"
                     }`}
                     style={{ width: `${width}%` }}
                   >
-                    <span className="text-xs font-semibold text-white drop-shadow-lg">
+                    <span className="text-xs font-semibold text-white">
                       {stage.percentage.toFixed(1)}%
                     </span>
                   </div>
-                  
-                  {/* Glow effect */}
-                  <div
-                    className={`absolute inset-0 rounded-lg pointer-events-none ${
-                      index % 2 === 0
-                        ? "shadow-[inset_0_0_10px_rgba(0,217,255,0.1)]"
-                        : "shadow-[inset_0_0_10px_rgba(178,75,243,0.1)]"
-                    }`}
-                  />
                 </div>
 
-                {/* Drop indicator */}
                 {!isLast && (
                   <div className="flex items-center justify-center py-1">
                     <div className="text-xs text-muted-foreground font-medium">
@@ -83,7 +69,6 @@ export function CheckoutFunnel({
           })}
         </div>
 
-        {/* Total conversion */}
         <div className="mt-6 pt-4 border-t border-white/10">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -97,4 +82,5 @@ export function CheckoutFunnel({
       </CardContent>
     </Card>
   )
-}
+})
+CheckoutFunnel.displayName = "CheckoutFunnel"
