@@ -118,6 +118,9 @@ header:empty {
 
 /* ===== MOBILE OPTIMIZATIONS (max-width: 640px) ===== */
 @media (max-width: 640px) {
+  :root {
+    font-size: 14px;
+  }
   .hidden-mobile {
     display: none;
   }
