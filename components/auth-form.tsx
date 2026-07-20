@@ -22,13 +22,13 @@ const FormInput = memo(({
   minLength,
   rightElement
 }: any) => (
-  <div className="space-y-1.5">
+  <div className="space-y-2">
     <div className="flex items-center justify-between ml-1">
-      <Label htmlFor={id} className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label htmlFor={id} className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</Label>
       {rightElement}
     </div>
     <div className="relative">
-      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary/50" />}
+      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />}
       <Input
         id={id}
         type={type}
@@ -37,7 +37,7 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? 'pl-10' : 'px-3'} ${rightElement ? 'pr-10' : ''} h-10 text-sm bg-white/5 border-white/10 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-lg placeholder:text-white/20`}
+        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-11 text-base bg-white/5 border-white/10 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20`}
       />
     </div>
   </div>
@@ -82,28 +82,28 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const togglePassword = useCallback(() => setShowPassword(prev => !prev), [])
 
   return (
-    <div className="w-full max-w-[380px] px-3">
-      <div className="mb-6 flex flex-col items-center text-center">
-        <GhostLogo className="w-12 h-12 mb-4" />
-        <h1 className="text-xl sm:text-2xl font-black tracking-tighter text-white uppercase italic">
+    <div className="w-full max-w-[420px] px-4 py-6">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <GhostLogo className="w-14 h-14 mb-5" />
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-white uppercase italic">
           {isSignUp ? "Faça parte do" : "Bem-vindo ao"} <span className="text-primary">Ghost</span>Bot
         </h1>
-        <p className="mt-2 text-xs text-muted-foreground opacity-80">
-          {isSignUp ? "Crie sua infraestrutura digital hoje." : "Acesse seu centro de comando."}
+        <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
+          {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operação."}
         </p>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4 rounded-xl border border-white/10 bg-slate-900/50 p-5 sm:p-6 shadow-2xl"
+        className="flex flex-col gap-5 rounded-[22px] border border-white/10 bg-slate-900/40 backdrop-blur-md p-6 sm:p-8 shadow-2xl"
       >
         {isSignUp && (
-          <FormInput id="name" label="Nome" icon={User} value={name} onChange={setName} placeholder="Seu nome" required />
+          <FormInput id="name" label="Nome Completo" icon={User} value={name} onChange={setName} placeholder="Seu nome" required />
         )}
-        <FormInput id="email" label="Email" icon={Mail} type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required />
+        <FormInput id="email" label="Email Corporativo" icon={Mail} type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required />
         <FormInput
           id="password"
-          label="Senha"
+          label="Senha de Acesso"
           icon={Lock}
           type={showPassword ? "text" : "password"}
           value={password}
@@ -111,25 +111,25 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           placeholder="••••••••"
           minLength={8}
           required
-          rightElement={!isSignUp && <Link href="/forget-password" size="sm" className="text-[9px] font-bold text-primary">Recuperar</Link>}
+          rightElement={!isSignUp && <Link href="/forget-password" size="sm" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
         />
         {isSignUp && (
           <FormInput id="confirmPassword" label="Confirmar Senha" icon={Lock} type={showPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" minLength={8} required />
         )}
 
-        {error && <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-[10px] font-medium text-red-400">{error}</div>}
+        {error && <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-medium text-red-400">{error}</div>}
 
-        <Button type="submit" className="w-full h-10 bg-primary hover:bg-primary/90 text-black font-bold uppercase text-xs rounded-lg transition-all active:scale-[0.98]" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-            <span className="flex items-center gap-1.5">
-              {isSignUp ? "Registrar" : "Entrar"}
-              <ArrowRight className="h-3.5 w-3.5" />
+        <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-black font-black uppercase text-sm rounded-xl transition-all active:scale-[0.98]" disabled={loading}>
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+            <span className="flex items-center gap-2">
+              {isSignUp ? "Inicializar Sistema" : "Autorizar Acesso"}
+              <ArrowRight className="h-4 w-4" />
             </span>
           )}
         </Button>
 
-        <p className="text-center text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          <Link href={isSignUp ? "/sign-in" : "/sign-up"} className="text-primary">{isSignUp ? "Já tem conta? Entrar" : "Novo operador? Registrar"}</Link>
+        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          <Link href={isSignUp ? "/sign-in" : "/sign-up"} className="text-primary hover:underline">{isSignUp ? "Já tem conta? Entrar" : "Novo operador? Registrar Agora"}</Link>
         </p>
       </form>
     </div>

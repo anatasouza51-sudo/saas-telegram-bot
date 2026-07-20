@@ -71,35 +71,35 @@ export const MetricCard = memo(({
 
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-3 sm:p-4 transition-all duration-200 active:scale-[0.98]",
+      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-all duration-200 active:scale-[0.98]",
       colorMap[color]
     )}>
-      {/* Ícone de fundo - Sem risco de sobreposição de layout */}
-      <div className="absolute top-2 right-2 opacity-20">
-        {Icon && <Icon className={cn("h-8 w-8 sm:h-10 sm:w-10", iconColorMap[color])} />}
+      {/* Ícone de fundo - Tamanho aumentado */}
+      <div className="absolute top-2 right-2 opacity-25">
+        {Icon && <Icon className={cn("h-10 w-10 sm:h-12 sm:w-12", iconColorMap[color])} />}
       </div>
 
       <div className="relative z-10 flex flex-col">
-        {/* Título */}
-        <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 pr-8 truncate">
+        {/* Título - Fonte aumentada */}
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 pr-10 truncate">
           {title}
         </p>
         
-        {/* Valor */}
-        <p className={cn("text-xl sm:text-2xl font-bold leading-tight truncate", valueColorMap[color])}>
+        {/* Valor - Fonte aumentada */}
+        <p className={cn("text-2xl sm:text-3xl font-black leading-tight truncate", valueColorMap[color])}>
           {value}
         </p>
 
         {/* Tendência */}
         {trend && trendValue && (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1.5 mt-2">
             {trend === "up" ? (
-              <TrendingUp className="w-3 h-3 text-green-400 shrink-0" />
+              <TrendingUp className="w-4 h-4 text-green-400 shrink-0" />
             ) : (
-              <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
+              <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
             )}
             <span className={cn(
-              "text-[10px] sm:text-xs font-semibold",
+              "text-xs font-bold",
               trend === "up" ? "text-green-400" : "text-red-400"
             )}>
               {trendValue}
