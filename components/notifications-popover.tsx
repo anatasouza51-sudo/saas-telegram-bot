@@ -60,7 +60,6 @@ export function NotificationsPopover() {
   }
 
   const handleClearAll = async () => {
-    // A função clearAllLogs não existe no momento no servidor
     console.warn("Limpeza de logs não implementada no servidor")
   }
 
@@ -70,25 +69,23 @@ export function NotificationsPopover() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative hover:bg-white/5 h-8 w-8"
+          className="relative hover:bg-white/5 h-10 w-10 sm:h-11 sm:w-11"
           aria-label="Notificações"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-6 h-6 sm:w-5 sm:h-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-slate-950" />
           )}
         </Button>
       </PopoverTrigger>
 
-      {/* Popover responsivo — max-w em mobile */}
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 p-0" align="end">
         <div className="flex flex-col max-h-[70vh] sm:max-h-96">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border p-3 sm:p-4">
+          <div className="flex items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-xs sm:text-sm">Notificações</h3>
+              <h3 className="font-bold text-sm sm:text-base">Notificações</h3>
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="text-[10px] sm:text-xs">
+                <Badge variant="destructive" className="text-[10px] sm:text-xs font-bold">
                   {unreadCount}
                 </Badge>
               )}
@@ -98,24 +95,23 @@ export function NotificationsPopover() {
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAll}
-                className="h-6 px-2 text-[10px] sm:text-xs"
+                className="h-7 px-3 text-[10px] sm:text-xs font-bold"
               >
-                <Trash2 className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Limpar</span>
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Limpar
               </Button>
             )}
           </div>
 
-          {/* Content */}
           <ScrollArea className="flex-1 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center h-32 sm:h-40">
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 sm:h-40 p-3 text-center">
-                <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50 mb-2" />
-                <p className="text-xs sm:text-sm text-muted-foreground">
+              <div className="flex flex-col items-center justify-center h-32 sm:h-40 p-4 text-center">
+                <Bell className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground font-medium">
                   Nenhuma notificação
                 </p>
               </div>
@@ -124,12 +120,12 @@ export function NotificationsPopover() {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-2 sm:p-3 hover:bg-white/5 transition-colors cursor-pointer text-xs sm:text-sm"
+                    className="p-3 sm:p-4 hover:bg-white/5 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="flex items-start gap-3">
                       <Badge
                         variant="secondary"
-                        className={`shrink-0 text-[9px] sm:text-xs ${
+                        className={`shrink-0 text-[10px] font-bold ${
                           CATEGORY_COLORS[log.category] ||
                           "bg-gray-500/10 text-gray-400"
                         }`}
@@ -137,14 +133,14 @@ export function NotificationsPopover() {
                         {CATEGORY_LABELS[log.category] || log.category}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white break-words">
+                        <p className="text-sm font-bold text-white break-words leading-snug">
                           {log.action}
                         </p>
-                        <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                        <p className="text-[11px] text-muted-foreground mt-1 font-medium">
                           {log.actorName ? `Por ${log.actorName}` : "Sistema"}
                           {log.details ? ` · ${log.details}` : ""}
                         </p>
-                        <time className="text-[8px] sm:text-xs text-muted-foreground/70 mt-0.5 block">
+                        <time className="text-[10px] text-muted-foreground/60 mt-1 block font-medium">
                           {formatDateTime(log.createdAt)}
                         </time>
                       </div>
@@ -155,13 +151,12 @@ export function NotificationsPopover() {
             )}
           </ScrollArea>
 
-          {/* Footer */}
           {logs.length > 0 && (
-            <div className="border-t border-border p-2 sm:p-3">
+            <div className="border-t border-border p-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full text-[10px] sm:text-xs h-7 sm:h-8"
+                className="w-full text-xs font-bold h-9"
                 onClick={() => {
                   setOpen(false)
                   window.location.href = "/logs"

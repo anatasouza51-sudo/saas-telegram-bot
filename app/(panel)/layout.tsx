@@ -14,15 +14,14 @@ export default async function PanelLayout({
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
-      {/* Navbar fixa no topo */}
       <TopNavBar user={user} />
       <MobileHeader />
       
       {/* 
-        Espaçamento superior para compensar a navbar fixa.
-        h-14 (56px) no mobile, md:pt-[73px] no desktop.
+        Ajustado para pt-16 (64px) no mobile para compensar a nova altura da navbar.
+        md:pt-20 no desktop.
       */}
-      <main className="flex-1 pt-14 sm:pt-16 md:pt-[73px]">
+      <main className="flex-1 pt-16 sm:pt-18 md:pt-20">
         {children}
       </main>
     </div>
