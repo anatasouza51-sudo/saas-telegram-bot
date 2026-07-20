@@ -189,7 +189,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           </Button>
 
           <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            {isSignUp ? "Já é um membro? " : "Novo operador? "}
+            {isSignUp ? "Já possui uma conta? " : "Novo operador? "}
             <Link
               href={isSignUp ? "/sign-in" : "/sign-up"}
               className="text-primary hover:text-primary/80 transition-colors"
