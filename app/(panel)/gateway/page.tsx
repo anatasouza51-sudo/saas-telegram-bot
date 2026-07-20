@@ -30,9 +30,7 @@ export default async function GatewayPage() {
   const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}/${webhookSecret}`
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      {/* PageHeader removed for cleaner UI */}
-
+    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Credenciais da VeoPag</CardTitle>
