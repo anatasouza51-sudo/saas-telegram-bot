@@ -5,6 +5,7 @@ import { recordWebhookEvent } from "@/lib/tg/discovery"
 import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
+import { processSchedules } from "@/lib/tg/scheduler"
 
 /**
  * Telegram webhook — authenticated per store.
@@ -60,6 +61,14 @@ export async function POST(
   } catch (err) {
     // Log server-side only; never leak internals to the caller.
     console.log("[v0] telegram webhook error:", err)
+  }
+
+  // Opportunistically check for due schedules on every webhook hit.
+  // This catches missed firings without needing a per-minute cron.
+  try {
+    await processSchedules()
+  } catch {
+    // Best-effort — the cron route will also catch these on the hour.
   }
 
   // Always ack so Telegram doesn't retry indefinitely.
