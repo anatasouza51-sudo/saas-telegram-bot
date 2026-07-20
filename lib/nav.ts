@@ -99,14 +99,6 @@ export const MAIN_NAV: NavNode[] = [
           "Crie mensagens com mídia e botões, agende disparos e acompanhe o histórico.",
       },
       {
-        title: "Mídias",
-        href: "/media",
-        icon: "Images",
-        capability: "posts.manage",
-        description:
-          "Arquivos armazenados no próprio Telegram via file_id. Nenhuma URL pública é usada.",
-      },
-      {
         title: "Grupos & Canais",
         href: "/channels",
         icon: "Radio",

@@ -8,7 +8,6 @@ import {
   Italic,
   Code,
   Link2,
-  ImagePlus,
   Send,
   CalendarClock,
   Save,
@@ -32,8 +31,8 @@ import {
 } from "@/components/ui/select"
 import { ButtonBuilder } from "@/components/posts/button-builder"
 import { PostPreview } from "@/components/posts/post-preview"
-import { MediaPicker } from "@/components/posts/media-picker"
-import type { MediaItem } from "@/components/media/media-thumb"
+import { MediaAttachment } from "@/components/posts/media-picker"
+import { MediaThumb, type MediaItem } from "@/components/media/media-thumb"
 import type { ButtonRows } from "@/lib/tg/buttons"
 import type { Recurrence } from "@/lib/tg/recurrence"
 import { publishNow, savePost, schedulePost } from "@/app/actions/tg-posts"
@@ -88,7 +87,6 @@ export function PostEditor({
   const [media, setMedia] = useState<MediaItem[]>(initial?.media ?? [])
   const [buttons, setButtons] = useState<ButtonRows>(initial?.buttons ?? [])
   const [targets, setTargets] = useState<Set<string>>(new Set())
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [runAt, setRunAt] = useState("")
   const [recurrence, setRecurrence] = useState<Recurrence["kind"]>("once")
@@ -317,37 +315,12 @@ export function PostEditor({
         {/* Mídia */}
         <div className="flex flex-col gap-2">
           <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mídia</Label>
-          <div className="flex flex-wrap gap-2">
-            {media.map((m) => (
-              <div
-                key={m.id}
-                className="relative w-16 h-16 overflow-hidden rounded-xl border border-white/10 group shrink-0"
-              >
-                <img
-                  src={`/api/tg/media/${m.id}`}
-                  alt=""
-                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMedia((prev) => prev.filter((x) => x.id !== m.id))}
-                  className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 hover:bg-red-500 transition-colors"
-                  aria-label="Remover mídia"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-16 h-16 flex-col gap-1 p-0 bg-white/5 border-white/10 border-dashed hover:bg-primary/10 hover:border-primary/30 rounded-xl shrink-0"
-              onClick={() => setPickerOpen(true)}
-            >
-              <ImagePlus className="h-5 w-5 text-primary/60" />
-              <span className="text-[8px] font-black uppercase tracking-widest">Adicionar</span>
-            </Button>
-          </div>
+          <MediaAttachment
+            items={media}
+            onAdd={(m) => setMedia((prev) => [...prev, m])}
+            onRemove={(id) => setMedia((prev) => prev.filter((x) => x.id !== id))}
+            cdnReady={cdnReady}
+          />
         </div>
 
         {/* Botões inline */}
@@ -494,19 +467,6 @@ export function PostEditor({
         />
       </div>
 
-      <MediaPicker
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        onSelect={(items) => {
-          setMedia((prev) => {
-            const existing = new Set(prev.map((m) => m.id))
-            const added = items.filter((m) => !existing.has(m.id))
-            return [...prev, ...added]
-          })
-          setPickerOpen(false)
-        }}
-        cdnReady={cdnReady}
-      />
     </div>
   )
 }
