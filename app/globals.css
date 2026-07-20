@@ -52,6 +52,7 @@
   --animate-bounce-slow: bounce-slow 3s infinite;
   --animate-pulse-soft: pulse-soft 4s ease-in-out infinite;
   --animate-fade-in-up: fade-in-up 0.5s ease-out forwards;
+  --animate-mesh: mesh 20s ease infinite;
 }
 
 @keyframes bounce-slow {
@@ -67,6 +68,12 @@
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mesh {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Premium dark theme — dark only */
@@ -122,4 +129,10 @@
 
 .animate-in-up {
   animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.bg-mesh {
+  background: linear-gradient(-45deg, #050505, #0a0a1a, #1a0a2a, #050505);
+  background-size: 400% 400%;
+  animation: mesh 15s ease infinite;
 }
