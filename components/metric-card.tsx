@@ -27,19 +27,27 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const colorMap = {
-  blue: "from-blue-600/20 to-blue-400/10 text-blue-400 ring-blue-500/30",
-  purple: "from-purple-600/20 to-purple-400/10 text-purple-400 ring-purple-500/30",
-  green: "from-green-600/20 to-green-400/10 text-green-400 ring-green-500/30",
-  red: "from-red-600/20 to-red-400/10 text-red-400 ring-red-500/30",
-  yellow: "from-yellow-600/20 to-yellow-400/10 text-yellow-400 ring-yellow-500/30",
+  blue: "from-blue-600/20 to-blue-400/10 border-blue-500/20",
+  purple: "from-purple-600/20 to-purple-400/10 border-purple-500/20",
+  green: "from-green-600/20 to-green-400/10 border-green-500/20",
+  red: "from-red-600/20 to-red-400/10 border-red-500/20",
+  yellow: "from-yellow-600/20 to-yellow-400/10 border-yellow-500/20",
 }
 
 const iconColorMap = {
-  blue: "bg-gradient-to-br from-blue-500/30 to-blue-400/20 text-blue-300 ring-blue-400/40",
-  purple: "bg-gradient-to-br from-purple-500/30 to-purple-400/20 text-purple-300 ring-purple-400/40",
-  green: "bg-gradient-to-br from-green-500/30 to-green-400/20 text-green-300 ring-green-400/40",
-  red: "bg-gradient-to-br from-red-500/30 to-red-400/20 text-red-300 ring-red-400/40",
-  yellow: "bg-gradient-to-br from-yellow-500/30 to-yellow-400/20 text-yellow-300 ring-yellow-400/40",
+  blue: "bg-blue-500/20 text-blue-300",
+  purple: "bg-purple-500/20 text-purple-300",
+  green: "bg-green-500/20 text-green-300",
+  red: "bg-red-500/20 text-red-300",
+  yellow: "bg-yellow-500/20 text-yellow-300",
+}
+
+const valueColorMap = {
+  blue: "text-blue-300",
+  purple: "text-purple-300",
+  green: "text-green-300",
+  red: "text-red-300",
+  yellow: "text-yellow-300",
 }
 
 export const MetricCard = memo(({
@@ -62,27 +70,28 @@ export const MetricCard = memo(({
   const Icon = iconName ? iconMap[iconName] : icon || DollarSign
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02] cursor-pointer">
-      <div className={cn("absolute inset-0 bg-gradient-to-br", colorMap[color])} />
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/5 to-transparent" />
-      <div className={cn("absolute inset-0 rounded-2xl border ring-1", colorMap[color])} />
-      <div className="relative z-10 flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+    <div className={cn(
+      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-all duration-200 active:scale-[0.98]",
+      colorMap[color]
+    )}>
+      <div className="flex items-center justify-between gap-2">
+        {/* Texto */}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate mb-1">
             {title}
           </p>
-          <p className="text-4xl md:text-5xl font-bold text-white mb-3">
+          <p className={cn("text-2xl font-bold leading-none truncate", valueColorMap[color])}>
             {value}
           </p>
           {trend && trendValue && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mt-1.5">
               {trend === "up" ? (
-                <TrendingUp className="w-4 h-4 text-green-400" />
+                <TrendingUp className="w-3 h-3 text-green-400 shrink-0" />
               ) : (
-                <TrendingDown className="w-4 h-4 text-red-400" />
+                <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
               )}
               <span className={cn(
-                "text-sm font-semibold",
+                "text-xs font-semibold",
                 trend === "up" ? "text-green-400" : "text-red-400"
               )}>
                 {trendValue}
@@ -90,11 +99,13 @@ export const MetricCard = memo(({
             </div>
           )}
         </div>
+
+        {/* Ícone */}
         <div className={cn(
-          "flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 transition-all duration-300 group-hover:scale-110",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
           iconColorMap[color]
         )}>
-          {Icon && <Icon className="h-8 w-8" />}
+          {Icon && <Icon className="h-5 w-5" />}
         </div>
       </div>
     </div>

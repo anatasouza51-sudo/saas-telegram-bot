@@ -1,90 +1,72 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Bell, Loader2, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Bell, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatDateTime } from "@/lib/format"
-import { getRecentLogs } from "@/app/actions/logs"
-import { toast } from "sonner"
+import { getLogs, clearAllLogs } from "@/app/actions/logs"
 
-type Log = {
-  id: number
+type LogEntry = {
+  id: string
   action: string
   category: string
-  actorName: string | null
-  details: string | null
+  actorName?: string
+  details?: string
   createdAt: Date
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  auth: "bg-blue-500/10 text-blue-400",
-  product: "bg-green-500/10 text-green-400",
-  stock: "bg-yellow-500/10 text-yellow-400",
-  order: "bg-purple-500/10 text-purple-400",
-  payment: "bg-emerald-500/10 text-emerald-400",
-  delivery: "bg-orange-500/10 text-orange-400",
-  customer: "bg-pink-500/10 text-pink-400",
-  admin: "bg-red-500/10 text-red-400",
-  settings: "bg-cyan-500/10 text-cyan-400",
-  security: "bg-red-600/10 text-red-500",
-  posts: "bg-indigo-500/10 text-indigo-400",
+  payment: "bg-green-500/10 text-green-400",
+  order: "bg-blue-500/10 text-blue-400",
+  product: "bg-purple-500/10 text-purple-400",
+  user: "bg-yellow-500/10 text-yellow-400",
   system: "bg-gray-500/10 text-gray-400",
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  auth: "Autenticação",
-  product: "Produtos",
-  stock: "Estoque",
-  order: "Pedidos",
-  payment: "Pagamentos",
-  delivery: "Entregas",
-  customer: "Clientes",
-  admin: "Administração",
-  settings: "Configurações",
-  security: "Segurança",
-  posts: "Postagens",
+  payment: "Pagamento",
+  order: "Pedido",
+  product: "Produto",
+  user: "Usuário",
   system: "Sistema",
 }
 
 export function NotificationsPopover() {
-  const [logs, setLogs] = useState<Log[]>([])
-  const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-
-  const fetchLogs = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await getRecentLogs(20)
-      setLogs(result)
-      setUnreadCount(result.length > 0 ? Math.min(result.length, 9) : 0)
-    } catch (e) {
-      console.error("Erro ao carregar notificações:", e)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
     if (open) {
-      fetchLogs()
-      // Atualizar a cada 5 segundos quando o popover está aberto
-      const interval = setInterval(fetchLogs, 5000)
-      return () => clearInterval(interval)
+      loadLogs()
     }
-  }, [open, fetchLogs])
+  }, [open])
+
+  const loadLogs = async () => {
+    setLoading(true)
+    try {
+      const data = await getLogs()
+      setLogs(data || [])
+      setUnreadCount(0)
+    } catch (error) {
+      console.error("Erro ao carregar logs:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleClearAll = async () => {
-    setLogs([])
-    setUnreadCount(0)
-    toast.success("Notificações limpas")
+    try {
+      await clearAllLogs()
+      setLogs([])
+      setUnreadCount(0)
+    } catch (error) {
+      console.error("Erro ao limpar logs:", error)
+    }
   }
 
   return (
@@ -93,23 +75,25 @@ export function NotificationsPopover() {
         <Button
           variant="ghost"
           size="icon"
-          className="hover:bg-white/5 relative"
+          className="relative hover:bg-white/5 h-8 w-8"
           aria-label="Notificações"
         >
-          <Bell className="w-5 h-5" />
+          <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end">
-        <div className="flex flex-col">
+
+      {/* Popover responsivo — max-w em mobile */}
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 p-0" align="end">
+        <div className="flex flex-col max-h-[70vh] sm:max-h-96">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border p-4">
+          <div className="flex items-center justify-between border-b border-border p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm">Notificações</h3>
+              <h3 className="font-semibold text-xs sm:text-sm">Notificações</h3>
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge variant="destructive" className="text-[10px] sm:text-xs">
                   {unreadCount}
                 </Badge>
               )}
@@ -119,25 +103,25 @@ export function NotificationsPopover() {
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAll}
-                className="h-6 px-2 text-xs"
+                className="h-6 px-2 text-[10px] sm:text-xs"
               >
                 <Trash2 className="w-3 h-3 mr-1" />
-                Limpar
+                <span className="hidden sm:inline">Limpar</span>
               </Button>
             )}
           </div>
 
           {/* Content */}
-          <ScrollArea className="h-96">
+          <ScrollArea className="flex-1 overflow-hidden">
             {loading ? (
-              <div className="flex items-center justify-center h-full p-4">
+              <div className="flex items-center justify-center h-32 sm:h-40">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                <Bell className="w-8 h-8 text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma notificação no momento
+              <div className="flex flex-col items-center justify-center h-32 sm:h-40 p-3 text-center">
+                <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground/50 mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Nenhuma notificação
                 </p>
               </div>
             ) : (
@@ -145,12 +129,12 @@ export function NotificationsPopover() {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="p-3 hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-2 sm:p-3 hover:bg-white/5 transition-colors cursor-pointer text-xs sm:text-sm"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       <Badge
                         variant="secondary"
-                        className={`shrink-0 text-xs ${
+                        className={`shrink-0 text-[9px] sm:text-xs ${
                           CATEGORY_COLORS[log.category] ||
                           "bg-gray-500/10 text-gray-400"
                         }`}
@@ -158,14 +142,14 @@ export function NotificationsPopover() {
                         {CATEGORY_LABELS[log.category] || log.category}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white break-words">
+                        <p className="font-medium text-white break-words">
                           {log.action}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
                           {log.actorName ? `Por ${log.actorName}` : "Sistema"}
                           {log.details ? ` · ${log.details}` : ""}
                         </p>
-                        <time className="text-xs text-muted-foreground/70 mt-1 block">
+                        <time className="text-[8px] sm:text-xs text-muted-foreground/70 mt-0.5 block">
                           {formatDateTime(log.createdAt)}
                         </time>
                       </div>
@@ -178,14 +162,13 @@ export function NotificationsPopover() {
 
           {/* Footer */}
           {logs.length > 0 && (
-            <div className="border-t border-border p-3">
+            <div className="border-t border-border p-2 sm:p-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full text-xs"
+                className="w-full text-[10px] sm:text-xs h-7 sm:h-8"
                 onClick={() => {
                   setOpen(false)
-                  // Navegar para página de logs completos
                   window.location.href = "/logs"
                 }}
               >
