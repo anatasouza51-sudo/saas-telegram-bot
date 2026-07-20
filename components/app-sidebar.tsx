@@ -129,7 +129,7 @@ export function AppSidebar({
     <Sidebar>
       <SidebarHeader className="border-b border-white/5 pb-4">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center animate-pulse-soft">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
             <Image 
               src="/ghostbot-final-logo.png" 
               alt="GhostBot Logo" 
