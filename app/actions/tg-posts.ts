@@ -6,7 +6,7 @@ import {
   telegramSchedules,
   telegramQueue,
 } from "@/lib/db/schema"
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { enqueuePost, processQueue, type TargetSpec } from "@/lib/tg/queue"
@@ -245,6 +245,42 @@ export async function cancelSchedule(id: number) {
   revalidatePath("/posts")
 }
 
+// Duplicates an existing post (any status) as a new draft. Used to reuse
+// old/history posts as new postings.
+export async function duplicatePost(id: number): Promise<{ newId: number }> {
+  const user = await requireCapability("posts.manage")
+  const [original] = await db
+    .select()
+    .from(telegramPosts)
+    .where(and(eq(telegramPosts.id, id), eq(telegramPosts.ownerId, user.storeId)))
+    .limit(1)
+  if (!original) throw new Error("Postagem não encontrada.")
+
+  const [row] = await db
+    .insert(telegramPosts)
+    .values({
+      ownerId: user.storeId,
+      title: original.title ? `Cópia: ${original.title}` : null,
+      text: original.text,
+      parseMode: original.parseMode,
+      mediaIds: original.mediaIds,
+      buttons: original.buttons,
+      status: "draft",
+      createdBy: user.id,
+      createdByName: user.name,
+    })
+    .returning({ id: telegramPosts.id })
+
+  await logActivity({
+    storeId: user.storeId,
+    actor: { id: user.id, name: user.name },
+    action: `Duplicou a postagem "${original.title ?? `#${id}`}" como rascunho #${row.id}`,
+    category: "posts",
+  })
+  revalidatePath("/posts")
+  return { newId: row.id }
+}
+
 export async function deletePost(id: number) {
   const user = await requireCapability("posts.manage")
   // Remove dependent queue/schedule rows first (no FK cascade defined).
@@ -273,6 +309,49 @@ export async function deletePost(id: number) {
 }
 
 // Lightweight stats for the dashboard cards.
+
+// Fetches post reports with queue details for the reporting UI.
+export async function getPostReports(postIds?: number[]) {
+  const user = await requireCapability("posts.manage")
+  const postConds = [eq(telegramPosts.ownerId, user.storeId)]
+  if (postIds && postIds.length > 0) {
+    postConds.push(inArray(telegramPosts.id, postIds))
+  } else {
+    // Only include posts that have been sent, failed, or are currently queued
+    postConds.push(inArray(telegramPosts.status, ["sent", "failed", "queued"]))
+  }
+
+  const posts = await db
+    .select()
+    .from(telegramPosts)
+    .where(and(...postConds))
+    .orderBy(desc(telegramPosts.sentAt))
+    .limit(50)
+
+  const reports = []
+  for (const post of posts) {
+    const queueItems = await db
+      .select()
+      .from(telegramQueue)
+      .where(
+        and(
+          eq(telegramQueue.ownerId, user.storeId),
+          eq(telegramQueue.postId, post.id),
+        ),
+      )
+      .orderBy(asc(telegramQueue.scheduledFor))
+
+    reports.push({
+      postId: post.id,
+      title: post.title,
+      status: post.status,
+      sentAt: post.sentAt,
+      queue: queueItems,
+    })
+  }
+
+  return reports
+}
 export async function getPostStats() {
   const user = await requireCapability("posts.manage")
   const [row] = await db

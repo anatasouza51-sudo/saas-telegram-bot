@@ -38,6 +38,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   settings: "Configurações",
   system: "Sistema",
   security: "Segurança",
+  posts: "Divulgação",
 }
 
 export function LogsView({ logs }: { logs: Log[] }) {
