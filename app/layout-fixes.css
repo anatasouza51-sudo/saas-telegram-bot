@@ -95,6 +95,50 @@ main {
   gap: 0.5rem;
 }
 
+/* Polimento global — comportamento suave, sem alterar estrutura */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar fina e discreta, alinhada à identidade Ghost */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.35 0.03 245) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: oklch(0.35 0.03 245);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.45 0.05 245);
+}
+
+/* Seleção de texto com o acento da marca */
+::selection {
+  background-color: oklch(0.66 0.17 300 / 30%);
+  color: inherit;
+}
+
+/* Links e itens interativos ganham a mesma sensação de transição em todo o site */
+a,
+button,
+[role="button"] {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
 /* Oculta header vazio */
 header:empty {
   display: none;
