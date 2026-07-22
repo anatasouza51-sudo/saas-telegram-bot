@@ -83,12 +83,12 @@ export const MetricCard = memo(({
       transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
       className={cn(
-        "relative flex items-center justify-between overflow-hidden rounded-2xl border bg-gradient-to-br p-6 shadow-xl transition-all duration-300 backdrop-blur-md",
+        "relative flex items-center justify-between overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-6 sm:px-8 py-8 sm:py-10 shadow-xl transition-all duration-300 backdrop-blur-md",
         colorMap[color]
       )}
     >
-      <div className="relative z-10 flex flex-col gap-1">
-        <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
+      <div className="relative z-10 flex flex-col gap-2 flex-1">
+        <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
           {title}
         </p>
         
@@ -96,20 +96,20 @@ export const MetricCard = memo(({
           initial={{ scale: 0.95 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: index * 0.1 + 0.1 }}
-          className="text-2xl sm:text-3xl font-black leading-tight text-white"
+          className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white"
         >
           {value}
         </motion.p>
 
         {trend && trendValue && (
-          <div className="flex items-center gap-1.5 mt-1">
+          <div className="flex items-center gap-1.5 mt-2">
             {trend === "up" ? (
-              <TrendingUp className="w-3 h-3 text-green-400 shrink-0" />
+              <TrendingUp className="w-4 h-4 text-green-400 shrink-0" />
             ) : (
-              <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
+              <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
             )}
             <span className={cn(
-              "text-[10px] font-black uppercase tracking-wider",
+              "text-xs font-black uppercase tracking-wider",
               trend === "up" ? "text-green-400" : "text-red-400"
             )}>
               {trendValue}
@@ -118,7 +118,7 @@ export const MetricCard = memo(({
         )}
       </div>
 
-      {/* Ícone circular à direita conforme a imagem */}
+      {/* Ícone circular à direita - Tamanho aumentado */}
       <motion.div 
         initial={{ scale: 0, rotate: -20 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -129,16 +129,16 @@ export const MetricCard = memo(({
           delay: index * 0.1 + 0.2 
         }}
         className={cn(
-          "flex h-14 w-14 items-center justify-center rounded-full border-2 shadow-lg",
+          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-lg flex-shrink-0 ml-4",
           iconBgMap[color]
         )}
       >
-        {Icon && <Icon className={cn("h-7 w-7", iconColorMap[color])} />}
+        {Icon && <Icon className={cn("h-10 w-10 sm:h-12 sm:w-12", iconColorMap[color])} />}
       </motion.div>
       
       {/* Background decoration - ícone gigante fosco */}
-      <div className="absolute -right-4 -bottom-4 opacity-[0.03] pointer-events-none">
-        {Icon && <Icon className={cn("h-24 w-24", iconColorMap[color])} />}
+      <div className="absolute -right-8 -bottom-8 opacity-[0.02] pointer-events-none">
+        {Icon && <Icon className={cn("h-32 w-32", iconColorMap[color])} />}
       </div>
     </motion.div>
   )
