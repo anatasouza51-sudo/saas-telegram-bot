@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
-      <body className="bg-background font-sans antialiased">
+      <body className="bg-background font-sans antialiased bg-grain relative">
         {children}
         <Toaster />
         {process.env.NODE_ENV === 'production' && <Analytics />}

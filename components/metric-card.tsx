@@ -32,27 +32,27 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const colorMap = {
-  blue: "from-blue-600/8 to-blue-400/3 border-blue-500/15",
-  purple: "from-purple-600/8 to-purple-400/3 border-purple-500/15",
-  green: "from-green-600/8 to-green-400/3 border-green-500/15",
-  red: "from-red-600/8 to-red-400/3 border-red-500/15",
-  yellow: "from-yellow-600/8 to-yellow-400/3 border-yellow-500/15",
+  blue: "from-teal-500/10 to-teal-400/3 border-teal-400/15",
+  purple: "from-violet-600/10 to-violet-400/3 border-violet-500/15",
+  green: "from-emerald-600/10 to-emerald-400/3 border-emerald-500/15",
+  red: "from-rose-600/10 to-rose-400/3 border-rose-500/15",
+  yellow: "from-amber-500/10 to-amber-400/3 border-amber-500/15",
 }
 
 const iconBgMap = {
-  blue: "bg-blue-600/15 border-blue-500/25",
-  purple: "bg-purple-600/15 border-purple-500/25",
-  green: "bg-green-600/15 border-green-500/25",
-  red: "bg-red-600/15 border-red-500/25",
-  yellow: "bg-yellow-600/15 border-yellow-500/25",
+  blue: "bg-teal-500/15 border-teal-400/25",
+  purple: "bg-violet-600/15 border-violet-500/25",
+  green: "bg-emerald-600/15 border-emerald-500/25",
+  red: "bg-rose-600/15 border-rose-500/25",
+  yellow: "bg-amber-500/15 border-amber-500/25",
 }
 
 const iconColorMap = {
-  blue: "text-blue-400",
-  purple: "text-purple-400",
-  green: "text-green-400",
-  red: "text-red-400",
-  yellow: "text-yellow-400",
+  blue: "text-teal-300",
+  purple: "text-violet-300",
+  green: "text-emerald-300",
+  red: "text-rose-300",
+  yellow: "text-amber-300",
 }
 
 export const MetricCard = memo(({
@@ -96,7 +96,7 @@ export const MetricCard = memo(({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: index * 0.08 + 0.08 }}
-          className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white"
+          className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white tabular-nums"
         >
           {value}
         </motion.p>

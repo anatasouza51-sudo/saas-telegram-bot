@@ -12,7 +12,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-gradient-to-br from-blue-950/20 via-purple-950/10 to-blue-950/20 backdrop-blur-sm py-(--card-spacing) text-sm text-card-foreground border border-blue-500/10 transition-colors hover:border-purple-500/20 hover:shadow-lg [--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl shadow-lg",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-teal-950/10 backdrop-blur-sm py-(--card-spacing) text-sm text-card-foreground border border-white/[0.06] transition-all duration-300 hover:border-teal-400/20 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-12px_oklch(0.8_0.135_192/0.25)] [--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl shadow-[0_2px_16px_-4px_rgba(0,0,0,0.4)]",
         className
       )}
       {...props}
@@ -84,7 +84,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl border-t border-blue-500/5 bg-gradient-to-r from-blue-950/10 to-purple-950/10 p-(--card-spacing)",
+        "flex items-center rounded-b-xl border-t border-white/5 bg-gradient-to-r from-teal-950/10 to-violet-950/10 p-(--card-spacing)",
         className
       )}
       {...props}
