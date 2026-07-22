@@ -1,6 +1,7 @@
 "use client"
 import { memo } from "react"
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 import {
   TrendingUp,
   TrendingDown,
@@ -27,11 +28,11 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const colorMap = {
-  blue: "from-blue-600/20 to-blue-400/10 border-blue-500/20",
-  purple: "from-purple-600/20 to-purple-400/10 border-purple-500/20",
-  green: "from-green-600/20 to-green-400/10 border-green-500/20",
-  red: "from-red-600/20 to-red-400/10 border-red-500/20",
-  yellow: "from-yellow-600/20 to-yellow-400/10 border-yellow-500/20",
+  blue: "from-blue-600/20 to-blue-400/10 border-blue-500/20 shadow-blue-500/5",
+  purple: "from-purple-600/20 to-purple-400/10 border-purple-500/20 shadow-purple-500/5",
+  green: "from-green-600/20 to-green-400/10 border-green-500/20 shadow-green-500/5",
+  red: "from-red-600/20 to-red-400/10 border-red-500/20 shadow-red-500/5",
+  yellow: "from-yellow-600/20 to-yellow-400/10 border-yellow-500/20 shadow-yellow-500/5",
 }
 
 const iconColorMap = {
@@ -58,6 +59,7 @@ export const MetricCard = memo(({
   trend,
   trendValue,
   color = "blue",
+  index = 0,
 }: {
   title: string
   value: string
@@ -66,31 +68,45 @@ export const MetricCard = memo(({
   trend?: "up" | "down"
   trendValue?: string
   color?: "blue" | "purple" | "green" | "red" | "yellow"
+  index?: number
 }) => {
   const Icon = iconName ? iconMap[iconName] : icon || DollarSign
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-transform duration-100 active:scale-[0.97]",
-      colorMap[color]
-    )}>
-      {/* Ícone de fundo - Tamanho aumentado */}
-      <div className="absolute top-2 right-2 opacity-25">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      className={cn(
+        "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 shadow-lg transition-all duration-300",
+        colorMap[color]
+      )}
+    >
+      {/* Ícone de fundo com animação suave */}
+      <motion.div 
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.25 }}
+        transition={{ delay: index * 0.1 + 0.2 }}
+        className="absolute top-2 right-2"
+      >
         {Icon && <Icon className={cn("h-10 w-10 sm:h-12 sm:w-12", iconColorMap[color])} />}
-      </div>
+      </motion.div>
 
       <div className="relative z-10 flex flex-col">
-        {/* Título - Fonte aumentada */}
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 pr-10 truncate">
           {title}
         </p>
         
-        {/* Valor - Fonte aumentada */}
-        <p className={cn("text-2xl sm:text-3xl font-black leading-tight truncate", valueColorMap[color])}>
+        <motion.p 
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5, delay: index * 0.1 + 0.1 }}
+          className={cn("text-2xl sm:text-3xl font-black leading-tight truncate", valueColorMap[color])}
+        >
           {value}
-        </p>
+        </motion.p>
 
-        {/* Tendência */}
         {trend && trendValue && (
           <div className="flex items-center gap-1.5 mt-2">
             {trend === "up" ? (
@@ -107,7 +123,10 @@ export const MetricCard = memo(({
           </div>
         )}
       </div>
-    </div>
+      
+      {/* Overlay de brilho no hover */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 transition-opacity duration-500 hover:opacity-100 pointer-events-none" />
+    </motion.div>
   )
 })
 MetricCard.displayName = "MetricCard"
