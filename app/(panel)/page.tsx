@@ -109,12 +109,12 @@ export default function DashboardPage() {
         <p className="text-sm sm:text-base text-muted-foreground font-medium">Seu desempenho real em tempo real.</p>
       </motion.div>
 
-      {/* Top Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 sm:mb-12">
-        <MetricCard index={0} title="Receita Total" value={formatCurrency(stats?.totalRevenue || 0)} iconName="dollar" color="blue" />
-        <MetricCard index={1} title="Total de Vendas" value={formatNumber(stats?.totalSales || 0)} iconName="shopping" color="purple" />
-        <MetricCard index={2} title="Taxa de Conversão" value={`${(stats?.conversionRate || 0).toFixed(1)}%`} iconName="trendingUp" color="green" />
-        <MetricCard index={3} title="Clientes Ativos" value={formatNumber(stats?.totalCustomers || 0)} iconName="users" color="yellow" />
+      {/* Top Metrics Grid - Estilo Vertical conforme Imagem */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 sm:mb-12">
+        <MetricCard index={0} title="Receita Aprovada" value={formatCurrency(stats?.totalRevenue || 0)} iconName="dollar" color="blue" />
+        <MetricCard index={1} title="Aprovados" value={formatNumber(stats?.approvedPayments || 0)} iconName="check" color="green" />
+        <MetricCard index={2} title="Pendentes" value={formatNumber(stats?.pendingPayments || 0)} iconName="clock" color="yellow" />
+        <MetricCard index={3} title="Recusados" value={formatNumber(stats?.refusedPayments || 0)} iconName="x" color="red" />
       </div>
 
       {/* Charts Section */}
@@ -152,13 +152,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Secondary Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-10 sm:mb-12">
-        <MetricCard index={4} title="Produtos" value={formatNumber(stats?.totalProducts || 0)} iconName="package" color="blue" />
-        <MetricCard index={5} title="Estoque Baixo" value={formatNumber(stats?.lowStockCount || 0)} iconName="alert" color={(stats?.lowStockCount || 0) > 0 ? "red" : "green"} />
-        <MetricCard index={6} title="Aprovados" value={formatNumber(stats?.approvedPayments || 0)} iconName="check" color="green" />
-        <MetricCard index={7} title="Pendentes" value={formatNumber(stats?.pendingPayments || 0)} iconName="zap" color="yellow" />
-        <MetricCard index={8} title="Recusados" value={formatNumber(stats?.refusedPayments || 0)} iconName="alert" color="red" />
-        <MetricCard index={9} title="Vendas Hoje" value={formatNumber(stats?.salesToday || 0)} iconName="trendingUp" color="purple" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 sm:mb-12">
+        <MetricCard index={4} title="Total de Vendas" value={formatNumber(stats?.totalSales || 0)} iconName="shopping" color="purple" />
+        <MetricCard index={5} title="Vendas Hoje" value={formatNumber(stats?.salesToday || 0)} iconName="trendingUp" color="green" />
+        <MetricCard index={6} title="Clientes Ativos" value={formatNumber(stats?.totalCustomers || 0)} iconName="users" color="blue" />
+        <MetricCard index={7} title="Produtos em Loja" value={formatNumber(stats?.totalProducts || 0)} iconName="package" color="purple" />
+        <MetricCard index={8} title="Estoque Baixo" value={formatNumber(stats?.lowStockCount || 0)} iconName="alert" color={(stats?.lowStockCount || 0) > 0 ? "red" : "green"} />
+        <MetricCard index={9} title="Taxa de Conversão" value={`${(stats?.conversionRate || 0).toFixed(1)}%`} iconName="trendingUp" color="yellow" />
       </div>
 
       {/* Recent Orders Section */}
