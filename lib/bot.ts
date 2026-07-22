@@ -635,6 +635,79 @@ async function editPixMessage(
   }
 }
 
+// Empty keyboard used to strip all buttons once an order reaches a final
+// state, so the customer can never tap a stale payment action again.
+const NO_KEYBOARD = buildInlineKeyboard([])
+
+// ---------- Proactive PIX expiration sweep ----------
+//
+// BUGFIX: previously an order was only ever flagged "expired" reactively,
+// when the customer tapped "Verificar pagamento" (handlePixVerify). If they
+// never tapped it, the PIX message + its buttons stayed visible and tappable
+// forever in Telegram, even after the admin-configured timer elapsed.
+//
+// Invoked from the per-minute cron (app/api/tg/cron/route.ts) and from every
+// webhook hit. For every store with at least one due PIX order it:
+//   1. Loads that store's context once (bot token + configured expired text).
+//   2. Edits every due message in place to the "expired" caption with the
+//      keyboard removed, so no payment button can be tapped again.
+// It never mutates `paymentStatus` in the database: the public /pay page and
+// handlePixVerify already derive "expired" on the fly from `expiresAt`, so the
+// gateway webhook stays free to still approve a payment landing right at the
+// edge of the window. Re-editing an already-expired message is harmless —
+// Telegram returns a "message is not modified" error, already treated as
+// ignorable by editPixMessage.
+export async function expireDuePixOrders() {
+  const now = new Date()
+  const due = await db
+    .select({
+      id: orders.id,
+      ownerId: orders.ownerId,
+      pixChatId: orders.pixChatId,
+      pixMessageId: orders.pixMessageId,
+    })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.paymentStatus, "pending"),
+        sql`${orders.expiresAt} is not null`,
+        sql`${orders.expiresAt} <= ${now}`,
+        sql`${orders.pixMessageId} is not null`,
+      ),
+    )
+
+  if (due.length === 0) return { checked: 0, expired: 0 }
+
+  let expired = 0
+  const contextCache = new Map<string, StoreContext | null>()
+
+  for (const order of due) {
+    if (!order.pixChatId || !order.pixMessageId) continue
+
+    let ctx = contextCache.get(order.ownerId)
+    if (ctx === undefined) {
+      ctx = await loadStoreContext(order.ownerId)
+      contextCache.set(order.ownerId, ctx)
+    }
+    if (!ctx) continue
+
+    try {
+      await editPixMessage(
+        ctx,
+        Number(order.pixChatId),
+        order.pixMessageId,
+        [`🧾 <b>Pedido #${order.id}</b>`, ``, ctx.pix.expiredMessage].join("\n"),
+        NO_KEYBOARD,
+      )
+      expired += 1
+    } catch {
+      // Best-effort: retried on the next sweep, at most a minute later.
+    }
+  }
+
+  return { checked: due.length, expired }
+}
+
 // "Já efetuei o pagamento" — checks the current order status (kept in sync by
 // the gateway webhook) and reacts: approved -> confirm + ensure delivery;
 // expired -> show expired; otherwise -> a gentle "still waiting" toast.
@@ -666,6 +739,7 @@ async function handlePixVerify(
           ``,
           ctx.pix.approvedMessage,
         ].join("\n"),
+        NO_KEYBOARD,
       )
     }
     // Safety net: if the webhook approved payment but delivery didn't complete,
@@ -685,6 +759,7 @@ async function handlePixVerify(
         chatId,
         order.pixMessageId,
         [`🧾 <b>Pedido #${order.id}</b>`, ``, ctx.pix.expiredMessage].join("\n"),
+        NO_KEYBOARD,
       )
     }
     return
@@ -737,6 +812,7 @@ async function handlePixCancel(
         ``,
         `❌ Pedido cancelado. Use /catalogo para comprar novamente.`,
       ].join("\n"),
+      NO_KEYBOARD,
     )
   }
 }

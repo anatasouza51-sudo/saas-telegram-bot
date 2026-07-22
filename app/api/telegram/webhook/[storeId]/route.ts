@@ -6,6 +6,7 @@ import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
 import { processSchedules } from "@/lib/tg/scheduler"
+import { expireDuePixOrders } from "@/lib/bot"
 
 /**
  * Telegram webhook — authenticated per store.
@@ -69,6 +70,15 @@ export async function POST(
     await processSchedules()
   } catch {
     // Best-effort — the cron route will also catch these on the hour.
+  }
+
+  // BUGFIX: also sweep for expired PIX orders on every webhook hit, so an
+  // active bot (any store getting traffic) flips stale payments faster than
+  // the once-a-minute cron alone.
+  try {
+    await expireDuePixOrders()
+  } catch {
+    // Best-effort — the cron route will also catch these within a minute.
   }
 
   // Always ack so Telegram doesn't retry indefinitely.
