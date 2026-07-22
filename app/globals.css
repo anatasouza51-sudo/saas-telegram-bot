@@ -95,33 +95,38 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Premium dark theme — Azul & Roxo */
+/* Identidade "Ghost" — teal espectral sobre grafite frio, violeta como acento raro */
 :root {
   color-scheme: dark;
-  --background: oklch(0.06 0.02 260);
-  --foreground: oklch(0.97 0.005 264);
-  --card: oklch(0.08 0.02 260);
-  --card-foreground: oklch(0.97 0.005 264);
-  --popover: oklch(0.08 0.02 260);
-  --popover-foreground: oklch(0.97 0.005 264);
-  --primary: oklch(0.7 0.2 210);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.12 0.02 260);
-  --secondary-foreground: oklch(0.98 0.01 250);
-  --muted: oklch(0.08 0.02 260);
-  --muted-foreground: oklch(0.6 0.05 260);
-  --accent: oklch(0.65 0.25 280);
+  --background: oklch(0.05 0.014 250);
+  --foreground: oklch(0.97 0.006 240);
+  --card: oklch(0.078 0.016 248);
+  --card-foreground: oklch(0.97 0.006 240);
+  --popover: oklch(0.082 0.017 248);
+  --popover-foreground: oklch(0.97 0.006 240);
+  --primary: oklch(0.8 0.135 192);
+  --primary-foreground: oklch(0.12 0.03 200);
+  --secondary: oklch(0.13 0.018 250);
+  --secondary-foreground: oklch(0.96 0.01 240);
+  --muted: oklch(0.09 0.015 250);
+  --muted-foreground: oklch(0.62 0.03 245);
+  --accent: oklch(0.66 0.17 300);
   --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.6 0.25 25);
+  --destructive: oklch(0.62 0.22 22);
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.75 0.2 150);
-  --success-foreground: oklch(0.1 0.05 150);
-  --warning: oklch(0.8 0.15 90);
-  --warning-foreground: oklch(0.1 0.05 90);
+  --success: oklch(0.76 0.17 155);
+  --success-foreground: oklch(0.1 0.04 155);
+  --warning: oklch(0.81 0.14 82);
+  --warning-foreground: oklch(0.1 0.04 82);
   --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.7 0.2 210);
+  --ring: oklch(0.8 0.135 192);
   --radius: 0.85rem;
+  --chart-1: oklch(0.8 0.135 192);
+  --chart-2: oklch(0.66 0.17 300);
+  --chart-3: oklch(0.76 0.17 155);
+  --chart-4: oklch(0.81 0.14 82);
+  --chart-5: oklch(0.62 0.22 22);
 }
 
 :root {
@@ -132,13 +137,21 @@
   * { @apply border-border outline-ring/50; }
   body { 
     @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(ellipse 900px 600px at 12% -10%, oklch(0.8 0.135 192 / 0.07), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, oklch(0.66 0.17 300 / 0.05), transparent 55%);
+    background-attachment: fixed;
   }
   h1 { @apply text-2xl font-black sm:text-3xl md:text-4xl lg:text-5xl tracking-tight; }
   h2 { @apply text-xl font-bold sm:text-2xl; }
+  /* Valores monetários e métricas ficam alinhados e mais fáceis de escanear */
+  .tabular-nums, [data-slot="card"] .text-2xl, [data-slot="card"] .text-3xl {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .bg-mesh {
-  background: linear-gradient(-45deg, #050505, #0a0a2e, #1a0a4a, #050505);
+  background: linear-gradient(-45deg, #030304, #06131a, #170a2e, #030304);
   background-size: 400% 400%;
   animation: mesh 25s ease-in-out infinite;
   will-change: background-position;
@@ -156,6 +169,37 @@
 
 /* Custom selection color */
 ::selection {
-  background-color: oklch(0.7 0.2 210 / 0.3);
+  background-color: oklch(0.8 0.135 192 / 0.3);
   color: white;
+}
+
+/* Scrollbar fina e discreta, combinando com o tema */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 10%);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 18%);
+  background-clip: padding-box;
+}
+
+/* Grão sutil para tirar a sensação "chapada" do fundo escuro */
+.bg-grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
