@@ -71,7 +71,7 @@ export const MetricCard = memo(({
 
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-all duration-200 active:scale-[0.98]",
+      "relative overflow-hidden rounded-xl border bg-gradient-to-br p-4 transition-transform duration-100 active:scale-[0.97]",
       colorMap[color]
     )}>
       {/* Ícone de fundo - Tamanho aumentado */}

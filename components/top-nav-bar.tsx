@@ -90,7 +90,7 @@ export const TopNavBar = memo(({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-colors duration-150 ${
                     isActive
                       ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/10"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
@@ -163,7 +163,7 @@ export const TopNavBar = memo(({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-4 rounded-xl text-base font-bold transition-all duration-200 ${
+                  className={`flex items-center gap-4 px-4 py-4 rounded-xl text-base font-bold transition-colors duration-150 ${
                     isActive
                       ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                       : "text-muted-foreground hover:text-white hover:bg-white/5"
