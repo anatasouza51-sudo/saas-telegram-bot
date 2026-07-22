@@ -139,7 +139,9 @@
 .bg-mesh {
   background: linear-gradient(-45deg, #050505, #0a0a2e, #1a0a4a, #050505);
   background-size: 400% 400%;
-  animation: mesh 15s ease infinite;
+  animation: mesh 25s ease-in-out infinite;
+  will-change: background-position;
+  transform: translateZ(0);
 }
 
 /* Utilitário para esconder scrollbar mantendo funcionalidade */
