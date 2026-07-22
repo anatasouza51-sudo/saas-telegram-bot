@@ -79,14 +79,14 @@ export const TopNavBar = memo(({
             <div className="relative w-10 h-10 flex items-center justify-center">
               <Image
                 src="/ghostbot-final-logo.png"
-                alt="GhostBot"
+                alt="GHOST BOT"
                 width={40}
                 height={40}
                 className="object-contain transition-transform duration-300 group-hover:scale-110"
               />
             </div>
-            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline tracking-tighter">
-              GhostBot
+            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline tracking-wide">
+              GHOST BOT
             </span>
           </Link>
 

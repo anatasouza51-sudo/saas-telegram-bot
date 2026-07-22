@@ -132,15 +132,15 @@ export function AppSidebar({
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
             <Image 
               src="/ghostbot-final-logo.png" 
-              alt="GhostBot Logo" 
+              alt="GHOST BOT Logo" 
               width={40} 
               height={40} 
               className="object-contain"
             />
           </div>
           <div className="flex flex-col overflow-hidden">
-            <span className="text-base font-bold tracking-tight text-white">
-              GhostBot
+            <span className="text-base font-black tracking-wide text-white">
+              GHOST BOT
             </span>
             <span className="truncate text-[10px] font-medium uppercase tracking-wider text-primary/80">
               Ghost v2.5.0
