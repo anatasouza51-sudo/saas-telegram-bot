@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { processSchedules } from "@/lib/tg/scheduler"
 import { processQueue } from "@/lib/tg/queue"
+import { expireDuePixOrders } from "@/lib/bot"
 import { safeEqual } from "@/lib/security"
 
 // Vercel Cron hits this every minute. It must run on the Node.js runtime
@@ -30,7 +31,11 @@ async function run() {
   // per-chat rate limits and retry/backoff.
   const { fired } = await processSchedules()
   const result = await processQueue()
-  return NextResponse.json({ ok: true, fired, ...result })
+  // BUGFIX: proactively flip any PIX order whose admin-configured timer has
+  // elapsed to "expired" in the customer's chat (removes the payment
+  // buttons), instead of relying on the customer to tap "Verificar" first.
+  const pix = await expireDuePixOrders()
+  return NextResponse.json({ ok: true, fired, ...result, pixExpired: pix })
 }
 
 export async function GET() {
