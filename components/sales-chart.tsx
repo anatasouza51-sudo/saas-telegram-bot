@@ -79,7 +79,9 @@ export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
           fill="url(#fillRevenue)"
           stroke="var(--color-revenue)"
           strokeWidth={2}
-          isAnimationActive={false} // Disable heavy animations for performance
+          isAnimationActive={true}
+          animationDuration={1500}
+          animationEasing="ease-in-out"
         />
       </AreaChart>
     </ChartContainer>
