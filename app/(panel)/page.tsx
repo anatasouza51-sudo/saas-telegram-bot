@@ -110,7 +110,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Top Metrics Grid - Estilo Vertical conforme Imagem */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 sm:mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12 sm:mb-16">
         <MetricCard index={0} title="Receita Aprovada" value={formatCurrency(stats?.totalRevenue || 0)} iconName="dollar" color="blue" />
         <MetricCard index={1} title="Aprovados" value={formatNumber(stats?.approvedPayments || 0)} iconName="check" color="green" />
         <MetricCard index={2} title="Pendentes" value={formatNumber(stats?.pendingPayments || 0)} iconName="clock" color="yellow" />
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Secondary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 sm:mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
         <MetricCard index={4} title="Total de Vendas" value={formatNumber(stats?.totalSales || 0)} iconName="shopping" color="purple" />
         <MetricCard index={5} title="Vendas Hoje" value={formatNumber(stats?.salesToday || 0)} iconName="trendingUp" color="green" />
         <MetricCard index={6} title="Clientes Ativos" value={formatNumber(stats?.totalCustomers || 0)} iconName="users" color="blue" />
