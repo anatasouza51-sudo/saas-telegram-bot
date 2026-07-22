@@ -102,13 +102,13 @@
   --foreground: oklch(0.97 0.005 264);
   --card: oklch(0.08 0.02 260);
   --card-foreground: oklch(0.97 0.005 264);
-  --popover: oklch(0.12 0.02 260);
+  --popover: oklch(0.08 0.02 260);
   --popover-foreground: oklch(0.97 0.005 264);
   --primary: oklch(0.7 0.2 210);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.15 0.03 260);
+  --secondary: oklch(0.12 0.02 260);
   --secondary-foreground: oklch(0.98 0.01 250);
-  --muted: oklch(0.12 0.02 260);
+  --muted: oklch(0.08 0.02 260);
   --muted-foreground: oklch(0.6 0.05 260);
   --accent: oklch(0.65 0.25 280);
   --accent-foreground: oklch(1 0 0);
@@ -124,7 +124,6 @@
   --radius: 0.85rem;
 }
 
-/* Fontes maiores no mobile — Base 16px como no desktop */
 :root {
   font-size: 16px;
 }
@@ -133,10 +132,6 @@
   * { @apply border-border outline-ring/50; }
   body { 
     @apply bg-background text-foreground antialiased;
-    background-image: 
-      radial-gradient(at 0% 0%, oklch(0.15 0.05 260 / 0.3) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, oklch(0.15 0.05 280 / 0.3) 0px, transparent 50%);
-    background-attachment: fixed;
   }
   h1 { @apply text-2xl font-black sm:text-3xl md:text-4xl lg:text-5xl tracking-tight; }
   h2 { @apply text-xl font-bold sm:text-2xl; }
@@ -148,15 +143,6 @@
   animation: mesh 25s ease-in-out infinite;
   will-change: background-position;
   transform: translateZ(0);
-}
-
-/* Glassmorphism effects */
-.glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
-}
-
-.glass-dark {
-  @apply bg-black/20 backdrop-blur-lg border border-white/5;
 }
 
 /* Utilitário para esconder scrollbar mantendo funcionalidade */

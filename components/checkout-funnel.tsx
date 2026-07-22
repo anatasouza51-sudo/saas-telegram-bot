@@ -19,16 +19,15 @@ export const CheckoutFunnel = memo(({
   totalConversion: number
 }) => {
   return (
-    <Card className="relative overflow-hidden bg-blue-950/20 border border-blue-500/10 hover:border-purple-500/20 transition-all duration-300 shadow-xl backdrop-blur-sm h-full">
+    <Card className="relative overflow-hidden bg-blue-950/15 border border-blue-500/10 hover:border-purple-500/15 transition-colors shadow-md h-full">
       <CardHeader className="relative z-10">
         <CardTitle className="flex items-center gap-2">
           <motion.div 
             animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [1, 0.8, 1]
+              scale: [1, 1.15, 1],
             }}
             transition={{ 
-              duration: 2, 
+              duration: 2.5, 
               repeat: Infinity,
               ease: "easeInOut"
             }}
@@ -58,17 +57,17 @@ export const CheckoutFunnel = memo(({
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${width}%` }}
-                    transition={{ duration: 1, delay: 0.5 + (index * 0.2), ease: "easeOut" }}
+                    transition={{ duration: 0.8, delay: 0.4 + (index * 0.15), ease: "easeOut" }}
                     className={`h-full rounded-lg flex items-center justify-end pr-3 ${
                       index % 2 === 0
-                        ? "bg-gradient-to-r from-blue-600/20 to-blue-500/40"
-                        : "bg-gradient-to-r from-purple-600/20 to-purple-500/40"
+                        ? "bg-gradient-to-r from-blue-600/25 to-blue-500/40"
+                        : "bg-gradient-to-r from-purple-600/25 to-purple-500/40"
                     }`}
                   >
                     <motion.span 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 1.5 + (index * 0.2) }}
+                      transition={{ delay: 1.2 + (index * 0.15) }}
                       className="text-xs font-semibold text-white"
                     >
                       {stage.percentage.toFixed(1)}%
@@ -80,7 +79,7 @@ export const CheckoutFunnel = memo(({
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 1.2 + (index * 0.2) }}
+                    transition={{ delay: 1 + (index * 0.15) }}
                     className="flex items-center justify-center py-1"
                   >
                     <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
@@ -94,9 +93,9 @@ export const CheckoutFunnel = memo(({
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
           className="mt-6 pt-4 border-t border-white/10"
         >
           <div className="flex items-center justify-between">

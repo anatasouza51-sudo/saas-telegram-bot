@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { CheckoutFunnel } from "@/components/checkout-funnel"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   Card,
   CardContent,
@@ -25,7 +25,6 @@ import {
 } from "@/components/status-badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 
-// Tipagens para o estado
 interface DashboardStats {
   totalRevenue: number
   totalSales: number
@@ -51,7 +50,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch('/api/dashboard') // Assumindo que criaremos este endpoint ou usaremos Server Actions
+        const response = await fetch('/api/dashboard')
         const result = await response.json()
         setData(result)
       } catch (error) {
@@ -68,7 +67,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center min-h-screen">
         <motion.div 
           animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
           className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"
         />
       </div>
@@ -94,13 +93,14 @@ export default function DashboardPage() {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       className="pt-6 pb-12 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto min-h-screen"
     >
       {/* Header */}
       <motion.div 
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
         className="mb-8 sm:mb-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2 leading-tight tracking-tighter">
@@ -109,7 +109,7 @@ export default function DashboardPage() {
         <p className="text-sm sm:text-base text-muted-foreground font-medium">Seu desempenho real em tempo real.</p>
       </motion.div>
 
-      {/* Top Metrics Grid - Estilo Vertical conforme Imagem */}
+      {/* Top Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12 sm:mb-16">
         <MetricCard index={0} title="Receita Aprovada" value={formatCurrency(stats?.totalRevenue || 0)} iconName="dollar" color="blue" />
         <MetricCard index={1} title="Aprovados" value={formatNumber(stats?.approvedPayments || 0)} iconName="check" color="green" />
@@ -118,14 +118,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10 sm:mb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 sm:mb-16">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
           className="lg:col-span-2"
         >
-          <Card className="relative overflow-hidden border-0 bg-blue-950/20 shadow-2xl h-full backdrop-blur-sm">
+          <Card className="relative overflow-hidden border-0 bg-blue-950/15 shadow-md h-full">
             <CardHeader className="pb-4 sm:pb-6">
               <CardTitle className="text-lg sm:text-xl font-bold">Vendas dos Últimos 14 Dias</CardTitle>
               <CardDescription className="text-sm sm:text-base">Faturamento real por dia</CardDescription>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.35, duration: 0.3 }}
           className="lg:col-span-1"
         >
           <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
@@ -165,9 +165,9 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.4, duration: 0.3 }}
       >
-        <Card className="relative overflow-hidden border-0 bg-blue-950/20 shadow-2xl backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-0 bg-blue-950/15 shadow-md">
           <CardHeader className="pb-4 sm:pb-6">
             <CardTitle className="text-lg sm:text-xl font-bold">Últimos Pedidos</CardTitle>
             <CardDescription className="text-sm sm:text-base">Histórico real de vendas via Telegram</CardDescription>
@@ -194,38 +194,30 @@ export default function DashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <AnimatePresence>
-                        {recentOrders.map((o, idx) => (
-                          <motion.tr
-                            key={o.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.7 + (idx * 0.05) }}
-                            className="border-blue-500/10 hover:bg-blue-500/5 transition-colors duration-200 group"
-                          >
-                            <TableCell className="font-mono text-sm text-muted-foreground p-4">{o.id}</TableCell>
-                            <TableCell className="text-white text-sm p-4">{o.customerName || (o.customerUsername ? `@${o.customerUsername}` : "—")}</TableCell>
-                            <TableCell className="max-w-[150px] truncate text-muted-foreground text-sm p-4 hidden md:table-cell">{o.productName || "—"}</TableCell>
-                            <TableCell className="font-medium text-white text-sm p-4 whitespace-nowrap">{formatCurrency(o.amount || 0)}</TableCell>
-                            <TableCell className="p-4"><PaymentStatusBadge status={o.paymentStatus} /></TableCell>
-                            <TableCell className="p-4 hidden lg:table-cell"><DeliveryStatusBadge status={o.deliveryStatus} /></TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground p-4 whitespace-nowrap">{formatDateTime(o.createdAt)}</TableCell>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
+                      {recentOrders.map((o) => (
+                        <TableRow
+                          key={o.id}
+                          className="border-blue-500/10 hover:bg-blue-500/5 transition-colors duration-200"
+                        >
+                          <TableCell className="font-mono text-sm text-muted-foreground p-4">{o.id}</TableCell>
+                          <TableCell className="text-white text-sm p-4">{o.customerName || (o.customerUsername ? `@${o.customerUsername}` : "—")}</TableCell>
+                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-sm p-4 hidden md:table-cell">{o.productName || "—"}</TableCell>
+                          <TableCell className="font-medium text-white text-sm p-4 whitespace-nowrap">{formatCurrency(o.amount || 0)}</TableCell>
+                          <TableCell className="p-4"><PaymentStatusBadge status={o.paymentStatus} /></TableCell>
+                          <TableCell className="p-4 hidden lg:table-cell"><DeliveryStatusBadge status={o.deliveryStatus} /></TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground p-4 whitespace-nowrap">{formatDateTime(o.createdAt)}</TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
 
                 {/* Mobile Card View */}
                 <div className="sm:hidden space-y-4 px-4 py-4">
-                  {recentOrders.map((o, idx) => (
-                    <motion.div
+                  {recentOrders.map((o) => (
+                    <div
                       key={o.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.7 + (idx * 0.05) }}
-                      className="rounded-xl border border-blue-500/10 bg-blue-500/5 p-4 space-y-3 shadow-lg"
+                      className="rounded-xl border border-blue-500/10 bg-blue-500/5 p-4 space-y-3 shadow-sm"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-xs text-muted-foreground">#{o.id}</span>
@@ -246,7 +238,7 @@ export default function DashboardPage() {
                           <DeliveryStatusBadge status={o.deliveryStatus} />
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </>
