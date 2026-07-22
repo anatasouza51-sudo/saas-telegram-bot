@@ -32,19 +32,19 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const colorMap = {
-  blue: "from-blue-600/10 to-blue-400/5 border-blue-500/10 shadow-blue-500/5",
-  purple: "from-purple-600/10 to-purple-400/5 border-purple-500/10 shadow-purple-500/5",
-  green: "from-green-600/10 to-green-400/5 border-green-500/10 shadow-green-500/5",
-  red: "from-red-600/10 to-red-400/5 border-red-500/10 shadow-red-500/5",
-  yellow: "from-yellow-600/10 to-yellow-400/5 border-yellow-500/10 shadow-yellow-500/5",
+  blue: "from-blue-600/8 to-blue-400/3 border-blue-500/15",
+  purple: "from-purple-600/8 to-purple-400/3 border-purple-500/15",
+  green: "from-green-600/8 to-green-400/3 border-green-500/15",
+  red: "from-red-600/8 to-red-400/3 border-red-500/15",
+  yellow: "from-yellow-600/8 to-yellow-400/3 border-yellow-500/15",
 }
 
 const iconBgMap = {
-  blue: "bg-blue-600/20 border-blue-500/30",
-  purple: "bg-purple-600/20 border-purple-500/30",
-  green: "bg-green-600/20 border-green-500/30",
-  red: "bg-red-600/20 border-red-500/30",
-  yellow: "bg-yellow-600/20 border-yellow-500/30",
+  blue: "bg-blue-600/15 border-blue-500/25",
+  purple: "bg-purple-600/15 border-purple-500/25",
+  green: "bg-green-600/15 border-green-500/25",
+  red: "bg-red-600/15 border-red-500/25",
+  yellow: "bg-yellow-600/15 border-yellow-500/25",
 }
 
 const iconColorMap = {
@@ -80,10 +80,10 @@ export const MetricCard = memo(({
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
-      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.35, delay: index * 0.08 }}
+      whileHover={{ y: -4, transition: { duration: 0.15 } }}
       className={cn(
-        "relative flex items-center justify-between overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-6 sm:px-8 py-8 sm:py-10 shadow-xl transition-all duration-300 backdrop-blur-md",
+        "relative flex items-center justify-between overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-6 sm:px-8 py-8 sm:py-10 shadow-md transition-shadow duration-300",
         colorMap[color]
       )}
     >
@@ -93,9 +93,9 @@ export const MetricCard = memo(({
         </p>
         
         <motion.p 
-          initial={{ scale: 0.95 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5, delay: index * 0.1 + 0.1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: index * 0.08 + 0.08 }}
           className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white"
         >
           {value}
@@ -118,28 +118,23 @@ export const MetricCard = memo(({
         )}
       </div>
 
-      {/* Ícone circular à direita - Tamanho aumentado */}
+      {/* Ícone circular à direita */}
       <motion.div 
-        initial={{ scale: 0, rotate: -20 }}
-        animate={{ scale: 1, rotate: 0 }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
         transition={{ 
           type: "spring", 
-          stiffness: 260, 
-          damping: 20, 
-          delay: index * 0.1 + 0.2 
+          stiffness: 300, 
+          damping: 25, 
+          delay: index * 0.08 + 0.15 
         }}
         className={cn(
-          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-lg flex-shrink-0 ml-4",
+          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-sm flex-shrink-0 ml-4",
           iconBgMap[color]
         )}
       >
         {Icon && <Icon className={cn("h-10 w-10 sm:h-12 sm:w-12", iconColorMap[color])} />}
       </motion.div>
-      
-      {/* Background decoration - ícone gigante fosco */}
-      <div className="absolute -right-8 -bottom-8 opacity-[0.02] pointer-events-none">
-        {Icon && <Icon className={cn("h-32 w-32", iconColorMap[color])} />}
-      </div>
     </motion.div>
   )
 })
