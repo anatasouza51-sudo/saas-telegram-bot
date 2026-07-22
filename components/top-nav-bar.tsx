@@ -2,8 +2,9 @@
 
 import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
+import { authClient } from "@/lib/auth-client"
 import {
   Search,
   Settings,
@@ -17,6 +18,7 @@ import {
   Wallet,
   Users,
   ScrollText,
+  LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,11 +43,18 @@ export const TopNavBar = memo(({
   user: { name: string; email: string; role: Role; id: string; storeId: string }
 }) => {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
+
+  const handleSignOut = useCallback(async () => {
+    await authClient.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }, [router])
   const openSearch = useCallback(() => setSearchOpen(true), [])
   const closeSearch = useCallback(() => setSearchOpen(false), [])
 
@@ -177,14 +186,25 @@ export const TopNavBar = memo(({
 
             {/* Mobile User Info */}
             <div className="mt-6 pt-6 border-t border-white/5">
-              <div className="flex items-center gap-4 px-4 py-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-lg shadow-blue-500/20">
-                  {user.name.charAt(0).toUpperCase()}
+              <div className="flex items-center justify-between gap-4 px-4 py-2">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-lg shadow-blue-500/20">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-bold text-white truncate">{user.name}</p>
+                    <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest">{ROLE_LABELS[user.role]}</p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-bold text-white truncate">{user.name}</p>
-                  <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest">{ROLE_LABELS[user.role]}</p>
-                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleSignOut}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-12 w-12"
+                >
+                  <LogOut className="w-6 h-6" />
+                </Button>
               </div>
             </div>
           </div>
