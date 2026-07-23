@@ -26,6 +26,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    console.log("Tentando login em app/page.tsx...");
     
     try {
       const result = await authClient.signIn.email({ 
@@ -34,21 +35,25 @@ export default function LoginPage() {
       });
 
       if (result.error) {
+        console.error("Erro no login:", result.error);
         setError(result.error.message || "Credenciais inválidas");
         setLoading(false);
         return;
       }
 
+      console.log("Login bem sucedido. Redirecionando...");
+      
       // Sucesso no login
       router.refresh();
       
       // Redirecionamento forçado para garantir a atualização do estado
       setTimeout(() => {
+        console.log("Executando window.location.href = '/'");
         window.location.href = "/";
-      }, 100);
+      }, 500);
       
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Erro inesperado no login:", err);
       setError("Ocorreu um erro ao fazer login. Tente novamente.");
       setLoading(false);
     }
