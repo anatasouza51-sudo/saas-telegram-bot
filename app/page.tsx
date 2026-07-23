@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCheckingSecure, setIsCheckingSecure] = useState(true);
 
@@ -23,17 +24,26 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     
-    // Lógica de autenticação simulada ou real aqui
-    console.log({ email, password, rememberMe });
-    
-    // Simula um tempo de resposta e redireciona para o painel
-    setTimeout(() => {
+    try {
+      const { error } = await authClient.signIn.email({ 
+        email, 
+        password,
+        callbackURL: "/" 
+      });
+
+      if (error) {
+        throw new Error(error.message || "Credenciais inválidas");
+      }
+
+      // Redirecionamento forçado via window.location para garantir que o estado da sessão seja atualizado
+      window.location.assign("/");
+    } catch (err) {
+      setError((err as Error).message);
       setLoading(false);
-      router.push("/"); // Redireciona para a rota principal (Dashboard)
-      router.refresh();
-    }, 1500);
+    }
   };
 
   return (
@@ -78,7 +88,14 @@ export default function LoginPage() {
             <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">E-MAIL</label>
             <div className="relative flex items-center">
               <Mail className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@empresa.com" required className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" />
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="voce@empresa.com" 
+                required 
+                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" 
+              />
             </div>
           </div>
 
@@ -86,16 +103,29 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">SENHA</label>
-              <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
+              <Link href="/forgot-password" size="sm" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
             </div>
             <div className="relative flex items-center">
               <Lock className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="••••••••" 
+                required 
+                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" 
+              />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 text-gray-500 hover:text-gray-300 transition">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
+
+          {error && (
+            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-medium text-red-400">
+              {error}
+            </div>
+          )}
 
           {/* Widget de Verificação de Navegador */}
           <div className="my-4 h-[42px] relative">
@@ -113,15 +143,23 @@ export default function LoginPage() {
           </div>
 
           {/* Botão de Envio */}
-          <button type="submit" disabled={loading || isCheckingSecure} className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2">
-            {loading ? "Acessando..." : "Acessar painel"}
-            <ArrowRight className="h-4 w-4" />
+          <button 
+            type="submit" 
+            disabled={loading || isCheckingSecure} 
+            className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98]"
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+              <>
+                Acessar painel
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
 
         {/* Rodapé do Card */}
         <div className="mt-6 text-center text-xs text-gray-400">
-          Não tem conta? <Link href="/register" className="text-white font-bold hover:underline">Criar conta gratuita</Link>
+          Não tem conta? <Link href="/sign-up" className="text-white font-bold hover:underline">Criar conta gratuita</Link>
         </div>
       </div>
     </div>
