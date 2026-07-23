@@ -85,7 +85,7 @@ export const TopNavBar = memo(({
                 className="object-contain transition-transform duration-300 group-hover:scale-110"
               />
             </div>
-            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline tracking-wide">
+            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-wide">
               GHOST BOT
             </span>
           </Link>
