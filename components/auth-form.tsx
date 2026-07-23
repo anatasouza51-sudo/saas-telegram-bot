@@ -67,51 +67,36 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     }
     
     setLoading(true)
-    console.log("Iniciando processo de autenticação...");
     
     try {
       if (isSignUp) {
-        console.log("Tentando sign-up...");
         const result = await authClient.signUp.email({ email, password, name })
         if (result.error) {
-          console.error("Erro no sign-up:", result.error);
           setError(result.error.message || "Falha ao criar conta")
           setLoading(false)
           return
         }
-        console.log("Sign-up bem sucedido, tentando sign-in automático...");
         await authClient.signIn.email({ email, password })
       } else {
-        console.log("Tentando sign-in...");
         const result = await authClient.signIn.email({ email, password })
         if (result.error) {
-          console.error("Erro no sign-in:", result.error);
           setError(result.error.message || "Credenciais inválidas")
           setLoading(false)
           return
         }
       }
       
-      console.log("Autenticação bem sucedida. Preparando redirecionamento...");
-      
-      // Força a limpeza do cache do roteador
+      // Sucesso no login
       router.refresh();
       
-      // Tenta redirecionar usando múltiplos métodos para garantir sucesso
-      console.log("Executando redirecionamento...");
-      
-      // Método 1: Router Push (SPA)
-      router.push("/");
-      
-      // Método 2: Fallback para Hard Reload (Garante que os cookies sejam lidos pelo middleware/SSR)
+      // Redirecionamento forçado para a raiz (onde agora o painel assumirá o controle)
       setTimeout(() => {
-        console.log("Executando fallback de redirecionamento via window.location...");
-        window.location.assign("/");
-      }, 500);
+        window.location.href = "/";
+      }, 300);
       
     } catch (err) {
-      console.error("Exceção capturada no handleSubmit:", err);
-      setError("Erro de sistema. Verifique sua conexão.");
+      console.error("Auth error:", err);
+      setError("Erro de sistema. Tente novamente.");
       setLoading(false)
     }
   }, [isSignUp, email, password, confirmPassword, name, router])
