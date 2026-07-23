@@ -94,7 +94,7 @@ export const TopNavBar = memo(({
           <div className="hidden lg:flex items-center gap-2">
             {NAV_ITEMS.slice(0, 5).map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || pathname.startsWith(item.href)
+              const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
@@ -166,7 +166,7 @@ export const TopNavBar = memo(({
           <div className="px-4 py-4 space-y-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || pathname.startsWith(item.href)
+              const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
