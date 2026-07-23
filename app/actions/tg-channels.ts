@@ -246,6 +246,48 @@ export async function addChannelManually(
   return { ok: true, title: res.title }
 }
 
+// Deletes a chat row from the panel. Used to clean up entries the bot was
+// removed from ("Removido") so they stop cluttering the list — this does not
+// call the Telegram API (the bot is already gone from that chat); it only
+// removes the local record. Also allowed for still-active chats, in case the
+// admin simply wants to de-list one manually.
+export async function deleteChannel(
+  id: number,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireCapability("posts.manage")
+
+  const [chat] = await db
+    .select()
+    .from(telegramChats)
+    .where(
+      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
+    )
+    .limit(1)
+  if (!chat) return { ok: false, error: "Grupo/canal não encontrado." }
+
+  await db
+    .delete(telegramChats)
+    .where(
+      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
+    )
+
+  // If the deleted chat held an exclusive purpose (cdn/management/backups),
+  // clear the matching setting so nothing points at a now-missing row.
+  if (isExclusivePurpose(chat.purpose as ChatPurpose)) {
+    await syncPurposeSettings(user.storeId)
+  }
+
+  await logActivity({
+    storeId: user.storeId,
+    actor: user,
+    action: `Excluiu "${chat.title}" da lista de grupos e canais`,
+    category: "settings",
+  })
+
+  revalidatePath("/channels")
+  return { ok: true }
+}
+
 export type TelegramDiagnostics = {
   botConfigured: boolean
   botOk: boolean
