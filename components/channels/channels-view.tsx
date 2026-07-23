@@ -46,7 +46,6 @@ import {
   syncAllChannels,
   setChatPurpose,
   restartTelegramIntegration,
-  deleteChannel,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
@@ -63,7 +62,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   Radio,
-  Trash2,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -166,8 +164,6 @@ export function ChannelsView({
   const [page, setPage] = useState(1)
   const [syncing, startSync] = useTransition()
   const [pending, startTransition] = useTransition()
-  const [deleting, startDelete] = useTransition()
-  const [toDelete, setToDelete] = useState<ChannelRow | null>(null)
 
   const searchRef = useRef(search)
   searchRef.current = search
@@ -254,21 +250,6 @@ export function ChannelsView({
         await refresh()
       } catch (err) {
         toast.error((err as Error).message)
-      }
-    })
-  }
-
-  function handleDelete() {
-    if (!toDelete) return
-    const chat = toDelete
-    startDelete(async () => {
-      const res = await deleteChannel(chat.id)
-      if (res.ok) {
-        setChannels((prev) => prev.filter((c) => c.id !== chat.id))
-        toast.success(`"${chat.title}" removido da lista.`)
-        setToDelete(null)
-      } else {
-        toast.error(res.error ?? "Falha ao excluir.")
       }
     })
   }
@@ -554,13 +535,6 @@ export function ChannelsView({
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Sincronizar agora
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setToDelete(c)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir da lista
-                          </DropdownMenuItem>
                         </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -598,36 +572,6 @@ export function ChannelsView({
         </div>
       )}
     </div>
-
-    <Dialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Excluir "{toDelete?.title}"?</DialogTitle>
-          <DialogDescription>
-            {toDelete && deriveStatus(toDelete).key === "removed"
-              ? "Esse grupo/canal já foi removido no Telegram. Excluir apenas apaga o registro daqui do painel."
-              : "O bot ainda está presente nesse grupo/canal no Telegram. Excluir remove apenas o registro do painel — se o bot continuar lá, ele pode ser detectado novamente na próxima sincronização."}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setToDelete(null)}
-            disabled={deleting}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {deleting ? "Excluindo..." : "Excluir"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
     </TooltipProvider>
   )
 }
