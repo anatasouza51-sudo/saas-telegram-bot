@@ -18,10 +18,9 @@ export default async function PanelLayout({
       <MobileHeader />
       
       {/* 
-        Ajustado para pt-16 (64px) no mobile para compensar a nova altura da navbar.
-        md:pt-20 no desktop.
+        Ajustado para compensar a nova navbar flutuante (altura + margem do topo).
       */}
-      <main className="flex-1 pt-16 sm:pt-18 md:pt-20">
+      <main className="flex-1 pt-20 sm:pt-[88px] md:pt-24">
         {children}
       </main>
     </div>

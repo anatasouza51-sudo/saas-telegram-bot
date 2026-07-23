@@ -72,7 +72,7 @@ export const TopNavBar = memo(({
   return (
     <>
       {/* Top Navigation Bar — Aumentada para h-16 (64px) no mobile e h-20 no desktop */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] h-16 sm:h-18 md:h-20 backdrop-blur-md bg-slate-950/90 border-b border-blue-500/10 px-4 sm:px-6 md:px-10 shadow-lg flex items-center">
+      <nav className="fixed top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 md:top-4 md:left-4 md:right-4 z-[100] h-16 sm:h-18 md:h-20 backdrop-blur-md bg-slate-950/90 border border-blue-500/10 rounded-2xl px-4 sm:px-6 md:px-10 shadow-lg flex items-center">
         <div className="flex items-center justify-between gap-4 w-full">
           {/* Logo - Aumentado */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
@@ -160,9 +160,9 @@ export const TopNavBar = memo(({
         />
       )}
 
-      {/* Mobile Menu — Começa abaixo da nova altura da navbar (top-16) */}
+      {/* Mobile Menu — Começa abaixo da nova navbar flutuante */}
       {mobileMenuOpen && (
-        <div className="fixed top-16 left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-64px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300 shadow-2xl">
+        <div className="fixed top-[72px] left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-72px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300 shadow-2xl">
           <div className="px-4 py-4 space-y-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
