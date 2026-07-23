@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,137 +11,100 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCheckingSecure, setIsCheckingSecure] = useState(true);
+
+  // Simula a verificação rápida de segurança do navegador ao carregar a página
+  useEffect(() => {
+    const timer = setTimeout(() => setIsCheckingSecure(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // Lógica de autenticação aqui
+    // Lógica de autenticação
     console.log({ email, password, rememberMe });
-    
     setTimeout(() => setLoading(false), 1500);
   };
 
   return (
     <div className="min-h-screen w-full bg-[#050508] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Efeito de Fundo Estrelado/Cosmico */}
+      {/* Efeito de Fundo Estrelado */}
       <div 
         className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at center, #ffffff 1px, transparent 1px)`,
-          backgroundSize: '24px 24px'
-        }}
+        style={{ backgroundImage: `radial-gradient(circle at center, #ffffff 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
       />
 
-      {/* Logo GHOST BOT */}
-      <div className="mb-8 z-10 text-center">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-wider uppercase italic font-mono text-white">
-          GHOST BOT
-        </h1>
+      {/* LOGO DO PROJETO */}
+      <div className="mb-8 z-10 text-center flex flex-col items-center justify-center">
+        <Link href="/" className="flex flex-col items-center gap-3 group">
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            {/* Glow Effect matching the purple logo */}
+            <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
+            <Image
+              src="/ghostbot-final-logo.png"
+              alt="GHOST BOT"
+              width={80}
+              height={80}
+              className="relative object-contain transition-transform duration-300 group-hover:scale-110"
+              priority
+            />
+          </div>
+          <span className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
+            GHOST BOT
+          </span>
+        </Link>
       </div>
 
       {/* Card do Formulário */}
       <div className="w-full max-w-[420px] bg-[#0c0d12] border border-gray-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm">
-        
-        {/* Cabeçalho */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Bem-vindo de volta
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-400">
-            Receba pagamentos no Brasil e em qualquer lugar do mundo
-          </p>
+          <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo de volta</h2>
+          <p className="text-xs sm:text-sm text-gray-400">Acesse seu centro de comando e gerencie sua operação.</p>
         </div>
 
-        {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          
           {/* Campo E-MAIL */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">
-              E-MAIL
-            </label>
+            <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">E-MAIL</label>
             <div className="relative flex items-center">
               <Mail className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@empresa.com"
-                required
-                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition"
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@empresa.com" required className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" />
             </div>
           </div>
 
           {/* Campo SENHA */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">
-                SENHA
-              </label>
-              <Link 
-                href="/forgot-password" 
-                className="text-xs text-gray-400 hover:text-white transition"
-              >
-                Esqueceu Sua Senha?
-              </Link>
+              <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">SENHA</label>
+              <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
             </div>
             <div className="relative flex items-center">
               <Lock className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 text-gray-500 hover:text-gray-300 transition"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 text-gray-500 hover:text-gray-300 transition">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
 
-          {/* Checkbox Lembrar de mim */}
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="remember"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-800 bg-[#121319] text-white focus:ring-0 focus:ring-offset-0 cursor-pointer"
-            />
-            <label htmlFor="remember" className="text-xs text-gray-400 cursor-pointer select-none">
-              Lembrar de mim
-            </label>
-          </div>
-
-          {/* Widget de Verificação (Cloudflare Simulado) */}
-          <div className="my-3 p-3 bg-[#121319] border border-gray-800 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-gray-300">
-              <div className="h-3.5 w-3.5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-              <span>Verificando...</span>
-            </div>
-            <div className="text-[10px] text-gray-500 font-semibold tracking-wide">
-              CLOUDFLARE
-            </div>
+          {/* Widget de Verificação de Navegador */}
+          <div className="my-4 h-[42px] relative">
+            {isCheckingSecure ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#121319] border border-gray-800 rounded-xl text-xs text-gray-400 animate-pulse">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                <span>Analisando ambiente seguro...</span>
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-xs text-emerald-500 transition-all duration-500">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Navegação segura confirmada</span>
+              </div>
+            )}
           </div>
 
           {/* Botão de Envio */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2"
-          >
+          <button type="submit" disabled={loading || isCheckingSecure} className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2">
             {loading ? "Acessando..." : "Acessar painel"}
             <ArrowRight className="h-4 w-4" />
           </button>
@@ -148,12 +112,8 @@ export default function LoginPage() {
 
         {/* Rodapé do Card */}
         <div className="mt-6 text-center text-xs text-gray-400">
-          Não tem conta?{" "}
-          <Link href="/register" className="text-white font-bold hover:underline">
-            Criar conta gratuita
-          </Link>
+          Não tem conta? <Link href="/register" className="text-white font-bold hover:underline">Criar conta gratuita</Link>
         </div>
-
       </div>
     </div>
   );
