@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
-import { CheckoutFunnel } from "@/components/checkout-funnel"
 import { motion } from "framer-motion"
 import {
   Card,
@@ -81,14 +80,6 @@ export default function DashboardPage() {
     salesData: []
   }
 
-  const totalCheckouts = (stats?.pendingPayments || 0) + (stats?.approvedPayments || 0) + (stats?.refusedPayments || 0)
-  const approvedSales = stats?.approvedPayments || 0
-  const totalConversion = totalCheckouts > 0 ? (approvedSales / totalCheckouts) * 100 : 0
-  const funnelStages = [
-    { label: "Checkouts Totais", value: totalCheckouts, percentage: 100 },
-    { label: "Pagamentos Aprovados", value: approvedSales, percentage: totalConversion },
-  ]
-
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -118,12 +109,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 sm:mb-16">
+      <div className="grid grid-cols-1 gap-6 mb-12 sm:mb-16">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, duration: 0.3 }}
-          className="lg:col-span-2"
         >
           <Card className="relative overflow-hidden border-0 bg-blue-950/15 shadow-md h-full">
             <CardHeader className="pb-4 sm:pb-6">
@@ -140,14 +130,6 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
-        </motion.div>
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.35, duration: 0.3 }}
-          className="lg:col-span-1"
-        >
-          <CheckoutFunnel stages={funnelStages} totalConversion={totalConversion} />
         </motion.div>
       </div>
 
