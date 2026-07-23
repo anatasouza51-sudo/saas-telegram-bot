@@ -60,26 +60,44 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    
     if (isSignUp && password !== confirmPassword) {
       setError("As senhas não coincidem")
       return
     }
+    
     setLoading(true)
+    
     try {
       if (isSignUp) {
-        const { error } = await authClient.signUp.email({ email, password, name })
-        if (error) throw new Error(error.message || "Falha ao criar conta")
+        const result = await authClient.signUp.email({ email, password, name })
+        if (result.error) {
+          setError(result.error.message || "Falha ao criar conta")
+          setLoading(false)
+          return
+        }
+        // Auto sign-in after sign-up
         await authClient.signIn.email({ email, password })
       } else {
-        const { error } = await authClient.signIn.email({ email, password })
-        if (error) throw new Error(error.message || "Credenciais inválidas")
+        const result = await authClient.signIn.email({ email, password })
+        if (result.error) {
+          setError(result.error.message || "Credenciais inválidas")
+          setLoading(false)
+          return
+        }
       }
       
-      // Força a atualização do cache do router e redireciona para o painel
+      // Se chegamos aqui, o login foi bem sucedido
       router.refresh()
-      router.push("/") // O painel está na raiz (app/(panel)/page.tsx)
+      
+      // Pequeno delay para garantir que o refresh do router processe os cookies antes do push
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 100)
+      
     } catch (err) {
-      setError((err as Error).message)
+      console.error("Auth error:", err)
+      setError("Ocorreu um erro inesperado. Tente novamente.")
       setLoading(false)
     }
   }, [isSignUp, email, password, confirmPassword, name, router])

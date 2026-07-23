@@ -28,20 +28,28 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      const { error } = await authClient.signIn.email({ 
+      const result = await authClient.signIn.email({ 
         email, 
         password
       });
 
-      if (error) {
-        throw new Error(error.message || "Credenciais inválidas");
+      if (result.error) {
+        setError(result.error.message || "Credenciais inválidas");
+        setLoading(false);
+        return;
       }
 
-      // Força a atualização do cache do router e redireciona para o painel
+      // Sucesso no login
       router.refresh();
-      router.push("/"); 
+      
+      // Redirecionamento forçado para garantir a atualização do estado
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
+      
     } catch (err) {
-      setError((err as Error).message);
+      console.error("Login error:", err);
+      setError("Ocorreu um erro ao fazer login. Tente novamente.");
       setLoading(false);
     }
   };
