@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useCallback, memo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,6 +46,7 @@ const FormInput = memo(({
 FormInput.displayName = "FormInput"
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -72,12 +74,15 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         const { error } = await authClient.signIn.email({ email, password })
         if (error) throw new Error(error.message || "Credenciais inválidas")
       }
-      window.location.assign("/")
+      
+      // Força a atualização do cache do router e redireciona para o painel
+      router.refresh()
+      router.push("/") // O painel está na raiz (app/(panel)/page.tsx)
     } catch (err) {
       setError((err as Error).message)
       setLoading(false)
     }
-  }, [isSignUp, email, password, confirmPassword, name])
+  }, [isSignUp, email, password, confirmPassword, name, router])
 
   const togglePassword = useCallback(() => setShowPassword(prev => !prev), [])
 
