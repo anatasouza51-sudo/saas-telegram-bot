@@ -67,37 +67,51 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     }
     
     setLoading(true)
+    console.log("Iniciando processo de autenticação...");
     
     try {
       if (isSignUp) {
+        console.log("Tentando sign-up...");
         const result = await authClient.signUp.email({ email, password, name })
         if (result.error) {
+          console.error("Erro no sign-up:", result.error);
           setError(result.error.message || "Falha ao criar conta")
           setLoading(false)
           return
         }
-        // Auto sign-in after sign-up
+        console.log("Sign-up bem sucedido, tentando sign-in automático...");
         await authClient.signIn.email({ email, password })
       } else {
+        console.log("Tentando sign-in...");
         const result = await authClient.signIn.email({ email, password })
         if (result.error) {
+          console.error("Erro no sign-in:", result.error);
           setError(result.error.message || "Credenciais inválidas")
           setLoading(false)
           return
         }
       }
       
-      // Se chegamos aqui, o login foi bem sucedido
-      router.refresh()
+      console.log("Autenticação bem sucedida. Preparando redirecionamento...");
       
-      // Pequeno delay para garantir que o refresh do router processe os cookies antes do push
+      // Força a limpeza do cache do roteador
+      router.refresh();
+      
+      // Tenta redirecionar usando múltiplos métodos para garantir sucesso
+      console.log("Executando redirecionamento...");
+      
+      // Método 1: Router Push (SPA)
+      router.push("/");
+      
+      // Método 2: Fallback para Hard Reload (Garante que os cookies sejam lidos pelo middleware/SSR)
       setTimeout(() => {
-        window.location.href = "/"
-      }, 100)
+        console.log("Executando fallback de redirecionamento via window.location...");
+        window.location.assign("/");
+      }, 500);
       
     } catch (err) {
-      console.error("Auth error:", err)
-      setError("Ocorreu um erro inesperado. Tente novamente.")
+      console.error("Exceção capturada no handleSubmit:", err);
+      setError("Erro de sistema. Verifique sua conexão.");
       setLoading(false)
     }
   }, [isSignUp, email, password, confirmPassword, name, router])
