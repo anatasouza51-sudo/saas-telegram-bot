@@ -30,16 +30,16 @@ export default function LoginPage() {
     try {
       const { error } = await authClient.signIn.email({ 
         email, 
-        password,
-        callbackURL: "/" 
+        password
       });
 
       if (error) {
         throw new Error(error.message || "Credenciais inválidas");
       }
 
-      // Redirecionamento forçado via window.location para garantir que o estado da sessão seja atualizado
-      window.location.assign("/");
+      // Força a atualização do cache do router e redireciona para o painel
+      router.refresh();
+      router.push("/"); 
     } catch (err) {
       setError((err as Error).message);
       setLoading(false);
@@ -103,7 +103,7 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">SENHA</label>
-              <Link href="/forgot-password" size="sm" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
+              <Link href="/forget-password" size="sm" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
             </div>
             <div className="relative flex items-center">
               <Lock className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
