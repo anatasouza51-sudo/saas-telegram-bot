@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,9 +24,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Lógica de autenticação
+    
+    // Lógica de autenticação simulada ou real aqui
     console.log({ email, password, rememberMe });
-    setTimeout(() => setLoading(false), 1500);
+    
+    // Simula um tempo de resposta e redireciona para o painel
+    setTimeout(() => {
+      setLoading(false);
+      router.push("/"); // Redireciona para a rota principal (Dashboard)
+      router.refresh();
+    }, 1500);
   };
 
   return (
