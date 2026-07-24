@@ -11,6 +11,7 @@ import { getStoreTelegram } from "@/lib/tg/config"
 import { sendPost, type ResolvedMedia } from "@/lib/tg/send"
 import { parseButtons } from "@/lib/tg/buttons"
 import { notifyManagement } from "@/lib/tg/management"
+import { formatTarget, parseTarget, type Destination } from "@/lib/tg/topics"
 import type { TelegramMediaKind } from "@/lib/telegram"
 
 // Telegram allows ~30 msgs/sec globally and ~20/min per group. We stay well
@@ -24,16 +25,19 @@ const STALE_PROCESSING_MS = 10 * 60_000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export type TargetSpec = string[] // chat ids, or tokens: all | all_groups | all_channels
+// Target tokens: "<chatId>", "<chatId>:<threadId>" (a forum topic), or one of
+// the wildcards all | all_groups | all_channels.
+export type TargetSpec = string[]
 
 /**
- * Expands a target spec into concrete, active chat ids where the bot is admin.
- * Chats without admin rights are skipped (they can't receive posts).
+ * Expands a target spec into concrete, active destinations where the bot is
+ * admin. Chats without admin rights are skipped (they can't receive posts).
+ * A destination keeps the forum topic chosen by the admin, when any.
  */
 export async function resolveTargets(
   storeId: string,
   targets: TargetSpec,
-): Promise<string[]> {
+): Promise<Destination[]> {
   const rows = await db
     .select({
       chatId: telegramChats.chatId,
@@ -52,16 +56,35 @@ export async function resolveTargets(
   const wantAll = targets.includes("all")
   const wantGroups = wantAll || targets.includes("all_groups")
   const wantChannels = wantAll || targets.includes("all_channels")
-  const explicit = new Set(targets.filter((t) => !t.startsWith("all")))
+  const explicit = targets
+    .filter((t) => !t.startsWith("all"))
+    .map(parseTarget)
 
-  const selected = usable.filter((r) => {
+  const usableIds = new Set(usable.map((r) => r.chatId))
+  const out = new Map<string, Destination>()
+
+  for (const r of usable) {
     const isChannel = r.type === "channel"
-    if (isChannel && wantChannels) return true
-    if (!isChannel && wantGroups) return true
-    return explicit.has(r.chatId)
-  })
+    if ((isChannel && wantChannels) || (!isChannel && wantGroups)) {
+      out.set(r.chatId, { chatId: r.chatId, threadId: null })
+    }
+  }
+  for (const dest of explicit) {
+    if (!usableIds.has(dest.chatId)) continue
+    out.set(formatTarget(dest.chatId, dest.threadId), dest)
+  }
+  // A topic pick replaces the wildcard's chat-wide entry, so a chat covered by
+  // "all" receives the post in the chosen topic only — not twice.
+  const pickedWholeChat = new Set(
+    explicit.filter((d) => d.threadId == null).map((d) => d.chatId),
+  )
+  for (const dest of explicit) {
+    if (dest.threadId != null && !pickedWholeChat.has(dest.chatId)) {
+      out.delete(dest.chatId)
+    }
+  }
 
-  return Array.from(new Set(selected.map((r) => r.chatId)))
+  return Array.from(out.values())
 }
 
 /**
@@ -75,14 +98,15 @@ export async function enqueuePost(params: {
   scheduleId?: number | null
   scheduledFor?: Date
 }): Promise<number> {
-  const chatIds = await resolveTargets(params.storeId, params.targets)
-  if (chatIds.length === 0) return 0
+  const destinations = await resolveTargets(params.storeId, params.targets)
+  if (destinations.length === 0) return 0
   await db.insert(telegramQueue).values(
-    chatIds.map((chatId) => ({
+    destinations.map((dest) => ({
       ownerId: params.storeId,
       postId: params.postId,
       scheduleId: params.scheduleId ?? null,
-      chatId,
+      chatId: dest.chatId,
+      messageThreadId: dest.threadId,
       scheduledFor: params.scheduledFor ?? new Date(),
       status: "pending" as const,
     })),
@@ -96,7 +120,7 @@ export async function enqueuePost(params: {
         eq(telegramPosts.ownerId, params.storeId),
       ),
     )
-  return chatIds.length
+  return destinations.length
 }
 
 // Resolves a post's stored media id list into ordered {fileId,type} entries.
@@ -190,7 +214,12 @@ export async function processQueue(
         continue
       }
 
-      const res = await sendPost(cfg.client, item.chatId, post.renderable)
+      const res = await sendPost(
+        cfg.client,
+        item.chatId,
+        post.renderable,
+        item.messageThreadId,
+      )
 
       if (res.ok) {
         await db
