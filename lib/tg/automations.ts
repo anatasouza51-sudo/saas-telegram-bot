@@ -120,8 +120,13 @@ export async function runAutomations(
 
         let targets: TargetSpec = []
         try {
-          targets = JSON.parse(auto.targets)
-        } catch {
+          const parsed = JSON.parse(auto.targets) as unknown
+          targets = Array.isArray(parsed) ? (parsed as TargetSpec) : []
+        } catch (err) {
+          console.error(
+            `[tg/automations] malformed targets on automation ${auto.id}:`,
+            err,
+          )
           targets = []
         }
         const enqueued = await enqueuePost({
@@ -142,6 +147,16 @@ export async function runAutomations(
           category: "posts",
         })
       } catch (err) {
+        console.error(
+          `[tg/automations] automation ${auto.id} (${trigger}) failed:`,
+          err,
+        )
+        await logActivity({
+          storeId,
+          action: `Falha na automação "${auto.name}" (${TRIGGER_LABEL[trigger]})`,
+          category: "posts",
+          details: err instanceof Error ? err.message : "Erro desconhecido",
+        })
         await notifyManagement(
           storeId,
           "error",
@@ -155,8 +170,16 @@ export async function runAutomations(
       }
     }
     return fired
-  } catch {
-    // Swallow: automations must never break the core product/stock flow.
+  } catch (err) {
+    // Automations must never break the core product/stock flow, but the
+    // failure has to be recorded instead of vanishing.
+    console.error(`[tg/automations] trigger ${trigger} failed:`, err)
+    await logActivity({
+      storeId,
+      action: `Falha ao executar automações do gatilho "${TRIGGER_LABEL[trigger]}"`,
+      category: "posts",
+      details: err instanceof Error ? err.message : "Erro desconhecido",
+    })
     return 0
   }
 }

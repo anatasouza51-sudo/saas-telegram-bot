@@ -18,6 +18,9 @@ import type { TelegramMediaKind } from "@/lib/telegram"
 const SEND_DELAY_MS = 120
 const BATCH_SIZE = 20
 const BACKOFF_BASE_MS = 30_000
+// An item left in `processing` for longer than this is considered orphaned
+// (the run that claimed it crashed or timed out) and is requeued.
+const STALE_PROCESSING_MS = 10 * 60_000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -102,13 +105,8 @@ async function resolveMedia(
   mediaIdsJson: string | null,
 ): Promise<ResolvedMedia[]> {
   if (!mediaIdsJson) return []
-  let ids: number[] = []
-  try {
-    ids = JSON.parse(mediaIdsJson)
-  } catch {
-    return []
-  }
-  if (!Array.isArray(ids) || ids.length === 0) return []
+  const ids = parseMediaIds(mediaIdsJson)
+  if (ids.length === 0) return []
   const rows = await db
     .select({
       id: telegramMedia.id,
@@ -137,6 +135,7 @@ export async function processQueue(
   limit = BATCH_SIZE,
 ): Promise<{ processed: number; sent: number; failed: number }> {
   const now = new Date()
+  await requeueStaleItems(now)
   const items = await db
     .select()
     .from(telegramQueue)
@@ -159,50 +158,66 @@ export async function processQueue(
   let failed = 0
 
   for (const item of items) {
-    // Mark processing to avoid double-send if runs overlap.
-    await db
-      .update(telegramQueue)
-      .set({ status: "processing", updatedAt: new Date() })
-      .where(eq(telegramQueue.id, item.id))
-
-    let cfg = clients.get(item.ownerId)
-    if (!cfg) {
-      cfg = await getStoreTelegram(item.ownerId)
-      clients.set(item.ownerId, cfg)
-    }
-
-    if (!cfg.client) {
-      await failItem(item.id, item.attempts, item.maxAttempts, "Bot não configurado")
-      failed++
-      continue
-    }
-
-    let post = posts.get(item.postId)
-    if (post === undefined) {
-      post = await loadPost(item.ownerId, item.postId)
-      posts.set(item.postId, post)
-    }
-    if (!post) {
-      await failItem(item.id, item.attempts, item.maxAttempts, "Postagem não encontrada")
-      failed++
-      continue
-    }
-
-    const res = await sendPost(cfg.client, item.chatId, post.renderable)
-
-    if (res.ok) {
+    // Every item is isolated: an unexpected error must not abort the batch nor
+    // strand the item in `processing` forever.
+    try {
+      // Mark processing to avoid double-send if runs overlap.
       await db
         .update(telegramQueue)
-        .set({
-          status: "sent",
-          sentMessageId: res.messageId ?? null,
-          updatedAt: new Date(),
-        })
+        .set({ status: "processing", updatedAt: new Date() })
         .where(eq(telegramQueue.id, item.id))
-      sent++
-    } else {
-      await failItem(item.id, item.attempts, item.maxAttempts, res.error ?? "Erro")
+
+      let cfg = clients.get(item.ownerId)
+      if (!cfg) {
+        cfg = await getStoreTelegram(item.ownerId)
+        clients.set(item.ownerId, cfg)
+      }
+
+      if (!cfg.client) {
+        await failItem(item.id, item.attempts, item.maxAttempts, "Bot não configurado")
+        failed++
+        continue
+      }
+
+      let post = posts.get(item.postId)
+      if (post === undefined) {
+        post = await loadPost(item.ownerId, item.postId)
+        posts.set(item.postId, post)
+      }
+      if (!post) {
+        await failItem(item.id, item.attempts, item.maxAttempts, "Postagem não encontrada")
+        failed++
+        continue
+      }
+
+      const res = await sendPost(cfg.client, item.chatId, post.renderable)
+
+      if (res.ok) {
+        await db
+          .update(telegramQueue)
+          .set({
+            status: "sent",
+            sentMessageId: res.messageId ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(telegramQueue.id, item.id))
+        sent++
+      } else {
+        await failItem(item.id, item.attempts, item.maxAttempts, res.error ?? "Erro")
+        failed++
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro inesperado"
+      console.error(`[tg/queue] item ${item.id} failed:`, err)
       failed++
+      try {
+        await failItem(item.id, item.attempts, item.maxAttempts, message)
+      } catch (persistErr) {
+        // The DB is unreachable: stop the run instead of burning the batch
+        // against a backend that cannot record any outcome.
+        console.error("[tg/queue] could not persist failure:", persistErr)
+        throw err
+      }
     }
 
     await sleep(SEND_DELAY_MS)
@@ -212,6 +227,25 @@ export async function processQueue(
   await finalizePosts(Array.from(posts.keys()))
 
   return { processed: items.length, sent, failed }
+}
+
+// Returns items abandoned mid-flight by a crashed run back to `pending` so the
+// next run retries them (respecting their attempt counter).
+async function requeueStaleItems(now: Date) {
+  const cutoff = new Date(now.getTime() - STALE_PROCESSING_MS)
+  await db
+    .update(telegramQueue)
+    .set({
+      status: "pending",
+      lastError: "Reenfileirado após execução interrompida",
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(telegramQueue.status, "processing"),
+        lte(telegramQueue.updatedAt, cutoff),
+      ),
+    )
 }
 
 async function loadPost(storeId: string, postId: number) {
@@ -266,50 +300,67 @@ async function failItem(
 // into the management group.
 async function finalizePosts(postIds: number[]) {
   for (const postId of postIds) {
-    const [counts] = await db
+    try {
+      await finalizePost(postId)
+    } catch (err) {
+      // One bad post must not prevent the others from being finalized.
+      console.error(`[tg/queue] could not finalize post ${postId}:`, err)
+    }
+  }
+}
+
+async function finalizePost(postId: number) {
+  const [counts] = await db
       .select({
         pending: sql<number>`COUNT(*) FILTER (WHERE status IN ('pending','processing'))::int`,
         sent: sql<number>`COUNT(*) FILTER (WHERE status = 'sent')::int`,
         failed: sql<number>`COUNT(*) FILTER (WHERE status = 'failed')::int`,
       })
       .from(telegramQueue)
-      .where(eq(telegramQueue.postId, postId))
+    .where(eq(telegramQueue.postId, postId))
 
-    if (!counts || counts.pending > 0) continue // still in flight
+  if (!counts || counts.pending > 0) return // still in flight
 
-    const [post] = await db
-      .select()
-      .from(telegramPosts)
-      .where(eq(telegramPosts.id, postId))
-      .limit(1)
-    if (!post || post.status === "sent" || post.status === "failed") continue
+  const [post] = await db
+    .select()
+    .from(telegramPosts)
+    .where(eq(telegramPosts.id, postId))
+    .limit(1)
+  if (!post || post.status === "sent" || post.status === "failed") return
 
-    const status = counts.sent > 0 ? "sent" : "failed"
-    await db
-      .update(telegramPosts)
-      .set({ status, sentAt: new Date(), updatedAt: new Date() })
-      .where(eq(telegramPosts.id, postId))
+  const status = counts.sent > 0 ? "sent" : "failed"
+  await db
+    .update(telegramPosts)
+    .set({ status, sentAt: new Date(), updatedAt: new Date() })
+    .where(eq(telegramPosts.id, postId))
 
-    // Bump usage counters for the media used by this dispatched post.
-    if (post.mediaIds) {
-      try {
-        const ids = JSON.parse(post.mediaIds) as number[]
-        if (Array.isArray(ids) && ids.length) {
-          await db
-            .update(telegramMedia)
-            .set({ usageCount: sql`${telegramMedia.usageCount} + 1` })
-            .where(inArray(telegramMedia.id, ids))
-        }
-      } catch {
-        // ignore malformed media list
-      }
+  // Bump usage counters for the media used by this dispatched post.
+  if (post.mediaIds) {
+    const ids = parseMediaIds(post.mediaIds)
+    if (ids.length) {
+      await db
+        .update(telegramMedia)
+        .set({ usageCount: sql`${telegramMedia.usageCount} + 1` })
+        .where(inArray(telegramMedia.id, ids))
     }
+  }
 
-    await notifyManagement(
-      post.ownerId,
-      status === "sent" ? "success" : "error",
-      `Postagem "${post.title ?? `#${post.id}`}" ${status === "sent" ? "publicada" : "falhou"}`,
-      `Enviadas: ${counts.sent} • Falhas: ${counts.failed}`,
-    )
+  await notifyManagement(
+    post.ownerId,
+    status === "sent" ? "success" : "error",
+    `Postagem "${post.title ?? `#${post.id}`}" ${status === "sent" ? "publicada" : "falhou"}`,
+    `Enviadas: ${counts.sent} • Falhas: ${counts.failed}`,
+  )
+}
+
+// A malformed media list is a data problem, not a reason to fail the post — it
+// is logged and treated as "no media".
+function parseMediaIds(raw: string): number[] {
+  try {
+    const ids = JSON.parse(raw) as unknown
+    return Array.isArray(ids) ? (ids as number[]) : []
+  } catch (err) {
+    console.error("[tg/queue] malformed mediaIds:", raw, err)
+    return []
   }
 }
