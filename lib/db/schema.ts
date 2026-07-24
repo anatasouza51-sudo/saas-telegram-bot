@@ -223,6 +223,9 @@ export const telegramChats = pgTable(
     grantedPermissions: text("grantedPermissions"),
     // audience | cdn | management
     purpose: text("purpose").notNull().default("audience"),
+    // Supergroups with topics enabled (Telegram forums). Posts to these chats
+    // can target a specific topic via message_thread_id.
+    isForum: boolean("isForum").notNull().default(false),
     // Cached member count from getChatMemberCount (null when API forbids it).
     memberCount: integer("memberCount"),
     lastSyncedAt: timestamp("lastSyncedAt"),
@@ -234,6 +237,32 @@ export const telegramChats = pgTable(
       t.ownerId,
       t.chatId,
     ),
+  }),
+)
+
+// Topics (forum threads) of a supergroup. Telegram offers no "list topics"
+// API, so rows come from webhook events (any message inside a topic) or are
+// registered manually by the admin with the topic's id.
+export const telegramTopics = pgTable(
+  "telegram_topics",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    chatId: text("chatId").notNull(),
+    // message_thread_id of the topic. 1 is the "General" topic.
+    threadId: integer("threadId").notNull(),
+    name: text("name").notNull(),
+    // auto (detected from an update) | manual (registered in the panel)
+    source: text("source").notNull().default("auto"),
+    active: boolean("active").notNull().default(true),
+    lastSeenAt: timestamp("lastSeenAt"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerChatThreadUnique: uniqueIndex(
+      "telegram_topics_owner_chat_thread_uidx",
+    ).on(t.ownerId, t.chatId, t.threadId),
   }),
 )
 
@@ -289,6 +318,9 @@ export const telegramTemplates = pgTable("telegram_templates", {
   mediaIds: text("mediaIds"),
   // JSON array of button rows
   buttons: text("buttons"),
+  // JSON array of default target tokens ("<chatId>" or "<chatId>:<threadId>"),
+  // pre-selected in the editor when the template is used.
+  defaultTargets: text("defaultTargets"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
@@ -316,7 +348,8 @@ export const telegramSchedules = pgTable("telegram_schedules", {
   id: serial("id").primaryKey(),
   ownerId: text("ownerId").notNull(),
   postId: integer("postId").notNull(),
-  // JSON: array of chat ids, or tokens "all_groups" | "all_channels" | "all"
+  // JSON: array of target tokens ("<chatId>" or "<chatId>:<threadId>"), or
+  // "all_groups" | "all_channels" | "all"
   targets: text("targets").notNull(),
   // now | once | recurring
   scheduleType: text("scheduleType").notNull().default("now"),
@@ -338,6 +371,8 @@ export const telegramQueue = pgTable("telegram_queue", {
   postId: integer("postId").notNull(),
   scheduleId: integer("scheduleId"),
   chatId: text("chatId").notNull(),
+  // Forum topic to deliver into (null = the chat's general area).
+  messageThreadId: integer("messageThreadId"),
   // pending | processing | sent | failed
   status: text("status").notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),

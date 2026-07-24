@@ -3,6 +3,7 @@ import {
   listChannels,
   getTelegramDiagnostics,
 } from "@/app/actions/tg-channels"
+import { listTopics } from "@/app/actions/tg-topics"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
 
@@ -12,8 +13,9 @@ export const dynamic = "force-dynamic"
 
 export default async function ChannelsPage() {
   const user = await requireCapability("posts.manage")
-  const [channels, tg, diagnostics] = await Promise.all([
+  const [channels, topics, tg, diagnostics] = await Promise.all([
     listChannels(),
+    listTopics(),
     getStoreTelegram(user.storeId),
     getTelegramDiagnostics().catch(() => null),
   ])
@@ -22,6 +24,7 @@ export default async function ChannelsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <ChannelsView
         channels={channels}
+        topics={topics}
         botConfigured={Boolean(tg.token)}
         diagnostics={diagnostics}
       />

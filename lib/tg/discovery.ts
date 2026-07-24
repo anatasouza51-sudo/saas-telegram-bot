@@ -134,6 +134,8 @@ type UpsertInput = {
   member: TelegramChatMember
   memberCount?: number | null
   botId?: number | null
+  // Only known when Telegram reports it; left undefined the flag is untouched.
+  isForum?: boolean
 }
 
 // Inserts or updates a chat row from freshly resolved Telegram data. The
@@ -153,6 +155,9 @@ async function upsertChat(input: UpsertInput) {
   const missing = missingPermissions(input.member, input.type)
   const granted = grantedPermissions(input.member, input.type)
 
+  const forumPatch =
+    input.isForum === undefined ? {} : { isForum: input.isForum }
+
   const values = {
     ownerId: input.storeId,
     title: input.title,
@@ -170,7 +175,7 @@ async function upsertChat(input: UpsertInput) {
 
   await db
     .insert(telegramChats)
-    .values(values)
+    .values({ ...values, ...forumPatch })
     .onConflictDoUpdate({
       target: [telegramChats.ownerId, telegramChats.chatId],
       // Never overwrite `purpose` here — it's set explicitly by the admin.
@@ -185,6 +190,7 @@ async function upsertChat(input: UpsertInput) {
         memberCount: values.memberCount,
         lastSyncedAt: values.lastSyncedAt,
         updatedAt: values.updatedAt,
+        ...forumPatch,
       },
     })
 }
@@ -220,6 +226,7 @@ export async function handleMyChatMember(
     member,
     memberCount,
     botId: client.botId,
+    isForum: chat.is_forum,
   })
 }
 
@@ -230,7 +237,13 @@ export async function handleMyChatMember(
 // chat. This is the key fix for "the bot is in the group but nothing shows up".
 export async function detectChatFromUpdate(
   storeId: string,
-  chat: { id: number; type: string; title?: string; username?: string },
+  chat: {
+    id: number
+    type: string
+    title?: string
+    username?: string
+    is_forum?: boolean
+  },
   botId: number,
   client: TelegramClient,
 ): Promise<void> {
@@ -276,6 +289,7 @@ export async function detectChatFromUpdate(
     member,
     memberCount,
     botId,
+    isForum: chat.is_forum,
   })
 }
 
@@ -393,6 +407,7 @@ export async function syncKnownChats(
         member,
         memberCount,
         botId,
+        isForum: info.is_forum,
       })
 
       if (isPresent(member.status)) result.updated += 1
@@ -482,6 +497,7 @@ export async function addChatManually(
     member,
     memberCount,
     botId,
+    isForum: info.is_forum,
   })
 
   const isAdmin =
