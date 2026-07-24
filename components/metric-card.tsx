@@ -83,11 +83,11 @@ export const MetricCard = memo(({
       transition={{ duration: 0.35, delay: index * 0.08 }}
       whileHover={{ y: -4, transition: { duration: 0.15 } }}
       className={cn(
-        "relative flex items-center justify-between overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-6 sm:px-8 py-8 sm:py-10 shadow-md transition-shadow duration-300",
+        "relative flex flex-col items-center text-center gap-4 sm:flex-row sm:items-center sm:justify-between sm:text-left overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-5 sm:px-8 py-8 sm:py-10 shadow-md transition-shadow duration-300",
         colorMap[color]
       )}
     >
-      <div className="relative z-10 flex flex-col gap-2 flex-1">
+      <div className="relative z-10 flex flex-col items-center text-center sm:items-start sm:text-left gap-2 flex-1">
         <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
           {title}
         </p>
@@ -102,7 +102,7 @@ export const MetricCard = memo(({
         </motion.p>
 
         {trend && trendValue && (
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-2">
             {trend === "up" ? (
               <TrendingUp className="w-4 h-4 text-green-400 shrink-0" />
             ) : (
@@ -118,7 +118,7 @@ export const MetricCard = memo(({
         )}
       </div>
 
-      {/* Ícone circular à direita */}
+      {/* Ícone circular — centralizado no mobile, à direita a partir de sm */}
       <motion.div 
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
@@ -129,7 +129,7 @@ export const MetricCard = memo(({
           delay: index * 0.08 + 0.15 
         }}
         className={cn(
-          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-sm flex-shrink-0 ml-4",
+          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-sm flex-shrink-0 sm:ml-4",
           iconBgMap[color]
         )}
       >
