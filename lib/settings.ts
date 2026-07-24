@@ -1,7 +1,7 @@
 import "server-only"
 import { db } from "@/lib/db"
 import { settings } from "@/lib/db/schema"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 
 /**
  * Internal, server-only settings helpers.
@@ -39,13 +39,26 @@ export async function getSetting(
 }
 
 export async function saveSetting(storeId: string, key: string, value: string) {
+  await saveSettings(storeId, { [key]: value })
+}
+
+export async function saveSettings(
+  storeId: string,
+  values: Record<string, string>,
+) {
+  const rows = Object.entries(values).map(([key, value]) => ({
+    ownerId: storeId,
+    key,
+    value,
+  }))
+  if (rows.length === 0) return
   // Atomic upsert backed by the unique index on (ownerId, key). Avoids the
   // read-then-write race that could create duplicate rows under concurrency.
   await db
     .insert(settings)
-    .values({ ownerId: storeId, key, value })
+    .values(rows)
     .onConflictDoUpdate({
       target: [settings.ownerId, settings.key],
-      set: { value, updatedAt: new Date() },
+      set: { value: sql`excluded.value`, updatedAt: new Date() },
     })
 }

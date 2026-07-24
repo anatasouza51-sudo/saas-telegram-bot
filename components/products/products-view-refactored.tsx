@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useMemo, useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -35,7 +36,6 @@ import {
   setProductStatus,
 } from "@/app/actions/products"
 import { formatCurrency } from "@/lib/format"
-import { toast } from "sonner"
 import { useMediaQuery } from "@/hooks/use-mobile"
 import {
   Plus,
@@ -98,7 +98,7 @@ export function ProductsViewRefactored({
   const [filters, setFilters] = useState<FilterOption[]>(["all"])
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [page, setPage] = useState(1)
-  const [, startTransition] = useTransition()
+  const { run } = useServerAction()
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   const [productDialog, setProductDialog] = useState<{
@@ -188,17 +188,6 @@ export function ProductsViewRefactored({
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-
-  function action(fn: () => Promise<unknown>, successMsg: string) {
-    startTransition(async () => {
-      try {
-        await fn()
-        toast.success(successMsg)
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
-    })
-  }
 
   const toggleFilter = (filter: FilterOption) => {
     setFilters((prev) => {
@@ -436,13 +425,13 @@ export function ProductsViewRefactored({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
-                              action(
+                              run(
                                 () =>
                                   setProductStatus(
                                     p.id,
                                     p.status === "active" ? "inactive" : "active",
                                   ),
-                                "Status atualizado",
+                                { success: "Status atualizado" },
                               )
                             }
                           >
@@ -451,7 +440,7 @@ export function ProductsViewRefactored({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
-                              action(() => duplicateProduct(p.id), "Produto duplicado")
+                              run(() => duplicateProduct(p.id), { success: "Produto duplicado" })
                             }
                           >
                             <Copy className="mr-2 h-4 w-4" />
@@ -461,7 +450,7 @@ export function ProductsViewRefactored({
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() =>
-                              action(() => deleteProduct(p.id), "Produto excluído")
+                              run(() => deleteProduct(p.id), { success: "Produto excluído" })
                             }
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -522,13 +511,13 @@ export function ProductsViewRefactored({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
-                            action(
+                            run(
                               () =>
                                 setProductStatus(
                                   p.id,
                                   p.status === "active" ? "inactive" : "active",
                                 ),
-                              "Status atualizado",
+                              { success: "Status atualizado" },
                             )
                           }
                         >
@@ -537,7 +526,7 @@ export function ProductsViewRefactored({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
-                            action(() => duplicateProduct(p.id), "Produto duplicado")
+                            run(() => duplicateProduct(p.id), { success: "Produto duplicado" })
                           }
                         >
                           <Copy className="mr-2 h-4 w-4" />
@@ -547,7 +536,7 @@ export function ProductsViewRefactored({
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() =>
-                            action(() => deleteProduct(p.id), "Produto excluído")
+                            run(() => deleteProduct(p.id), { success: "Produto excluído" })
                           }
                         >
                           <Trash2 className="mr-2 h-4 w-4" />

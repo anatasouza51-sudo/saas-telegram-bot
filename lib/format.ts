@@ -6,6 +6,17 @@ export function formatCurrency(value: number | string) {
   }).format(Number.isFinite(n) ? n : 0)
 }
 
+/** Compact currency for dense UI (charts axes): R$ 1,2 mil. */
+export function formatCompactCurrency(value: number | string) {
+  const n = typeof value === "string" ? Number.parseFloat(value) : value
+  return new Intl.NumberFormat("pt-BR", {
+    notation: "compact",
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 1,
+  }).format(Number.isFinite(n) ? n : 0)
+}
+
 export function formatNumber(value: number | string) {
   const n = typeof value === "string" ? Number.parseFloat(value) : value
   return new Intl.NumberFormat("pt-BR").format(Number.isFinite(n) ? n : 0)

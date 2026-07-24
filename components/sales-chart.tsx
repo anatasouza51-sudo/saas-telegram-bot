@@ -8,6 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { formatCompactCurrency, formatCurrency } from "@/lib/format"
 import type { SalesPoint } from "@/lib/queries/dashboard"
 
 const chartConfig = {
@@ -16,19 +17,6 @@ const chartConfig = {
     color: "#8b5cf6",
   },
 } satisfies ChartConfig
-
-// Memoized formatters to avoid recreation on each render
-const compactCurrency = new Intl.NumberFormat("pt-BR", {
-  notation: "compact",
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 1,
-});
-
-const fullCurrency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
 
 export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
   const formatted = useMemo(() => data.map((d) => ({
@@ -60,14 +48,14 @@ export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
           tickLine={false}
           axisLine={false}
           width={48}
-          tickFormatter={(v) => compactCurrency.format(v as number)}
+          tickFormatter={(v) => formatCompactCurrency(v as number)}
         />
         <ChartTooltip
           content={
             <ChartTooltipContent
               labelFormatter={(v) => `Dia ${v}`}
               formatter={(value) => [
-                fullCurrency.format(value as number),
+                formatCurrency(value as number),
                 " Receita",
               ]}
             />

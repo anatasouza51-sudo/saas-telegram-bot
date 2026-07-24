@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { formatDateTime } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -195,7 +196,7 @@ function ReportCard({
           </div>
           {report.sentAt && (
             <p className="text-[10px] text-muted-foreground/60 mt-1">
-              Enviada em {new Date(report.sentAt).toLocaleString("pt-BR")}
+              Enviada em {formatDateTime(report.sentAt)}
             </p>
           )}
         </div>

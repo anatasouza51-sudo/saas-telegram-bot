@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -24,7 +25,6 @@ import {
   reorderCategories,
   setCategoryStatus,
 } from "@/app/actions/categories"
-import { toast } from "sonner"
 import {
   Plus,
   MoreHorizontal,
@@ -42,7 +42,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   // Local order enables instant, optimistic reordering while the server
   // persists sequential positions. Re-seeded whenever server data changes.
   const [order, setOrder] = useState<Row[]>(categories)
-  const [pending, startTransition] = useTransition()
+  const { pending, run } = useServerAction()
   const [dialog, setDialog] = useState<{ open: boolean; category?: Row | null }>({
     open: false,
   })
@@ -51,27 +51,15 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     setOrder(categories)
   }, [categories])
 
-  function action(fn: () => Promise<unknown>, successMsg: string) {
-    startTransition(async () => {
-      try {
-        await fn()
-        toast.success(successMsg)
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
-    })
-  }
-
   function move(index: number, dir: -1 | 1) {
     const target = index + dir
     if (target < 0 || target >= order.length) return
     const next = [...order]
     ;[next[index], next[target]] = [next[target], next[index]]
     setOrder(next)
-    action(
-      () => reorderCategories(next.map((c) => c.id)),
-      "Ordem atualizada",
-    )
+    run(() => reorderCategories(next.map((c) => c.id)), {
+      success: "Ordem atualizada",
+    })
   }
 
   return (
@@ -184,13 +172,13 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
-                          action(
+                          run(
                             () =>
                               setCategoryStatus(
                                 c.id,
                                 c.status === "active" ? "inactive" : "active",
                               ),
-                            "Status atualizado",
+                            { success: "Status atualizado" },
                           )
                         }
                       >
@@ -201,7 +189,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() =>
-                          action(() => deleteCategoryFull(c.id), "Categoria excluída")
+                          run(() => deleteCategoryFull(c.id), { success: "Categoria excluída" })
                         }
                       >
                         <Trash2 className="mr-2 h-4 w-4" />

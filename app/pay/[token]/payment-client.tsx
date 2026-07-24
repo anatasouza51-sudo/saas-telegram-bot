@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Check, Copy, Clock, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatCurrency } from "@/lib/format"
 
 type Status = "pending" | "approved" | "expired" | "cancelled" | "refused"
 
@@ -21,13 +22,6 @@ type Props = {
   copyLabel: string
   approvedMessage: string
   expiredMessage: string
-}
-
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value)
 }
 
 export function PaymentClient(props: Props) {
@@ -116,7 +110,7 @@ export function PaymentClient(props: Props) {
               {props.productName}
             </h1>
             <p className="mt-2 text-3xl font-bold text-card-foreground">
-              {formatBRL(props.amount)}
+              {formatCurrency(props.amount)}
             </p>
           </header>
 
