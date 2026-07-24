@@ -1,7 +1,8 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { telegramChats, telegramTopics } from "@/lib/db/schema"
+import { telegramTopics } from "@/lib/db/schema"
+import { ensureDbStructure } from "@/lib/db/migrate"
 import { and, asc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
@@ -19,6 +20,7 @@ export type TopicRow = {
 
 export async function listTopics(): Promise<TopicRow[]> {
   try {
+    await ensureDbStructure()
     const { storeId } = await requireCapability("posts.manage")
     const rows = await db
       .select({

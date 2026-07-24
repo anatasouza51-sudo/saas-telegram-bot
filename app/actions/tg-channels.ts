@@ -12,6 +12,7 @@ import {
   isRealChatType,
   addChatManually,
 } from "@/lib/tg/discovery"
+import { ensureDbStructure } from "@/lib/db/migrate"
 import {
   isExclusivePurpose,
   isValidPurpose,
@@ -51,6 +52,7 @@ async function syncPurposeSettings(storeId: string) {
 // row (e.g. a private/bot chat) can never surface in the UI.
 export async function listChannels() {
   try {
+    await ensureDbStructure()
     const { storeId } = await requireCapability("posts.manage")
     const rows = await db
       .select()
