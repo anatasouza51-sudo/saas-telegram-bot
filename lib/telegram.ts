@@ -61,6 +61,7 @@ export class TelegramClient {
     options?: {
       replyMarkup?: ReturnType<typeof buildInlineKeyboard>
       parseMode?: "HTML" | "Markdown" | "MarkdownV2"
+      messageThreadId?: number | null
     },
   ) {
     return this.callApi<TelegramMessage>("sendMessage", {
@@ -68,6 +69,7 @@ export class TelegramClient {
       text,
       parse_mode: options?.parseMode ?? "HTML",
       reply_markup: options?.replyMarkup,
+      message_thread_id: options?.messageThreadId ?? undefined,
       disable_web_page_preview: true,
     })
   }
@@ -283,6 +285,7 @@ export class TelegramClient {
       caption?: string
       replyMarkup?: ReturnType<typeof buildInlineKeyboard>
       parseMode?: "HTML" | "Markdown" | "MarkdownV2"
+      messageThreadId?: number | null
     },
   ) {
     const method = SEND_METHOD[kind]
@@ -291,6 +294,7 @@ export class TelegramClient {
       chat_id: chatId,
       [field]: fileId,
       reply_markup: options?.replyMarkup,
+      message_thread_id: options?.messageThreadId ?? undefined,
     }
     // Stickers don't support captions.
     if (kind !== "sticker") {
@@ -304,6 +308,7 @@ export class TelegramClient {
     chatId: string | number,
     items: { kind: "photo" | "video"; fileId: string; caption?: string }[],
     parseMode: "HTML" | "Markdown" = "HTML",
+    messageThreadId?: number | null,
   ) {
     const media = items.map((it, i) => ({
       type: it.kind,
@@ -315,6 +320,7 @@ export class TelegramClient {
     return this.callApi<TelegramMessage[]>("sendMediaGroup", {
       chat_id: chatId,
       media,
+      message_thread_id: messageThreadId ?? undefined,
     })
   }
 
@@ -458,6 +464,7 @@ export type TelegramUpdateChat = {
   type: "private" | "group" | "supergroup" | "channel"
   title?: string
   username?: string
+  is_forum?: boolean
 }
 
 // A ChatMemberUpdated payload: how the bot's (or a user's) membership changed.
@@ -477,6 +484,12 @@ export type TelegramUpdate = {
     from?: { id: number; username?: string; first_name?: string }
     chat: TelegramUpdateChat
     text?: string
+    // Present on every message posted inside a forum topic.
+    message_thread_id?: number
+    is_topic_message?: boolean
+    // Service message emitted when a topic is created.
+    forum_topic_created?: { name: string; icon_color?: number }
+    forum_topic_edited?: { name?: string }
   }
   // Posts in a channel the bot administrates. Like `message` but for channels;
   // used as a passive auto-detection signal for channels already joined.
@@ -525,6 +538,8 @@ export type TelegramChatInfo = {
   title?: string
   username?: string
   description?: string
+  // True for supergroups with topics enabled.
+  is_forum?: boolean
 }
 
 export type TelegramChatMember = {
