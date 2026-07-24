@@ -41,8 +41,9 @@ export async function recordWebhookEvent(
       saveSetting(storeId, TG_KEYS.lastPayload, payload),
       saveSetting(storeId, TG_KEYS.eventCount, String(prev + 1)),
     ])
-  } catch {
+  } catch (err) {
     // Diagnostics are best-effort; never block update handling.
+    console.error("[tg/discovery] could not record webhook event:", err)
   }
 }
 
@@ -397,7 +398,8 @@ export async function syncKnownChats(
 
       if (isPresent(member.status)) result.updated += 1
       else result.removed += 1
-    } catch {
+    } catch (err) {
+      console.error(`[tg/discovery] could not sync chat ${row.chatId}:`, err)
       result.errors += 1
     }
   }

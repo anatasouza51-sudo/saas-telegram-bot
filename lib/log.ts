@@ -35,7 +35,8 @@ export async function logActivity(params: {
       details: params.details ?? null,
     })
   } catch (err) {
-    // Never let logging break the main flow
-    console.log("[v0] logActivity error:", (err as Error).message)
+    // Never let logging break the main flow, but keep the failure (and what it
+    // was trying to record) visible in the server logs.
+    console.error("[log] could not persist activity:", params.action, err)
   }
 }

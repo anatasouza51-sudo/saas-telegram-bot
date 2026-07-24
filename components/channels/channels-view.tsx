@@ -175,8 +175,9 @@ export function ChannelsView({
     try {
       const rows = (await listChannels()) as ChannelRow[]
       setChannels(rows)
-    } catch {
-      // Ignore transient errors; next tick retries.
+    } catch (err) {
+      // Transient errors are retried on the next tick, but must be traceable.
+      console.error("[channels] auto-refresh failed:", err)
     }
   }, [])
 
