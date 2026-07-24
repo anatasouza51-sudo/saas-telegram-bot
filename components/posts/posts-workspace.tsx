@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { formatDateTime } from "@/lib/format"
@@ -17,6 +17,7 @@ import {
   Wand2,
   Copy,
   ClipboardList,
+  MessagesSquare,
 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,14 @@ type Channel = {
   purpose: string
   botIsAdmin: boolean
   status: string
+  isForum?: boolean
+}
+
+type Topic = {
+  id: number
+  chatId: string
+  threadId: number
+  name: string
 }
 
 type Post = {
@@ -85,6 +94,7 @@ type Template = {
   parseMode: string
   mediaIds: string | null
   buttons: string | null
+  defaultTargets: string | null
 }
 
 type PostReportItem = {
@@ -104,6 +114,45 @@ type PostReportItem = {
     createdAt: string
     updatedAt: string
   }>
+}
+
+function parseTargets(json: string | null): string[] {
+  try {
+    const parsed = JSON.parse(json ?? "[]")
+    return Array.isArray(parsed) ? parsed.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+// Shows which destinations (chat and/or topic) a template will pre-select.
+function TemplateTargets({
+  tokens,
+  labelFor,
+}: {
+  tokens: string[]
+  labelFor: (token: string) => string
+}) {
+  if (tokens.length === 0) {
+    return (
+      <p className="text-[10px] text-muted-foreground/50">
+        Sem destino salvo — escolha ao usar.
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <MessagesSquare className="h-3 w-3 text-muted-foreground/60" />
+      {tokens.map((token) => (
+        <span
+          key={token}
+          className="rounded-full border border-white/5 bg-white/5 px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
+        >
+          {labelFor(token)}
+        </span>
+      ))}
+    </div>
+  )
 }
 
 const BADGE_STYLES: Record<string, string> = {
@@ -145,6 +194,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function PostsWorkspace({
   channels,
+  topics,
   posts,
   schedules,
   stats,
@@ -155,6 +205,7 @@ export function PostsWorkspace({
   cdnReady,
 }: {
   channels: Channel[]
+  topics: Topic[]
   posts: Post[]
   schedules: Schedule[]
   stats: Stats
@@ -198,6 +249,7 @@ export function PostsWorkspace({
       parseMode: (post.parseMode as "HTML" | "Markdown") ?? "HTML",
       media: resolvedMedia,
       buttons,
+      targets: [] as string[],
     }
   }
 
@@ -235,6 +287,13 @@ export function PostsWorkspace({
     const resolvedMedia = mediaIds
       .map((id) => byId.get(id))
       .filter((m): m is MediaItem => Boolean(m))
+    let defaultTargets: string[] = []
+    try {
+      const parsed = JSON.parse(tpl.defaultTargets ?? "[]")
+      if (Array.isArray(parsed)) defaultTargets = parsed.map(String)
+    } catch {
+      defaultTargets = []
+    }
     setEditing(null)
     setPrefill({
       id: undefined,
@@ -243,6 +302,7 @@ export function PostsWorkspace({
       parseMode: (tpl.parseMode as "HTML" | "Markdown") ?? "HTML",
       media: resolvedMedia,
       buttons,
+      targets: defaultTargets,
     })
     setTab("new")
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -318,6 +378,7 @@ export function PostsWorkspace({
             <PostEditor
               key={editing?.id ?? (prefill ? "tpl" : "blank")}
               channels={channels}
+              topics={topics}
               botName={botName}
               cdnReady={cdnReady}
               initial={editing ? parseInitial(editing) : (prefill ?? undefined)}
@@ -360,7 +421,12 @@ export function PostsWorkspace({
           </TabsContent>
 
           <TabsContent value="templates" className="w-full">
-            <TemplateList templates={templates} onUse={useTemplate} />
+            <TemplateList
+              templates={templates}
+              channels={channels}
+              topics={topics}
+              onUse={useTemplate}
+            />
           </TabsContent>
 
           <TabsContent value="stats" className="w-full">
@@ -374,12 +440,32 @@ export function PostsWorkspace({
 
 function TemplateList({
   templates,
+  channels,
+  topics,
   onUse,
 }: {
   templates: Template[]
+  channels: Channel[]
+  topics: Topic[]
   onUse: (tpl: Template) => void
 }) {
   const router = useRouter()
+
+  // Human-readable label for each saved target token, e.g. "Ofertas › Promoções".
+  const targetLabels = useMemo(() => {
+    const chatById = new Map(channels.map((c) => [c.chatId, c.title]))
+    const topicByToken = new Map(
+      topics.map((t) => [`${t.chatId}:${t.threadId}`, t.name]),
+    )
+    return (token: string) => {
+      const topicName = topicByToken.get(token)
+      if (topicName) {
+        const chatId = token.slice(0, token.lastIndexOf(":"))
+        return `${chatById.get(chatId) ?? chatId} › ${topicName}`
+      }
+      return chatById.get(token) ?? token
+    }
+  }, [channels, topics])
 
   async function onDelete(id: number) {
     try {
@@ -418,6 +504,10 @@ function TemplateList({
               {t.text?.replace(/<[^>]+>/g, "") || "Sem texto"}
             </p>
           </div>
+          <TemplateTargets
+            tokens={parseTargets(t.defaultTargets)}
+            labelFor={targetLabels}
+          />
           <div className="mt-auto flex items-center gap-2 pt-1">
             <Button size="sm" className="flex-1 h-9 bg-primary text-black font-black uppercase text-xs rounded-xl" onClick={() => onUse(t)}>
               <Wand2 className="w-3.5 h-3.5 mr-1.5" /> Usar
