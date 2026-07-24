@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/session"
 import type { ReactNode } from "react"
-import { TopNavBar } from "@/components/top-nav-bar"
-import { MobileHeader } from "@/components/mobile-header"
+import { Sidebar } from "@/components/sidebar"
 
 export const dynamic = "force-dynamic"
 
@@ -10,17 +9,15 @@ export default async function PanelLayout({
 }: {
   children: ReactNode
 }) {
-  const user = await requireUser()
+  await requireUser()
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
-      <TopNavBar user={user} />
-      <MobileHeader />
-      
-      {/* 
-        Ajustado para compensar a nova navbar flutuante (altura + margem do topo).
-      */}
-      <main className="flex-1 pt-20 sm:pt-[88px] md:pt-24">
+    <div className="min-h-screen bg-[#05070a] text-zinc-100 flex">
+      {/* Barra lateral fixa com ícones */}
+      <Sidebar />
+
+      {/* Conteúdo principal empurrado para a direita (ml-16) */}
+      <main className="flex-1 ml-16 p-4 md:p-6 overflow-x-hidden">
         {children}
       </main>
     </div>
