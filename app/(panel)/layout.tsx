@@ -17,7 +17,7 @@ export default async function PanelLayout({
       <Sidebar />
 
       {/* Conteúdo principal */}
-      <main className="flex-1 p-4 md:p-8 overflow-x-hidden w-full">
+      <main className="flex-1 p-2 sm:p-4 md:p-8 overflow-x-hidden w-full">
         {children}
       </main>
     </div>
