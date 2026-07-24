@@ -353,9 +353,9 @@ export async function syncKnownChats(
     purged,
   }
 
-  // Processa chats em paralelo para evitar timeouts em contas com muitos grupos.
-  // Limitamos a concorrência para não estourar o pool de conexões.
-  const syncPromises = rows.map(async (row) => {
+  // Processamos sequencialmente para evitar estourar o pool de conexões do banco
+  // de dados (Neon/Supabase costumam ter limites baixos em serverless).
+  for (const row of rows) {
     try {
       const [chatRes, memberRes] = await Promise.all([
         client.getChat(row.chatId),
@@ -378,7 +378,8 @@ export async function syncKnownChats(
               eq(telegramChats.chatId, row.chatId),
             ),
           )
-        return "removed"
+        result.removed += 1
+        continue
       }
 
       const info = chatRes.result
@@ -387,7 +388,8 @@ export async function syncKnownChats(
       // Defensivo: se o chat não for real (ex: chat privado do bot), remove.
       if (!isValidChatRow(info.type, row.chatId, botId)) {
         await db.delete(telegramChats).where(eq(telegramChats.id, row.id))
-        return "purged"
+        result.purged += 1
+        continue
       }
 
       let memberCount: number | null = null
@@ -410,19 +412,12 @@ export async function syncKnownChats(
         isForum: info.is_forum,
       })
 
-      return isPresent(member.status) ? "updated" : "removed"
+      if (isPresent(member.status)) result.updated += 1
+      else result.removed += 1
     } catch (err) {
       console.error(`[tg/discovery] could not sync chat ${row.chatId}:`, err)
-      return "error"
+      result.errors += 1
     }
-  })
-
-  const outcomes = await Promise.all(syncPromises)
-  for (const outcome of outcomes) {
-    if (outcome === "updated") result.updated += 1
-    else if (outcome === "removed") result.removed += 1
-    else if (outcome === "purged") result.purged += 1
-    else if (outcome === "error") result.errors += 1
   }
 
   return result
