@@ -72,6 +72,7 @@ export async function createAdmin(input: {
     revalidatePath("/admins")
     return { ok: true }
   } catch (e) {
+    console.error("[admins] could not create admin:", e)
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Erro ao criar administrador",
