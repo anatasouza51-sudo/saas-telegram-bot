@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth"
-import { Pool } from "pg"
+import { pool } from "@/lib/db"
 
 function getBaseURL() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
@@ -25,7 +25,11 @@ const trustedOrigins = [
 ].filter(Boolean) as string[]
 
 export const auth = betterAuth({
-  database: new Pool({ connectionString: process.env.DATABASE_URL }),
+  // Antes: `new Pool(...)` próprio aqui, além do pool de lib/db — ou seja,
+  // toda página abria conexões em DOIS pools distintos (sessão + dados).
+  // Reaproveitar o mesmo pool corta pela metade o número de conexões
+  // simultâneas que uma única requisição pode consumir.
+  database: pool,
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: getBaseURL(),
   trustedOrigins,

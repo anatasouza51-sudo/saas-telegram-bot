@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
@@ -25,7 +26,13 @@ export type SessionUser = {
  * Solution: build a plain Headers object from cookies() and pass it
  * directly, bypassing the problematic Next.js headers() helper.
  */
-export async function getSessionUser(): Promise<SessionUser | null> {
+// A página de Postagens (e outras) chama `requireCapability` uma vez por
+// server action carregada em paralelo — até 9 vezes na mesma requisição.
+// Sem cache, isso é 9 consultas de sessão ao banco por carregamento de
+// página, uma das maiores causas do esgotamento de conexões. `cache()` do
+// React deduplica chamadas com os mesmos argumentos dentro de uma única
+// requisição/render no servidor, então isso vira 1 consulta real.
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const cookieStore = await cookies()
     const entries = cookieStore.getAll()
@@ -55,7 +62,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     console.error("[getSessionUser] Session lookup failed:", error)
     return null
   }
-}
+})
 
 /**
  * Requires an authenticated user. Redirects to /sign-in otherwise.
