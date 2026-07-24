@@ -13,16 +13,17 @@ export const dynamic = "force-dynamic"
 
 export default async function ChannelsPage() {
   const user = await requireCapability("posts.manage")
-  const [channels, topics, tg, diagnostics] = await Promise.all([
+  const results = await Promise.allSettled([
     listChannels(),
     listTopics(),
     getStoreTelegram(user.storeId),
-    // Diagnostics are optional context; the page still renders without them.
-    getTelegramDiagnostics().catch((err) => {
-      console.error("[channels] diagnostics unavailable:", err)
-      return null
-    }),
+    getTelegramDiagnostics(),
   ])
+
+  const channels = results[0].status === "fulfilled" ? results[0].value : []
+  const topics = results[1].status === "fulfilled" ? results[1].value : []
+  const tg = results[2].status === "fulfilled" ? results[2].value : { token: "" }
+  const diagnostics = results[3].status === "fulfilled" ? results[3].value : null
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
