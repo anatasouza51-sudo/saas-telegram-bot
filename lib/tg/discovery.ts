@@ -353,14 +353,16 @@ export async function syncKnownChats(
     purged,
   }
 
-  for (const row of rows) {
+  // Processa chats em paralelo para evitar timeouts em contas com muitos grupos.
+  // Limitamos a concorrência para não estourar o pool de conexões.
+  const syncPromises = rows.map(async (row) => {
     try {
       const [chatRes, memberRes] = await Promise.all([
         client.getChat(row.chatId),
         client.getChatMember(row.chatId, botId),
       ])
 
-      // If the chat itself can't be fetched, the bot most likely lost access.
+      // Se o chat não pôde ser buscado, o bot provavelmente perdeu acesso.
       if (!chatRes.ok || !chatRes.result || !memberRes.ok || !memberRes.result) {
         await db
           .update(telegramChats)
@@ -376,19 +378,16 @@ export async function syncKnownChats(
               eq(telegramChats.chatId, row.chatId),
             ),
           )
-        result.removed += 1
-        continue
+        return "removed"
       }
 
       const info = chatRes.result
       const member = memberRes.result
 
-      // Defensive: if the resolved chat is not a real group/channel (e.g. it's
-      // the bot's own private chat), delete it instead of refreshing it.
+      // Defensivo: se o chat não for real (ex: chat privado do bot), remove.
       if (!isValidChatRow(info.type, row.chatId, botId)) {
         await db.delete(telegramChats).where(eq(telegramChats.id, row.id))
-        result.purged += 1
-        continue
+        return "purged"
       }
 
       let memberCount: number | null = null
@@ -411,12 +410,19 @@ export async function syncKnownChats(
         isForum: info.is_forum,
       })
 
-      if (isPresent(member.status)) result.updated += 1
-      else result.removed += 1
+      return isPresent(member.status) ? "updated" : "removed"
     } catch (err) {
       console.error(`[tg/discovery] could not sync chat ${row.chatId}:`, err)
-      result.errors += 1
+      return "error"
     }
+  })
+
+  const outcomes = await Promise.all(syncPromises)
+  for (const outcome of outcomes) {
+    if (outcome === "updated") result.updated += 1
+    else if (outcome === "removed") result.removed += 1
+    else if (outcome === "purged") result.purged += 1
+    else if (outcome === "error") result.errors += 1
   }
 
   return result
