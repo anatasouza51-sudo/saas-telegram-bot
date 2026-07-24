@@ -22,6 +22,20 @@ async function isAuthorized(): Promise<boolean> {
   return safeEqual(auth, `Bearer ${secret}`)
 }
 
+// Runs one cron stage in isolation: a failing stage is reported but never
+// prevents the remaining stages from running on this tick.
+async function stage<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<{ value?: T; error?: string }> {
+  try {
+    return { value: await fn() }
+  } catch (err) {
+    console.error(`[tg/cron] stage "${name}" failed:`, err)
+    return { error: err instanceof Error ? err.message : "Erro desconhecido" }
+  }
+}
+
 async function run() {
   if (!(await isAuthorized())) {
     // Generic 401 — no detail leaked about why.
@@ -29,13 +43,34 @@ async function run() {
   }
   // Expand any due schedules into queue rows, then drain the queue respecting
   // per-chat rate limits and retry/backoff.
-  const { fired } = await processSchedules()
-  const result = await processQueue()
+  const schedules = await stage("schedules", processSchedules)
+  const queue = await stage("queue", () => processQueue())
   // BUGFIX: proactively flip any PIX order whose admin-configured timer has
   // elapsed to "expired" in the customer's chat (removes the payment
   // buttons), instead of relying on the customer to tap "Verificar" first.
-  const pix = await expireDuePixOrders()
-  return NextResponse.json({ ok: true, fired, ...result, pixExpired: pix })
+  const pix = await stage("pix-expiry", expireDuePixOrders)
+
+  const errors = Object.entries({
+    schedules: schedules.error,
+    queue: queue.error,
+    pixExpiry: pix.error,
+  }).filter((entry): entry is [string, string] => Boolean(entry[1]))
+
+  // Surface partial failures with a 500 so the cron run is flagged as failed
+  // by the platform instead of silently reporting success.
+  return NextResponse.json(
+    {
+      ok: errors.length === 0,
+      fired: schedules.value?.fired ?? 0,
+      scheduleFailures: schedules.value?.failed ?? 0,
+      processed: queue.value?.processed ?? 0,
+      sent: queue.value?.sent ?? 0,
+      failed: queue.value?.failed ?? 0,
+      pixExpired: pix.value ?? null,
+      errors: Object.fromEntries(errors),
+    },
+    { status: errors.length === 0 ? 200 : 500 },
+  )
 }
 
 export async function GET() {
