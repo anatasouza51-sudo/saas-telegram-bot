@@ -85,7 +85,7 @@ export default function DashboardPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="pt-6 pb-12 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto min-h-screen"
+      className="pt-6 pb-12 px-2 sm:px-4 md:px-6 max-w-7xl mx-auto min-h-screen"
     >
       {/* Header */}
       <motion.div 
