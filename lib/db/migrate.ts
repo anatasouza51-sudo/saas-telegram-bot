@@ -99,3 +99,5 @@ export async function ensureDbStructure() {
     client.release()
   }
 }
+
+// v1.0.1 - Forced redeploy for Vercel synchronization
