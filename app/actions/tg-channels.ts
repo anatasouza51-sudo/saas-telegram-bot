@@ -99,8 +99,14 @@ export async function syncAllChannels(): Promise<{
     console.error("[tg/channels] setWebhook failed during sync:", err)
   }
 
-  const res = await syncKnownChats(user.storeId, me.result.id, client)
-  await syncPurposeSettings(user.storeId)
+  let res = { updated: 0, removed: 0, total: 0 }
+  try {
+    res = await syncKnownChats(user.storeId, me.result.id, client)
+    await syncPurposeSettings(user.storeId)
+  } catch (err) {
+    console.error("[tg/channels] syncKnownChats failed:", err)
+    return { ok: false, error: "Erro ao sincronizar chats com o banco de dados." }
+  }
 
   await logActivity({
     storeId: user.storeId,
@@ -163,13 +169,25 @@ export async function restartTelegramIntegration(): Promise<{
   }
 
   // 3. Purge invalid rows (bot itself / private chats).
-  const purged = await purgeInvalidChats(user.storeId, me.result.id)
-  steps.push(`${purged} registro(s) inválido(s) removido(s)`)
+  let purged = 0
+  try {
+    purged = await purgeInvalidChats(user.storeId, me.result.id)
+    steps.push(`${purged} registro(s) inválido(s) removido(s)`)
+  } catch (err) {
+    console.error("[tg/channels] purgeInvalidChats failed:", err)
+    steps.push("Falha ao remover registros inválidos.")
+  }
 
   // 4. Re-sync known chats + settings.
-  const res = await syncKnownChats(user.storeId, me.result.id, client)
-  await syncPurposeSettings(user.storeId)
-  steps.push(`${res.updated} grupo(s)/canal(is) sincronizado(s)`)
+  let res = { updated: 0, removed: 0, total: 0 }
+  try {
+    res = await syncKnownChats(user.storeId, me.result.id, client)
+    await syncPurposeSettings(user.storeId)
+    steps.push(`${res.updated} grupo(s)/canal(is) sincronizado(s)`)
+  } catch (err) {
+    console.error("[tg/channels] syncKnownChats failed during restart:", err)
+    steps.push("Falha ao sincronizar chats.")
+  }
 
   await logActivity({
     storeId: user.storeId,
