@@ -5,6 +5,7 @@ import { telegramChats } from "@/lib/db/schema"
 import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { getErrorMessage } from "@/lib/errors"
 import {
   getStoreTelegram,
   registerStoreWebhook,
@@ -75,9 +76,16 @@ export async function syncAllChannels(): Promise<{
 
   // Re-register the webhook so *_member and channel_post updates are delivered.
   try {
-    await registerStoreWebhook(user.storeId, bot.client)
-  } catch {
+    const hook = await registerStoreWebhook(user.storeId, bot.client)
+    if (!hook.ok) {
+      console.error(
+        "[tg/channels] setWebhook rejected during sync:",
+        hook.description,
+      )
+    }
+  } catch (err) {
     // Non-fatal: revalidation of known chats can still proceed.
+    console.error("[tg/channels] setWebhook failed during sync:", err)
   }
 
   const res = await syncKnownChats(user.storeId, bot.botId, bot.client)
@@ -121,10 +129,17 @@ export async function restartTelegramIntegration(): Promise<{
   // 2. Reset the webhook: delete, then re-create with correct allowed_updates.
   try {
     await bot.client.deleteWebhook(false)
-    await registerStoreWebhook(user.storeId, bot.client)
-    steps.push("Webhook reiniciado")
-  } catch {
-    steps.push("Falha ao reiniciar o webhook")
+    const hook = await registerStoreWebhook(user.storeId, bot.client)
+    steps.push(
+      hook.ok
+        ? "Webhook reiniciado"
+        : `Falha ao reiniciar o webhook: ${hook.description ?? "erro desconhecido"}`,
+    )
+  } catch (err) {
+    console.error("[tg/channels] webhook restart failed:", err)
+    steps.push(
+      `Falha ao reiniciar o webhook: ${getErrorMessage(err, "erro desconhecido")}`,
+    )
   }
 
   // 3. Purge invalid rows (bot itself / private chats).

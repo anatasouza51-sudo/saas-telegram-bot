@@ -121,7 +121,12 @@ export async function POST(
       })
       return NextResponse.json({ received: true, delivered: false })
     }
-    return NextResponse.json({ received: true, delivered: true })
+    // Delivered, but the customer may still be waiting for the message.
+    return NextResponse.json({
+      received: true,
+      delivered: true,
+      notified: result.notified,
+    })
   }
 
   return NextResponse.json({ received: true })
