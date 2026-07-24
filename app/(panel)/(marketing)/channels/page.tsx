@@ -10,6 +10,7 @@ import { requireCapability } from "@/lib/session"
 // Always render fresh: chats are auto-detected via webhook events, so the
 // panel must reflect the latest state on every load / poll.
 export const dynamic = "force-dynamic"
+export const maxDuration = 60 // 60 seconds
 
 export default async function ChannelsPage() {
   const user = await requireCapability("posts.manage")

@@ -18,20 +18,25 @@ export type TopicRow = {
 }
 
 export async function listTopics(): Promise<TopicRow[]> {
-  const { storeId } = await requireCapability("posts.manage")
-  const rows = await db
-    .select({
-      id: telegramTopics.id,
-      chatId: telegramTopics.chatId,
-      threadId: telegramTopics.threadId,
-      name: telegramTopics.name,
-      source: telegramTopics.source,
-      active: telegramTopics.active,
-    })
-    .from(telegramTopics)
-    .where(eq(telegramTopics.ownerId, storeId))
-    .orderBy(asc(telegramTopics.chatId), asc(telegramTopics.threadId))
-  return rows
+  try {
+    const { storeId } = await requireCapability("posts.manage")
+    const rows = await db
+      .select({
+        id: telegramTopics.id,
+        chatId: telegramTopics.chatId,
+        threadId: telegramTopics.threadId,
+        name: telegramTopics.name,
+        source: telegramTopics.source,
+        active: telegramTopics.active,
+      })
+      .from(telegramTopics)
+      .where(eq(telegramTopics.ownerId, storeId))
+      .orderBy(asc(telegramTopics.chatId), asc(telegramTopics.threadId))
+    return rows
+  } catch (err) {
+    console.error("[tg/topics] listTopics failed:", err)
+    return []
+  }
 }
 
 /**

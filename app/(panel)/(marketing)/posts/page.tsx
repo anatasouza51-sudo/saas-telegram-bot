@@ -9,6 +9,8 @@ import { requireCapability } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 
+export const maxDuration = 60 // 60 seconds
+
 export default async function PostsPage() {
   // Auth runs outside the try: `requireCapability` redirects unauthenticated
   // users via a control-flow exception that must never be caught here.
