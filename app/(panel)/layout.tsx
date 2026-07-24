@@ -16,8 +16,8 @@ export default async function PanelLayout({
       {/* Barra lateral fixa com ícones */}
       <Sidebar />
 
-      {/* Conteúdo principal empurrado para a direita (ml-16) */}
-      <main className="flex-1 ml-16 p-4 md:p-6 overflow-x-hidden">
+      {/* Conteúdo principal */}
+      <main className="flex-1 p-4 md:p-8 overflow-x-hidden w-full">
         {children}
       </main>
     </div>
