@@ -37,7 +37,7 @@ export function Sidebar() {
       {/* Botão de Menu para Celular (Aciona com os três pontinhos/hambúrguer) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-[#0b0e14] border border-zinc-800 text-zinc-200 shadow-lg"
+        className="fixed top-4 right-4 z-50 md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-[#0b0e14] border border-zinc-800 text-zinc-200 shadow-lg"
         aria-label="Abrir Menu"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -53,10 +53,10 @@ export function Sidebar() {
 
       {/* Barra Lateral / Cápsula de Ícones */}
       <aside className={`
-        fixed top-0 left-0 z-50 h-screen py-4 flex flex-col items-center justify-between
+        fixed top-0 right-0 z-50 h-screen py-4 flex flex-col items-center justify-between
         transition-transform duration-300 ease-in-out
         md:translate-x-0 md:static md:h-screen md:py-6
-        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        ${isOpen ? "translate-x-0" : "translate-x-full"}
       `}>
         {/* Container em formato de cápsula com borda contornando tudo */}
         <div className="flex flex-col items-center justify-between w-20 h-full bg-[#07090e] border border-zinc-800/80 rounded-2xl py-4 shadow-2xl mx-3 my-auto">
