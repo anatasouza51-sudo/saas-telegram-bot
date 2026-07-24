@@ -330,29 +330,43 @@ export async function getPostReports(postIds?: number[]) {
     .orderBy(desc(telegramPosts.sentAt))
     .limit(50)
 
-  const reports = []
-  for (const post of posts) {
-    const queueItems = await db
-      .select()
-      .from(telegramQueue)
-      .where(
-        and(
-          eq(telegramQueue.ownerId, user.storeId),
-          eq(telegramQueue.postId, post.id),
-        ),
-      )
-      .orderBy(asc(telegramQueue.scheduledFor))
+  if (posts.length === 0) return []
 
-    reports.push({
-      postId: post.id,
-      title: post.title,
-      status: post.status,
-      sentAt: post.sentAt,
-      queue: queueItems,
-    })
+  // Antes: uma query de fila por postagem dentro de um for-loop com await
+  // (N+1) — com até 50 posts, isso era até 50 round-trips sequenciais ao
+  // banco numa única chamada, consumindo uma conexão do pool por um tempo
+  // desproporcional e sendo a principal responsável pelos timeouts/erros
+  // intermitentes na página de Postagens. Buscamos tudo de uma vez com
+  // `inArray` e agrupamos em memória.
+  const idsToFetch = posts.map((p) => p.id)
+  const allQueueItems = await db
+    .select()
+    .from(telegramQueue)
+    .where(
+      and(
+        eq(telegramQueue.ownerId, user.storeId),
+        inArray(telegramQueue.postId, idsToFetch),
+      ),
+    )
+    .orderBy(asc(telegramQueue.scheduledFor))
+
+  const queueByPostId = new Map<number, typeof allQueueItems>()
+  for (const item of allQueueItems) {
+    const list = queueByPostId.get(item.postId)
+    if (list) {
+      list.push(item)
+    } else {
+      queueByPostId.set(item.postId, [item])
+    }
   }
 
-  return reports
+  return posts.map((post) => ({
+    postId: post.id,
+    title: post.title,
+    status: post.status,
+    sentAt: post.sentAt,
+    queue: queueByPostId.get(post.id) ?? [],
+  }))
 }
 export async function getPostStats() {
   const user = await requireCapability("posts.manage")
