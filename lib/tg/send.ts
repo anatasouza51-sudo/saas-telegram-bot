@@ -21,12 +21,16 @@ export type RenderablePost = {
  * - multiple media -> sendMediaGroup album (+ a follow-up message for buttons,
  *   since albums cannot carry an inline keyboard)
  *
+ * When `messageThreadId` is given the post lands inside that forum topic
+ * instead of the group's general area.
+ *
  * Returns the primary message_id on success.
  */
 export async function sendPost(
   client: TelegramClient,
   chatId: string | number,
   post: RenderablePost,
+  messageThreadId?: number | null,
 ): Promise<{ ok: boolean; messageId?: number; error?: string }> {
   const keyboard = toInlineKeyboard(post.buttons)
   const text = post.text ?? ""
@@ -36,6 +40,7 @@ export async function sendPost(
     const res = await client.sendMessage(chatId, text, {
       replyMarkup: keyboard,
       parseMode: post.parseMode,
+      messageThreadId,
     })
     return normalize(res)
   }
@@ -47,6 +52,7 @@ export async function sendPost(
       caption: text || undefined,
       replyMarkup: keyboard,
       parseMode: post.parseMode,
+      messageThreadId,
     })
     return normalize(res)
   }
@@ -65,6 +71,7 @@ export async function sendPost(
         caption: i === 0 ? text || undefined : undefined,
       })),
       post.parseMode,
+      messageThreadId,
     )
     const first = Array.isArray(res.result) ? res.result[0] : undefined
     // Albums can't carry buttons; send them as a follow-up if present.
@@ -72,6 +79,7 @@ export async function sendPost(
       await client.sendMessage(chatId, text || "⬆️", {
         replyMarkup: keyboard,
         parseMode: post.parseMode,
+        messageThreadId,
       })
     }
     return res.ok
@@ -87,6 +95,7 @@ export async function sendPost(
       caption: i === 0 ? text || undefined : undefined,
       replyMarkup: i === post.media.length - 1 ? keyboard : undefined,
       parseMode: post.parseMode,
+      messageThreadId,
     })
     if (!res.ok) return { ok: false, error: res.description }
     if (i === 0) firstId = res.result?.message_id

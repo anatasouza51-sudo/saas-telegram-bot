@@ -15,6 +15,9 @@ export type TemplateInput = {
   parseMode?: "HTML" | "Markdown"
   mediaIds?: number[]
   buttons?: ButtonRows
+  // Target tokens ("<chatId>" or "<chatId>:<threadId>") pre-selected whenever
+  // the template is loaded into the editor.
+  defaultTargets?: string[]
 }
 
 export async function listTemplates() {
@@ -39,6 +42,7 @@ export async function saveTemplate(input: TemplateInput): Promise<number> {
     parseMode: input.parseMode ?? "HTML",
     mediaIds: JSON.stringify(input.mediaIds ?? []),
     buttons: JSON.stringify(input.buttons ?? []),
+    defaultTargets: JSON.stringify(input.defaultTargets ?? []),
     updatedAt: new Date(),
   }
   if (input.id) {
