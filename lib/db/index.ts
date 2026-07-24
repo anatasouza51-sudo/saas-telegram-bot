@@ -20,9 +20,9 @@ export const pool =
     // Baixo de propósito: multiplicado pelo número de instâncias de função
     // simultâneas, isso já soma bastante. Ajuste conforme o limite do plano
     // do seu banco.
-    max: 5,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    max: 3,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 20_000,
   })
 
 if (process.env.NODE_ENV !== "production") {

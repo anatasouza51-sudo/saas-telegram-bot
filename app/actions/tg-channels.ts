@@ -50,13 +50,18 @@ async function syncPurposeSettings(storeId: string) {
 // Final safety net: only ever return real groups/supergroups/channels, so a bad
 // row (e.g. a private/bot chat) can never surface in the UI.
 export async function listChannels() {
-  const { storeId } = await requireCapability("posts.manage")
-  const rows = await db
-    .select()
-    .from(telegramChats)
-    .where(eq(telegramChats.ownerId, storeId))
-    .orderBy(desc(telegramChats.updatedAt))
-  return rows.filter((r) => isRealChatType(r.type))
+  try {
+    const { storeId } = await requireCapability("posts.manage")
+    const rows = await db
+      .select()
+      .from(telegramChats)
+      .where(eq(telegramChats.ownerId, storeId))
+      .orderBy(desc(telegramChats.updatedAt))
+    return rows.filter((r) => isRealChatType(r.type))
+  } catch (err) {
+    console.error("[tg/channels] listChannels failed:", err)
+    return []
+  }
 }
 
 // "Sincronizar Telegram" button. Two jobs:
