@@ -3,6 +3,7 @@ import { listChannels } from "@/app/actions/tg-channels"
 import { listPosts, listSchedules, getPostStats, getPostReports } from "@/app/actions/tg-posts"
 import { listMedia } from "@/app/actions/tg-media"
 import { listTemplates } from "@/app/actions/tg-templates"
+import { listTopics } from "@/app/actions/tg-topics"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
 import { Button } from "@/components/ui/button"
@@ -13,9 +14,19 @@ export default async function PostsPage() {
     const user = await requireCapability("posts.manage")
     const tg = await getStoreTelegram(user.storeId)
 
-    const [channels, posts, schedules, stats, media, templates, reports] =
+    const [
+      channels,
+      topics,
+      posts,
+      schedules,
+      stats,
+      media,
+      templates,
+      reports,
+    ] =
       await Promise.all([
         listChannels(),
+        listTopics(),
         listPosts("all"),
         listSchedules(),
         getPostStats(),
@@ -37,6 +48,7 @@ export default async function PostsPage() {
       <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
         <PostsWorkspace
           channels={channels as never}
+          topics={topics as never}
           posts={posts as never}
           schedules={schedules as never}
           stats={stats as never}

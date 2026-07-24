@@ -27,6 +27,7 @@ import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
 import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
+import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
@@ -992,6 +993,20 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         ctx.botId,
         ctx.tg,
       )
+      // Telegram has no "list topics" endpoint, so every message seen inside a
+      // topic registers it as a selectable destination in the panel.
+      const threadId = update.message.message_thread_id
+      if (threadId && update.message.is_topic_message) {
+        await recordTopicFromUpdate({
+          storeId,
+          chatId: String(update.message.chat.id),
+          threadId,
+          name:
+            update.message.forum_topic_created?.name ??
+            update.message.forum_topic_edited?.name ??
+            null,
+        })
+      }
       // Only these explicit, bot-directed admin commands get a reply. We match
       // the bare command (stripping any "@BotName" suffix). "/start" and every
       // shop command are intentionally NOT here, so the menu never appears.
@@ -1004,7 +1019,11 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         console.log(
           `[v0] group handler: replying to detection command "${cmd}" in chat ${update.message.chat.id} (${update.message.chat.type})`,
         )
-        await replyGroupDetection(ctx, update.message.chat)
+        await replyGroupDetection(
+          ctx,
+          update.message.chat,
+          update.message.message_thread_id ?? null,
+        )
       } else {
         console.log(
           `[v0] group handler: ignoring non-command message in chat ${update.message.chat.id} (${update.message.chat.type}) — bot stays silent`,
@@ -1118,6 +1137,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
 async function replyGroupDetection(
   ctx: StoreContext,
   chat: { id: number; type: string; title?: string; username?: string },
+  threadId: number | null,
 ) {
   if (!ctx.botId) return
   const memberRes = await ctx.tg.getChatMember(chat.id, ctx.botId)
@@ -1138,11 +1158,14 @@ async function replyGroupDetection(
     `Nome: ${chat.title ?? chat.id}`,
     `Chat ID: ${chat.id}`,
     `Tipo: ${typeLabel}`,
+    ...(threadId ? [`Tópico (message_thread_id): ${threadId}`] : []),
     `Bot é administrador: ${isAdmin ? "sim" : "não"}`,
     "",
     isAdmin
       ? "Abra o painel em Grupos & Canais e escolha a função deste grupo (CDN, Postagens, Logs, etc.)."
       : "Promova o bot a administrador para liberar todas as funções e sincronizar as permissões.",
   ]
-  await ctx.tg.sendMessage(chat.id, lines.join("\n"))
+  await ctx.tg.sendMessage(chat.id, lines.join("\n"), {
+    messageThreadId: threadId,
+  })
 }
