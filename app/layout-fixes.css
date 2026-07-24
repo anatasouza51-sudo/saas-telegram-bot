@@ -7,6 +7,12 @@ main {
   flex-direction: column;
 }
 
+/* Evita que o conteúdo do main encolha por causa do auto-margin em flex column
+   (sem isso, divs com mx-auto ficam estreitas e desalinhadas ao invés de ocupar 100%) */
+main > * {
+  width: 100%;
+}
+
 /* Padroniza o espaçamento das páginas */
 .page-container {
   display: flex;
