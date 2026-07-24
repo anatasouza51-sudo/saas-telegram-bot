@@ -43,9 +43,27 @@ export async function saveTelegramSettings(input: {
           category: "settings",
           actor: user,
         })
+      } else {
+        // Non-fatal, but the reason must reach the admin's activity log —
+        // otherwise the bot silently never receives updates.
+        await logActivity({
+          storeId: user.storeId,
+          action: "Falha ao registrar o webhook do Telegram ao salvar configurações",
+          category: "settings",
+          actor: user,
+          details: res.description ?? "Erro desconhecido",
+        })
       }
-    } catch {
+    } catch (err) {
       // Non-fatal: the admin can still click "Connect bot" to retry.
+      console.error("[settings] webhook auto-registration failed:", err)
+      await logActivity({
+        storeId: user.storeId,
+        action: "Falha ao registrar o webhook do Telegram ao salvar configurações",
+        category: "settings",
+        actor: user,
+        details: err instanceof Error ? err.message : "Erro desconhecido",
+      })
     }
   }
 

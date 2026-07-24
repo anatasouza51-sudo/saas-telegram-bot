@@ -38,9 +38,11 @@ export async function autoDetectTelegramGroups(): Promise<{
     missingPermissions: string[]
   }>
 }> {
+  // Fora do try: `requireCapability` redireciona lançando uma exceção de
+  // controle de fluxo que não pode ser capturada aqui.
+  const user = await requireCapability("telegram.manage")
+
   try {
-    const user = await requireCapability("telegram.manage")
-    
     // Importar o token salvo
     const { getSetting } = await import("@/lib/settings")
     const botToken = await getSetting(user.storeId, "telegram.botToken")
@@ -118,7 +120,7 @@ export async function autoDetectTelegramGroups(): Promise<{
       groups: groupDetails,
     }
   } catch (error) {
-    console.error("Erro ao auto-detectar grupos:", error)
+    console.error("[tg/auto-detect] falha ao detectar grupos:", error)
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao auto-detectar grupos",
@@ -133,9 +135,9 @@ export async function syncGroupToAudience(groupId: number): Promise<{
   ok: boolean
   error?: string
 }> {
-  try {
-    const user = await requireCapability("posts.manage")
+  const user = await requireCapability("posts.manage")
 
+  try {
     const group = await db
       .select()
       .from(telegramChats)
@@ -164,7 +166,7 @@ export async function syncGroupToAudience(groupId: number): Promise<{
 
     return { ok: true }
   } catch (error) {
-    console.error("Erro ao sincronizar grupo:", error)
+    console.error("[tg/auto-detect] falha ao sincronizar grupo:", error)
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao sincronizar grupo",

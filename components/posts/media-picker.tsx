@@ -35,7 +35,9 @@ export function MediaAttachment({
     if (!e.target.files?.length) return
     setUploading(true)
     upload(Array.from(e.target.files), null)
-      .catch(() => {})
+      .catch((err) => {
+        console.error("[media-picker] upload failed:", err)
+      })
       .finally(() => {
         setUploading(false)
         e.target.value = ""
