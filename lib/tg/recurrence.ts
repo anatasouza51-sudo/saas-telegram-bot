@@ -39,7 +39,11 @@ export function nextRun(rec: Recurrence, from: Date): Date | null {
       const targetMonth = d.getMonth() + 1
       const targetYear = targetMonth === 12 ? d.getFullYear() + 1 : d.getFullYear()
       const actualMonth = targetMonth === 12 ? 0 : targetMonth
-      const lastDayOfMonth = new Date(targetYear, actualMonth, 0).getDate()
+      const lastDayOfMonth = new Date(
+        targetYear,
+        actualMonth + 1,
+        0,
+      ).getDate()
       d.setDate(Math.min(d.getDate(), lastDayOfMonth))
       d.setMonth(actualMonth)
       d.setFullYear(targetYear)
