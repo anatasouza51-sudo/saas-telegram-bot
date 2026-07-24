@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   getTelegramDiagnostics,
@@ -56,8 +57,13 @@ export function DiagnosticsPanel({
     startLoad(async () => {
       try {
         setDiag(await getTelegramDiagnostics())
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("[diagnostics] load failed:", err)
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar o diagnóstico.",
+        )
       }
     })
   }, [])

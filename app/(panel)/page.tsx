@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { motion } from "framer-motion"
@@ -45,21 +45,33 @@ export default function DashboardPage() {
     salesData: any[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/dashboard')
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar o painel (HTTP ${response.status})`)
+      }
+      const result = await response.json()
+      setData(result)
+    } catch (err) {
+      console.error("Erro ao buscar dados:", err)
+      // Never fall back to zeroed metrics: an empty dashboard is
+      // indistinguishable from "no sales" and hides the real failure.
+      setError(
+        err instanceof Error ? err.message : "Erro ao carregar o painel",
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch('/api/dashboard')
-        const result = await response.json()
-        setData(result)
-      } catch (error) {
-        console.error("Erro ao buscar dados:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchData()
-  }, [])
+  }, [fetchData])
 
   if (loading) {
     return (
@@ -73,12 +85,27 @@ export default function DashboardPage() {
     )
   }
 
-  const { user, stats, recentOrders, salesData } = data || { 
-    user: { name: "Operador" }, 
-    stats: { totalRevenue: 0, totalSales: 0, salesToday: 0, conversionRate: 0, pendingPayments: 0, approvedPayments: 0, refusedPayments: 0, totalCustomers: 0, totalProducts: 0, lowStockCount: 0 },
-    recentOrders: [],
-    salesData: []
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4 text-center">
+        <p className="text-lg font-bold text-destructive">
+          {error ?? "Erro ao carregar o painel."}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Os números não puderam ser carregados. Tente novamente.
+        </p>
+        <button
+          type="button"
+          onClick={fetchData}
+          className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted/40 transition-colors"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    )
   }
+
+  const { user, stats, recentOrders, salesData } = data
 
   return (
     <motion.div 

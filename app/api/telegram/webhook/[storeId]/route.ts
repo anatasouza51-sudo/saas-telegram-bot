@@ -54,22 +54,32 @@ export async function POST(
   }
 
   // Record diagnostics before handling so the panel reflects delivery even if
-  // handling throws.
+  // handling throws. Diagnostics are best-effort and must not drop the update.
   await recordWebhookEvent(storeId, update)
 
+  let handled = true
   try {
     await handleUpdate(storeId, update)
   } catch (err) {
-    // Log server-side only; never leak internals to the caller.
-    console.log("[v0] telegram webhook error:", err)
+    handled = false
+    // Log server-side only; never leak internals to the caller. The activity
+    // log makes the failure visible to the store admin in the panel.
+    console.error("[telegram/webhook] update handling failed:", err)
+    await logActivity({
+      storeId,
+      action: "Falha ao processar uma atualização do Telegram",
+      category: "system",
+      details: err instanceof Error ? err.message : "Erro desconhecido",
+    })
   }
 
   // Opportunistically check for due schedules on every webhook hit.
   // This catches missed firings without needing a per-minute cron.
   try {
     await processSchedules()
-  } catch {
+  } catch (err) {
     // Best-effort — the cron route will also catch these on the hour.
+    console.error("[telegram/webhook] processSchedules failed:", err)
   }
 
   // BUGFIX: also sweep for expired PIX orders on every webhook hit, so an
@@ -77,10 +87,11 @@ export async function POST(
   // the once-a-minute cron alone.
   try {
     await expireDuePixOrders()
-  } catch {
+  } catch (err) {
     // Best-effort — the cron route will also catch these within a minute.
+    console.error("[telegram/webhook] expireDuePixOrders failed:", err)
   }
 
   // Always ack so Telegram doesn't retry indefinitely.
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, handled })
 }

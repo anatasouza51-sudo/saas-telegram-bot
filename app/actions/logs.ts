@@ -3,13 +3,9 @@
 import { requireUser } from "@/lib/session"
 import { getLogs } from "@/lib/queries/records"
 
+// Throws on failure so the caller can distinguish "no logs yet" from "the log
+// query broke". `requireUser` stays outside any try: it redirects by throwing.
 export async function getRecentLogs(limit: number = 20) {
-  try {
-    const user = await requireUser()
-    const logs = await getLogs(user.storeId, limit)
-    return logs
-  } catch (error) {
-    console.error("Erro ao buscar logs:", error)
-    return []
-  }
+  const user = await requireUser()
+  return getLogs(user.storeId, limit)
 }
