@@ -48,6 +48,8 @@ import {
   restartTelegramIntegration,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
+import { listTopics, type TopicRow } from "@/app/actions/tg-topics"
+import { TopicsDialog } from "@/components/channels/topics-dialog"
 import { PERMISSION_LABELS } from "@/lib/tg/permissions"
 import { PURPOSES } from "@/lib/tg/purposes"
 
@@ -62,6 +64,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Radio,
+  MessagesSquare,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -76,6 +79,7 @@ export type ChannelRow = {
   missingPermissions: string | null
   grantedPermissions: string | null
   purpose: string
+  isForum: boolean
   memberCount: number | null
   lastSyncedAt: Date | string | null
 }
@@ -150,14 +154,18 @@ function typeLabel(type: string) {
 
 export function ChannelsView({
   channels: initialChannels,
+  topics: initialTopics,
   botConfigured,
   diagnostics,
 }: {
   channels: ChannelRow[]
+  topics: TopicRow[]
   botConfigured: boolean
   diagnostics: TelegramDiagnostics | null
 }) {
   const [channels, setChannels] = useState<ChannelRow[]>(initialChannels)
+  const [topics, setTopics] = useState<TopicRow[]>(initialTopics)
+  const [topicsFor, setTopicsFor] = useState<ChannelRow | null>(null)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -172,8 +180,12 @@ export function ChannelsView({
   // status/permission changes appear without any manual action.
   const refresh = useCallback(async () => {
     try {
-      const rows = (await listChannels()) as ChannelRow[]
+      const [rows, topicRows] = await Promise.all([
+        listChannels() as Promise<ChannelRow[]>,
+        listTopics(),
+      ])
       setChannels(rows)
+      setTopics(topicRows)
     } catch (err) {
       // Transient errors are retried on the next tick, but must be traceable.
       console.error("[channels] auto-refresh failed:", err)
@@ -359,6 +371,7 @@ export function ChannelsView({
               <TableHead>Permissões</TableHead>
               <TableHead>Membros</TableHead>
               <TableHead>Função</TableHead>
+              <TableHead>Tópicos</TableHead>
               <TableHead>Última sinc.</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -367,7 +380,7 @@ export function ChannelsView({
             {paginated.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={12}
                   className="h-40 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -509,6 +522,20 @@ export function ChannelsView({
                     </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
+                    {c.type === "supergroup" ? (
+                      <button
+                        type="button"
+                        onClick={() => setTopicsFor(c)}
+                        className="underline decoration-dotted underline-offset-2"
+                      >
+                        {topics.filter((t) => t.chatId === c.chatId).length}{" "}
+                        tópico(s)
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
                     {c.lastSyncedAt
                       ? new Date(c.lastSyncedAt).toLocaleString("pt-BR")
                       : "Nunca"}
@@ -536,6 +563,12 @@ export function ChannelsView({
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Sincronizar agora
                           </DropdownMenuItem>
+                          {c.type === "supergroup" && (
+                            <DropdownMenuItem onClick={() => setTopicsFor(c)}>
+                              <MessagesSquare className="mr-2 h-4 w-4" />
+                              Gerenciar tópicos
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -546,6 +579,19 @@ export function ChannelsView({
           </TableBody>
         </Table>
       </div>
+
+      {topicsFor && (
+        <TopicsDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setTopicsFor(null)
+          }}
+          chatId={topicsFor.chatId}
+          chatTitle={topicsFor.title}
+          topics={topics.filter((t) => t.chatId === topicsFor.chatId)}
+          onChanged={refresh}
+        />
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
