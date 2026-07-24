@@ -15,7 +15,7 @@ import {
   Users,
   Megaphone,
   LayoutTemplate,
-  ChevronDown,
+  MessagesSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,20 @@ type Channel = {
   purpose: string
   botIsAdmin: boolean
   status: string
+  isForum?: boolean
+}
+
+type Topic = {
+  id: number
+  chatId: string
+  threadId: number
+  name: string
+}
+
+// A destination is the chat itself ("<chatId>") or one of its forum topics
+// ("<chatId>:<threadId>"). The backend parses the token back into both parts.
+function topicTarget(chatId: string, threadId: number) {
+  return `${chatId}:${threadId}`
 }
 
 const RECURRENCE_OPTIONS: { value: Recurrence["kind"]; label: string }[] = [
@@ -59,12 +73,14 @@ const RECURRENCE_OPTIONS: { value: Recurrence["kind"]; label: string }[] = [
 
 export function PostEditor({
   channels,
+  topics,
   botName,
   cdnReady,
   initial,
   onDone,
 }: {
   channels: Channel[]
+  topics: Topic[]
   botName: string
   cdnReady: boolean
   onDone?: () => void
@@ -75,6 +91,7 @@ export function PostEditor({
     parseMode?: "HTML" | "Markdown"
     media?: MediaItem[]
     buttons?: ButtonRows
+    targets?: string[]
   }
 }) {
   const router = useRouter()
@@ -86,7 +103,9 @@ export function PostEditor({
   )
   const [media, setMedia] = useState<MediaItem[]>(initial?.media ?? [])
   const [buttons, setButtons] = useState<ButtonRows>(initial?.buttons ?? [])
-  const [targets, setTargets] = useState<Set<string>>(new Set())
+  const [targets, setTargets] = useState<Set<string>>(
+    () => new Set(initial?.targets ?? []),
+  )
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [runAt, setRunAt] = useState("")
   const [recurrence, setRecurrence] = useState<Recurrence["kind"]>("once")
@@ -102,6 +121,16 @@ export function PostEditor({
   )
   const groups = audience.filter((c) => c.type !== "channel")
   const chans = audience.filter((c) => c.type === "channel")
+
+  const topicsByChat = useMemo(() => {
+    const map = new Map<string, Topic[]>()
+    for (const t of topics) {
+      const list = map.get(t.chatId) ?? []
+      list.push(t)
+      map.set(t.chatId, list)
+    }
+    return map
+  }, [topics])
 
   function wrapSelection(before: string, after = before) {
     const el = textareaRef.current
@@ -185,6 +214,7 @@ export function PostEditor({
           parseMode,
           mediaIds: media.map((m) => m.id),
           buttons,
+          defaultTargets: Array.from(targets),
         })
         toast.success("Template salvo")
         router.refresh()
@@ -347,6 +377,7 @@ export function PostEditor({
                 icon={<Users className="h-3.5 w-3.5" />}
                 label="Grupos de Audiência"
                 items={groups}
+                topicsByChat={topicsByChat}
                 targets={targets}
                 onToggle={toggleTarget}
               />
@@ -356,6 +387,7 @@ export function PostEditor({
                 icon={<Megaphone className="h-3.5 w-3.5" />}
                 label="Canais de Transmissão"
                 items={chans}
+                topicsByChat={topicsByChat}
                 targets={targets}
                 onToggle={toggleTarget}
               />
@@ -475,12 +507,14 @@ function TargetGroup({
   icon,
   label,
   items,
+  topicsByChat,
   targets,
   onToggle,
 }: {
   icon: React.ReactNode
   label: string
   items: Channel[]
+  topicsByChat: Map<string, Topic[]>
   targets: Set<string>
   onToggle: (id: string) => void
 }) {
@@ -493,29 +527,69 @@ function TargetGroup({
       <div className="flex flex-col gap-1.5">
         {items.map((item) => {
           const active = targets.has(item.chatId)
+          const chatTopics = topicsByChat.get(item.chatId) ?? []
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onToggle(item.chatId)}
-              className={cn(
-                "flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.98]",
-                active
-                  ? "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5"
-                  : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
+            <div key={item.id} className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => onToggle(item.chatId)}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.98]",
+                  active
+                    ? "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5"
+                    : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold">{item.title}</p>
+                  <p className="truncate text-[10px] opacity-60 font-medium">
+                    @{item.chatId}
+                    {chatTopics.length > 0 ? " · geral" : ""}
+                  </p>
+                </div>
+                <div className={cn(
+                  "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
+                  active ? "border-primary bg-primary text-black" : "border-white/20"
+                )}>
+                  {active && <Send className="w-2.5 h-2.5" />}
+                </div>
+              </button>
+
+              {chatTopics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pl-3">
+                  <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                    <MessagesSquare className="h-3 w-3" />
+                    Tópicos
+                  </span>
+                  {chatTopics.map((t) => {
+                    const token = topicTarget(item.chatId, t.threadId)
+                    const on = targets.has(token)
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => onToggle(token)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all active:scale-[0.98]",
+                          on
+                            ? "border-primary/40 bg-primary/15 text-primary"
+                            : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
+                        )}
+                      >
+                        {t.name}
+                      </button>
+                    )
+                  })}
+                </div>
               )}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold">{item.title}</p>
-                <p className="truncate text-[10px] opacity-60 font-medium">@{item.chatId}</p>
-              </div>
-              <div className={cn(
-                "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
-                active ? "border-primary bg-primary text-black" : "border-white/20"
-              )}>
-                {active && <Send className="w-2.5 h-2.5" />}
-              </div>
-            </button>
+
+              {chatTopics.length === 0 && item.isForum && (
+                <p className="pl-3 text-[10px] text-muted-foreground/60">
+                  Grupo com tópicos: cadastre-os em Grupos &amp; Canais ou envie
+                  /id dentro do tópico para detectá-lo.
+                </p>
+              )}
+            </div>
           )
         })}
       </div>
