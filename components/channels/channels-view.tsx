@@ -186,8 +186,9 @@ export function ChannelsView({
       ])
       setChannels(rows)
       setTopics(topicRows)
-    } catch {
-      // Ignore transient errors; next tick retries.
+    } catch (err) {
+      // Transient errors are retried on the next tick, but must be traceable.
+      console.error("[channels] auto-refresh failed:", err)
     }
   }, [])
 

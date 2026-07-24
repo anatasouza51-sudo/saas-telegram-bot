@@ -17,7 +17,11 @@ export default async function ChannelsPage() {
     listChannels(),
     listTopics(),
     getStoreTelegram(user.storeId),
-    getTelegramDiagnostics().catch(() => null),
+    // Diagnostics are optional context; the page still renders without them.
+    getTelegramDiagnostics().catch((err) => {
+      console.error("[channels] diagnostics unavailable:", err)
+      return null
+    }),
   ])
 
   return (
