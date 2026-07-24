@@ -4,6 +4,8 @@ import { listChannels } from "@/app/actions/tg-channels"
 import { listTemplates } from "@/app/actions/tg-templates"
 import { requireCapability } from "@/lib/session"
 
+export const maxDuration = 60 // 60 seconds
+
 export default async function AutomationsPage() {
   await requireCapability("posts.manage")
   const results = await Promise.allSettled([
