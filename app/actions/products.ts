@@ -4,6 +4,11 @@ import { db } from "@/lib/db"
 import { products, categories, stockItems } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { slugify } from "@/lib/slug"
+import {
+  deleteCategoryForStore,
+  listCategoriesForStore,
+} from "@/lib/queries/catalog"
 import { runAutomations } from "@/lib/tg/automations"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -19,6 +24,21 @@ export type ProductInput = {
   lowStockThreshold?: number
   // Display order within its category (ascending). Ties break by price ASC.
   position?: number
+}
+
+/** Maps the panel's product form payload onto the products table columns. */
+function productValues(input: ProductInput) {
+  return {
+    name: input.name,
+    description: input.description ?? null,
+    categoryId: input.categoryId ?? null,
+    imageUrl: input.imageUrl ?? null,
+    price: String(input.price),
+    status: input.status ?? "active",
+    deliveryType: input.deliveryType ?? "stock",
+    lowStockThreshold: input.lowStockThreshold ?? 5,
+    position: input.position ?? 0,
+  }
 }
 
 export async function listProducts(opts?: {
@@ -80,18 +100,7 @@ export async function createProduct(input: ProductInput) {
   const user = await requireCapability("products.manage")
   const [row] = await db
     .insert(products)
-    .values({
-      ownerId: user.storeId,
-      name: input.name,
-      description: input.description ?? null,
-      categoryId: input.categoryId ?? null,
-      imageUrl: input.imageUrl ?? null,
-      price: String(input.price),
-      status: input.status ?? "active",
-      deliveryType: input.deliveryType ?? "stock",
-      lowStockThreshold: input.lowStockThreshold ?? 5,
-      position: input.position ?? 0,
-    })
+    .values({ ownerId: user.storeId, ...productValues(input) })
     .returning()
   await logActivity({
     storeId: user.storeId,
@@ -114,18 +123,7 @@ export async function updateProduct(id: number, input: ProductInput) {
   const user = await requireCapability("products.manage")
   await db
     .update(products)
-    .set({
-      name: input.name,
-      description: input.description ?? null,
-      categoryId: input.categoryId ?? null,
-      imageUrl: input.imageUrl ?? null,
-      price: String(input.price),
-      status: input.status ?? "active",
-      deliveryType: input.deliveryType ?? "stock",
-      lowStockThreshold: input.lowStockThreshold ?? 5,
-      position: input.position ?? 0,
-      updatedAt: new Date(),
-    })
+    .set({ ...productValues(input), updatedAt: new Date() })
     .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
   await logActivity({
     storeId: user.storeId,
@@ -214,31 +212,19 @@ export async function deleteProduct(id: number) {
 
 export async function listCategories() {
   const { storeId } = await requireCapability("products.manage")
-  return db
-    .select({
-      id: categories.id,
-      name: categories.name,
-      emoji: categories.emoji,
-      description: categories.description,
-      status: categories.status,
-      position: categories.position,
-    })
-    .from(categories)
-    .where(eq(categories.ownerId, storeId))
-    .orderBy(asc(categories.position), asc(categories.name))
+  return listCategoriesForStore(storeId)
 }
 
 export async function createCategory(name: string, description?: string) {
   const user = await requireCapability("products.manage")
-  const slug = name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
   const [row] = await db
     .insert(categories)
-    .values({ ownerId: user.storeId, name, slug, description: description ?? null })
+    .values({
+      ownerId: user.storeId,
+      name,
+      slug: slugify(name),
+      description: description ?? null,
+    })
     .returning()
   await logActivity({
     storeId: user.storeId,
@@ -252,13 +238,7 @@ export async function createCategory(name: string, description?: string) {
 
 export async function deleteCategory(id: number) {
   const user = await requireCapability("products.manage")
-  await db
-    .update(products)
-    .set({ categoryId: null })
-    .where(and(eq(products.categoryId, id), eq(products.ownerId, user.storeId)))
-  await db
-    .delete(categories)
-    .where(and(eq(categories.id, id), eq(categories.ownerId, user.storeId)))
+  await deleteCategoryForStore(user.storeId, id)
   await logActivity({
     storeId: user.storeId,
     actor: user,

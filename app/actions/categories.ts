@@ -1,9 +1,12 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { products, categories, settings } from "@/lib/db/schema"
+import { products, categories } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { slugify } from "@/lib/slug"
+import { deleteCategoryForStore } from "@/lib/queries/catalog"
+import { getSettings, saveSettings } from "@/lib/settings"
 import { and, asc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -14,15 +17,6 @@ export type CategoryInput = {
   imageUrl?: string | null
   status?: "active" | "inactive"
   position?: number
-}
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
 }
 
 /**
@@ -127,14 +121,7 @@ export async function setCategoryStatus(id: number, status: "active" | "inactive
 
 export async function deleteCategoryFull(id: number) {
   const user = await requireCapability("products.manage")
-  // Detach products so nothing is lost; they become uncategorized.
-  await db
-    .update(products)
-    .set({ categoryId: null })
-    .where(and(eq(products.categoryId, id), eq(products.ownerId, user.storeId)))
-  await db
-    .delete(categories)
-    .where(and(eq(categories.id, id), eq(categories.ownerId, user.storeId)))
+  await deleteCategoryForStore(user.storeId, id)
   await logActivity({
     storeId: user.storeId,
     actor: user,
@@ -193,14 +180,19 @@ const SUPPORT_DEFAULTS: SupportConfig = {
   buttonLabel: "📞 Falar com Suporte",
 }
 
+const SUPPORT_KEYS = [
+  "support.enabled",
+  "support.label",
+  "support.message",
+  "support.telegramUsername",
+  "support.whatsappUrl",
+  "support.hours",
+  "support.buttonLabel",
+]
+
 export async function getSupportConfig(): Promise<SupportConfig> {
   const { storeId } = await requireCapability("products.manage")
-  const rows = await db
-    .select({ key: settings.key, value: settings.value })
-    .from(settings)
-    .where(eq(settings.ownerId, storeId))
-  const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
+  const map = await getSettings(storeId, SUPPORT_KEYS)
   return {
     enabled: (map["support.enabled"] ?? "true") !== "false",
     label: map["support.label"] || SUPPORT_DEFAULTS.label,
@@ -214,32 +206,14 @@ export async function getSupportConfig(): Promise<SupportConfig> {
 
 export async function saveSupportConfig(input: SupportConfig) {
   const user = await requireCapability("products.manage")
-  const entries: Array<[string, string]> = [
-    ["support.enabled", input.enabled ? "true" : "false"],
-    ["support.label", input.label],
-    ["support.message", input.message],
-    ["support.telegramUsername", input.telegramUsername],
-    ["support.whatsappUrl", input.whatsappUrl],
-    ["support.hours", input.hours],
-    ["support.buttonLabel", input.buttonLabel],
-  ]
-  await db.transaction(async (tx) => {
-    for (const [key, value] of entries) {
-      const existing = await tx
-        .select({ id: settings.id })
-        .from(settings)
-        .where(and(eq(settings.ownerId, user.storeId), eq(settings.key, key)))
-      if (existing.length > 0) {
-        await tx
-          .update(settings)
-          .set({ value, updatedAt: new Date() })
-          .where(and(eq(settings.ownerId, user.storeId), eq(settings.key, key)))
-      } else {
-        await tx
-          .insert(settings)
-          .values({ ownerId: user.storeId, key, value })
-      }
-    }
+  await saveSettings(user.storeId, {
+    "support.enabled": input.enabled ? "true" : "false",
+    "support.label": input.label,
+    "support.message": input.message,
+    "support.telegramUsername": input.telegramUsername,
+    "support.whatsappUrl": input.whatsappUrl,
+    "support.hours": input.hours,
+    "support.buttonLabel": input.buttonLabel,
   })
   await logActivity({
     storeId: user.storeId,

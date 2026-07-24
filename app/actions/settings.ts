@@ -3,10 +3,9 @@
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
-import { getAppBaseUrl } from "@/lib/urls"
-import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+import { registerStoreWebhook } from "@/lib/tg/config"
 import { revalidatePath } from "next/cache"
-import { getSetting, saveSetting } from "@/lib/settings"
+import { getSetting, saveSetting, saveSettings } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
 
 export async function saveTelegramSettings(input: {
@@ -31,10 +30,8 @@ export async function saveTelegramSettings(input: {
   const storedToken = await getSetting(user.storeId, "telegram.botToken")
   if (storedToken) {
     try {
-      const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
-      const secretToken = await getOrCreateWebhookSecret(user.storeId, "telegram")
       const client = new TelegramClient(storedToken)
-      const res = await client.setWebhook(url, secretToken)
+      const res = await registerStoreWebhook(user.storeId, client)
       if (res.ok) {
         webhookRegistered = true
         await logActivity({
@@ -99,8 +96,10 @@ export async function saveStoreCustomization(input: {
   welcomeImageUrl: string
 }) {
   const user = await requireCapability("telegram.manage")
-  await saveSetting(user.storeId, "store.welcomeMessage", input.welcomeMessage)
-  await saveSetting(user.storeId, "store.welcomeImageUrl", input.welcomeImageUrl)
+  await saveSettings(user.storeId, {
+    "store.welcomeMessage": input.welcomeMessage,
+    "store.welcomeImageUrl": input.welcomeImageUrl,
+  })
   await logActivity({
     storeId: user.storeId,
     action: "Personalização da loja atualizada",
@@ -122,10 +121,8 @@ export async function registerTelegramWebhook(): Promise<{
   if (!token) {
     return { ok: false, error: "Configure o token do bot antes de conectar." }
   }
-  const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
-  const secretToken = await getOrCreateWebhookSecret(user.storeId, "telegram")
   const client = new TelegramClient(token)
-  const res = await client.setWebhook(url, secretToken)
+  const res = await registerStoreWebhook(user.storeId, client)
   if (!res.ok) {
     return { ok: false, error: res.description ?? "Falha ao registrar webhook" }
   }

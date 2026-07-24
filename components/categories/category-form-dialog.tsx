@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ function CategoryForm({
   onClose: () => void
 }) {
   const isEdit = Boolean(category)
-  const [pending, startTransition] = useTransition()
+  const { pending, run } = useServerAction()
   const [form, setForm] = useState<CategoryInput>(() => initialForm(category))
 
   function set<K extends keyof CategoryInput>(key: K, value: CategoryInput[K]) {
@@ -104,20 +105,16 @@ function CategoryForm({
       toast.error("Informe o nome da categoria")
       return
     }
-    startTransition(async () => {
-      try {
-        if (isEdit && category) {
-          await updateCategoryFull(category.id, form)
-          toast.success("Categoria atualizada")
-        } else {
-          await createCategoryFull(form)
-          toast.success("Categoria criada")
-        }
-        onClose()
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
-    })
+    run(
+      async () => {
+        if (isEdit && category) await updateCategoryFull(category.id, form)
+        else await createCategoryFull(form)
+      },
+      {
+        success: isEdit ? "Categoria atualizada" : "Categoria criada",
+        onSuccess: onClose,
+      },
+    )
   }
 
   return (

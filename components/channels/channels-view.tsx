@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { formatDateTime, formatNumber } from "@/lib/format"
 import {
   Table,
   TableBody,
@@ -486,7 +487,7 @@ export function ChannelsView({
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {typeof c.memberCount === "number"
-                      ? c.memberCount.toLocaleString("pt-BR")
+                      ? formatNumber(c.memberCount)
                       : "—"}
                   </TableCell>
                   <TableCell>
@@ -508,9 +509,7 @@ export function ChannelsView({
                     </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {c.lastSyncedAt
-                      ? new Date(c.lastSyncedAt).toLocaleString("pt-BR")
-                      : "Nunca"}
+                    {c.lastSyncedAt ? formatDateTime(c.lastSyncedAt) : "Nunca"}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

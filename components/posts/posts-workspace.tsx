@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { formatDateTime } from "@/lib/format"
 import {
   Megaphone,
   CalendarClock,
@@ -472,7 +473,7 @@ function ScheduleList({
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <p className="text-xs text-muted-foreground font-medium">
-                  Próximo envio: <span className="text-blue-400">{s.nextRunAt ? new Date(s.nextRunAt).toLocaleString("pt-BR") : "—"}</span>
+                  Próximo envio: <span className="text-blue-400">{formatDateTime(s.nextRunAt)}</span>
                 </p>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
                   {recurrenceLabel}
@@ -530,9 +531,7 @@ function PostList({
                 {p.title ?? `Postagem #${p.id}`}
               </p>
               <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                {p.sentAt
-                  ? new Date(p.sentAt).toLocaleString("pt-BR")
-                  : new Date(p.updatedAt).toLocaleString("pt-BR")}
+                {formatDateTime(p.sentAt ?? p.updatedAt)}
               </p>
             </div>
             <PostBadge status={p.status}>

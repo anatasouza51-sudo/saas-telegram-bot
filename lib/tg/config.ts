@@ -1,6 +1,11 @@
 import "server-only"
 import { TelegramClient } from "@/lib/telegram"
 import { getSettings } from "@/lib/settings"
+import { getAppBaseUrl } from "@/lib/urls"
+import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+
+export const NO_BOT_TOKEN_ERROR = "Configure o token do bot em Telegram Bot."
+export const BOT_UNREACHABLE_ERROR = "Token inválido ou API indisponível."
 
 export const TG_KEYS = {
   botToken: "telegram.botToken",
@@ -45,4 +50,41 @@ export async function getStoreTelegram(storeId: string) {
     managementChatId: map[TG_KEYS.managementChatId] || "",
     backupChatId: map[TG_KEYS.backupChatId] || "",
   }
+}
+
+export type ResolvedStoreBot =
+  | { ok: true; client: TelegramClient; botId: number; username: string | null }
+  | { ok: false; error: string }
+
+/**
+ * Loads a store's bot client and validates the token against getMe(), which is
+ * the precondition of every channel/webhook operation. Returns a ready-to-use
+ * client plus the bot's own user id, or a user-facing error message.
+ */
+export async function resolveStoreBot(
+  storeId: string,
+): Promise<ResolvedStoreBot> {
+  const { client } = await getStoreTelegram(storeId)
+  if (!client) return { ok: false, error: NO_BOT_TOKEN_ERROR }
+  const me = await client.getMe()
+  if (!me.ok || !me.result) return { ok: false, error: BOT_UNREACHABLE_ERROR }
+  return {
+    ok: true,
+    client,
+    botId: me.result.id,
+    username: me.result.username ?? null,
+  }
+}
+
+/**
+ * (Re-)registers this store's Telegram webhook. Idempotent, and always uses
+ * the store's own secret token so inbound updates can be authenticated.
+ */
+export async function registerStoreWebhook(
+  storeId: string,
+  client: TelegramClient,
+) {
+  const url = `${getAppBaseUrl()}/api/telegram/webhook/${storeId}`
+  const secret = await getOrCreateWebhookSecret(storeId, "telegram")
+  return client.setWebhook(url, secret)
 }

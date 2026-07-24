@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
+import { formatDateTime } from "@/lib/format"
 import {
   getTelegramDiagnostics,
   type TelegramDiagnostics,
@@ -156,9 +157,7 @@ export function DiagnosticsPanel({
                 <span>
                   Processado em:{" "}
                   <span className="font-mono">
-                    {diag.lastEventAt
-                      ? new Date(diag.lastEventAt).toLocaleString("pt-BR")
-                      : "—"}
+                    {formatDateTime(diag.lastEventAt)}
                   </span>
                 </span>
               </div>

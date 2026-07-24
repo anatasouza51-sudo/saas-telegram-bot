@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,24 +14,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { saveSupportConfig, type SupportConfig } from "@/app/actions/categories"
-import { toast } from "sonner"
 
 export function SupportConfigForm({ initial }: { initial: SupportConfig }) {
   const [form, setForm] = useState<SupportConfig>(initial)
-  const [pending, startTransition] = useTransition()
+  const { pending, run } = useServerAction()
 
   function set<K extends keyof SupportConfig>(key: K, value: SupportConfig[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
   function submit() {
-    startTransition(async () => {
-      try {
-        await saveSupportConfig(form)
-        toast.success("Suporte salvo")
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erro ao salvar")
-      }
+    run(() => saveSupportConfig(form), {
+      success: "Suporte salvo",
+      error: "Erro ao salvar",
     })
   }
 

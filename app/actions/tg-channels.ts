@@ -5,7 +5,12 @@ import { telegramChats } from "@/lib/db/schema"
 import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
-import { getStoreTelegram, TG_KEYS } from "@/lib/tg/config"
+import {
+  getStoreTelegram,
+  registerStoreWebhook,
+  resolveStoreBot,
+  TG_KEYS,
+} from "@/lib/tg/config"
 import {
   syncKnownChats,
   purgeInvalidChats,
@@ -18,9 +23,7 @@ import {
   getPurposeMeta,
   type ChatPurpose,
 } from "@/lib/tg/purposes"
-import { saveSetting, getSettings } from "@/lib/settings"
-import { getAppBaseUrl } from "@/lib/urls"
-import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+import { saveSettings, getSettings } from "@/lib/settings"
 import { revalidatePath } from "next/cache"
 
 // Keeps the CDN / management / backup setting keys in sync with the chats table
@@ -32,17 +35,11 @@ async function syncPurposeSettings(storeId: string) {
     .where(eq(telegramChats.ownerId, storeId))
   const active = (purpose: string) =>
     rows.find((r) => r.purpose === purpose && r.status === "active")
-  await saveSetting(storeId, TG_KEYS.cdnChatId, active("cdn")?.chatId ?? "")
-  await saveSetting(
-    storeId,
-    TG_KEYS.managementChatId,
-    active("management")?.chatId ?? "",
-  )
-  await saveSetting(
-    storeId,
-    TG_KEYS.backupChatId,
-    active("backups")?.chatId ?? "",
-  )
+  await saveSettings(storeId, {
+    [TG_KEYS.cdnChatId]: active("cdn")?.chatId ?? "",
+    [TG_KEYS.managementChatId]: active("management")?.chatId ?? "",
+    [TG_KEYS.backupChatId]: active("backups")?.chatId ?? "",
+  })
 }
 
 // Lists every chat auto-detected for the current store. There is no manual
@@ -73,26 +70,17 @@ export async function syncAllChannels(): Promise<{
   total?: number
 }> {
   const user = await requireCapability("posts.manage")
-  const { client } = await getStoreTelegram(user.storeId)
-  if (!client) {
-    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
-  }
-
-  const me = await client.getMe()
-  if (!me.ok || !me.result) {
-    return { ok: false, error: "Não foi possível identificar o bot." }
-  }
+  const bot = await resolveStoreBot(user.storeId)
+  if (!bot.ok) return { ok: false, error: bot.error }
 
   // Re-register the webhook so *_member and channel_post updates are delivered.
   try {
-    const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
-    const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
-    await client.setWebhook(url, secret)
+    await registerStoreWebhook(user.storeId, bot.client)
   } catch {
     // Non-fatal: revalidation of known chats can still proceed.
   }
 
-  const res = await syncKnownChats(user.storeId, me.result.id, client)
+  const res = await syncKnownChats(user.storeId, bot.botId, bot.client)
   await syncPurposeSettings(user.storeId)
 
   await logActivity({
@@ -123,37 +111,28 @@ export async function restartTelegramIntegration(): Promise<{
   updated?: number
 }> {
   const user = await requireCapability("posts.manage")
-  const { client } = await getStoreTelegram(user.storeId)
-  if (!client) {
-    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
-  }
-
   const steps: string[] = []
 
   // 1. Validate token.
-  const me = await client.getMe()
-  if (!me.ok || !me.result) {
-    return { ok: false, error: "Token inválido ou API indisponível." }
-  }
-  steps.push(`Token válido (@${me.result.username ?? "bot"})`)
+  const bot = await resolveStoreBot(user.storeId)
+  if (!bot.ok) return { ok: false, error: bot.error }
+  steps.push(`Token válido (@${bot.username ?? "bot"})`)
 
   // 2. Reset the webhook: delete, then re-create with correct allowed_updates.
   try {
-    await client.deleteWebhook(false)
-    const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
-    const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
-    await client.setWebhook(url, secret)
+    await bot.client.deleteWebhook(false)
+    await registerStoreWebhook(user.storeId, bot.client)
     steps.push("Webhook reiniciado")
   } catch {
     steps.push("Falha ao reiniciar o webhook")
   }
 
   // 3. Purge invalid rows (bot itself / private chats).
-  const purged = await purgeInvalidChats(user.storeId, me.result.id)
+  const purged = await purgeInvalidChats(user.storeId, bot.botId)
   steps.push(`${purged} registro(s) inválido(s) removido(s)`)
 
   // 4. Re-sync known chats + settings.
-  const res = await syncKnownChats(user.storeId, me.result.id, client)
+  const res = await syncKnownChats(user.storeId, bot.botId, bot.client)
   await syncPurposeSettings(user.storeId)
   steps.push(`${res.updated} grupo(s)/canal(is) sincronizado(s)`)
 
@@ -224,16 +203,15 @@ export async function addChannelManually(
   rawInput: string,
 ): Promise<{ ok: boolean; error?: string; title?: string }> {
   const user = await requireCapability("posts.manage")
-  const { client } = await getStoreTelegram(user.storeId)
-  if (!client) {
-    return { ok: false, error: "Configure o token do bot em Telegram Bot." }
-  }
-  const me = await client.getMe()
-  if (!me.ok || !me.result) {
-    return { ok: false, error: "Token inválido ou API indisponível." }
-  }
+  const bot = await resolveStoreBot(user.storeId)
+  if (!bot.ok) return { ok: false, error: bot.error }
 
-  const res = await addChatManually(user.storeId, me.result.id, client, rawInput)
+  const res = await addChatManually(
+    user.storeId,
+    bot.botId,
+    bot.client,
+    rawInput,
+  )
   if (!res.ok) return { ok: false, error: res.error }
 
   await logActivity({

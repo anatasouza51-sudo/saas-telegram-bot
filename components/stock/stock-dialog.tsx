@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
+import { getErrorMessage } from "@/lib/errors"
 import {
   Dialog,
   DialogContent,
@@ -45,7 +47,7 @@ export function StockDialog({
   const [available, setAvailable] = useState<StockItem[]>([])
   const [sold, setSold] = useState<StockItem[]>([])
   const [loading, setLoading] = useState(false)
-  const [pending, startTransition] = useTransition()
+  const { pending, run } = useServerAction()
 
   async function refresh() {
     if (!productId) return
@@ -76,28 +78,19 @@ export function StockDialog({
       toast.error("Informe ao menos um item")
       return
     }
-    startTransition(async () => {
-      try {
-        const count = await addStockItems(productId, raw)
-        toast.success(`${count} item(ns) adicionado(s)`)
-        setRaw("")
-        await refresh()
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
+    run(async () => {
+      const count = await addStockItems(productId, raw)
+      toast.success(`${count} item(ns) adicionado(s)`)
+      setRaw("")
+      await refresh()
     })
   }
 
   function handleDelete(id: number) {
-    startTransition(async () => {
-      try {
-        await deleteStockItem(id)
-        toast.success("Item removido")
-        await refresh()
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
-    })
+    run(async () => {
+      await deleteStockItem(id)
+      await refresh()
+    }, { success: "Item removido" })
   }
 
   async function handleExport() {
@@ -112,7 +105,7 @@ export function StockDialog({
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      toast.error((err as Error).message)
+      toast.error(getErrorMessage(err))
     }
   }
 

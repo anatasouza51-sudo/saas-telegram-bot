@@ -3,7 +3,8 @@
 import { db } from "@/lib/db"
 import { products, categories, stockItems, orders } from "@/lib/db/schema"
 import { requireCapability } from "@/lib/session"
-import { and, asc, desc, eq, sql, count, sum } from "drizzle-orm"
+import { listCategoriesForStore } from "@/lib/queries/catalog"
+import { and, eq, sql, count } from "drizzle-orm"
 
 export type SortOption = 
   | "name-asc"
@@ -238,18 +239,7 @@ export async function listProductsGroupedByCategory(opts?: {
  */
 export async function listCategories() {
   const { storeId } = await requireCapability("products.manage")
-  return db
-    .select({
-      id: categories.id,
-      name: categories.name,
-      emoji: categories.emoji,
-      description: categories.description,
-      status: categories.status,
-      position: categories.position,
-    })
-    .from(categories)
-    .where(eq(categories.ownerId, storeId))
-    .orderBy(asc(categories.position), asc(categories.name))
+  return listCategoriesForStore(storeId)
 }
 
 export async function getProductStats(): Promise<ProductStats> {

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
+import { useServerAction } from "@/hooks/use-server-action"
 import {
   Dialog,
   DialogContent,
@@ -109,7 +110,7 @@ function ProductForm({
   onClose: () => void
 }) {
   const isEdit = Boolean(product)
-  const [pending, startTransition] = useTransition()
+  const { pending, run } = useServerAction()
   // Because this component is keyed by product id and only mounts while open,
   // this initializer runs exactly once per opened product with correct data.
   const [form, setForm] = useState<ProductInput>(() => initialForm(product))
@@ -123,20 +124,16 @@ function ProductForm({
       toast.error("Informe o nome do produto")
       return
     }
-    startTransition(async () => {
-      try {
-        if (isEdit && product) {
-          await updateProduct(product.id, form)
-          toast.success("Produto atualizado")
-        } else {
-          await createProduct(form)
-          toast.success("Produto criado")
-        }
-        onClose()
-      } catch (err) {
-        toast.error((err as Error).message)
-      }
-    })
+    run(
+      async () => {
+        if (isEdit && product) await updateProduct(product.id, form)
+        else await createProduct(form)
+      },
+      {
+        success: isEdit ? "Produto atualizado" : "Produto criado",
+        onSuccess: onClose,
+      },
+    )
   }
 
   return (
