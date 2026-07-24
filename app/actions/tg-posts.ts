@@ -128,7 +128,9 @@ export async function publishNow(
   })
 
   // Fire-and-forget first drain; cron handles the rest/retries.
-  processQueue().catch(() => {})
+  processQueue().catch((err) => {
+    console.error("[tg/posts] initial queue drain failed:", err)
+  })
   revalidatePath("/posts")
   return { enqueued }
 }
