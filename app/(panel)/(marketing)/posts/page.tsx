@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 
 export default async function PostsPage() {
+  // Auth runs outside the try: `requireCapability` redirects unauthenticated
+  // users via a control-flow exception that must never be caught here.
+  const user = await requireCapability("posts.manage")
+
   try {
-    const user = await requireCapability("posts.manage")
     const tg = await getStoreTelegram(user.storeId)
 
     const [channels, posts, schedules, stats, media, templates, reports] =

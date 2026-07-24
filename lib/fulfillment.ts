@@ -14,8 +14,23 @@ import { escapeHtml } from "@/lib/security"
 import { parsePixConfig } from "@/lib/pix"
 
 type FulfillResult =
-  | { ok: true; delivered: string; orderId: number }
-  | { ok: false; reason: string }
+  | {
+      ok: true
+      delivered: string
+      orderId: number
+      // False when the stock item was committed but the customer could not be
+      // notified on Telegram. The order IS fulfilled — the caller must surface
+      // this so an operator can resend the content manually.
+      notified: boolean
+      notifyError?: string
+    }
+  | { ok: false; reason: string; code: FulfillErrorCode }
+
+export type FulfillErrorCode =
+  | "not_found"
+  | "already_delivered"
+  | "no_stock"
+  | "error"
 
 /**
  * Approves a paid order and delivers a digital stock item exactly once.
@@ -25,7 +40,56 @@ type FulfillResult =
  * the same item. The item is flipped to `sold` in the same transaction.
  */
 export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
+  const claim = await claimStockItem(orderId)
+  if (!claim.ok) return claim
+
+  const { order, content, stockItemId } = claim
+
+  // Side effects run after COMMIT: a failure here must never be reported as a
+  // failed fulfillment, otherwise the caller retries an already-delivered order.
+  const notify = await deliverToCustomer(order, content)
+  if (!notify.ok) {
+    console.error(
+      `[fulfillment] order ${orderId} delivered but customer notification failed:`,
+      notify.error,
+    )
+    await logActivity({
+      storeId: order.ownerId,
+      action: `Pedido #${orderId} entregue, mas o cliente não foi notificado no Telegram`,
+      category: "delivery",
+      details: notify.error,
+    })
+  }
+
+  await logActivity({
+    storeId: order.ownerId,
+    action: `Pedido #${orderId} entregue automaticamente (item de estoque #${stockItemId})`,
+    category: "delivery",
+  })
+
+  return {
+    ok: true,
+    delivered: content,
+    orderId,
+    notified: notify.ok,
+    notifyError: notify.ok ? undefined : notify.error,
+  }
+}
+
+type ClaimResult =
+  | {
+      ok: true
+      order: DeliverableOrder & { ownerId: string }
+      content: string
+      stockItemId: number
+    }
+  | { ok: false; reason: string; code: FulfillErrorCode }
+
+// Runs the transactional part of fulfillment: claims a stock item, flips the
+// order to approved/delivered and records the delivery. No side effects.
+async function claimStockItem(orderId: number): Promise<ClaimResult> {
   const client = await pool.connect()
+  let committed = false
   try {
     await client.query("BEGIN")
 
@@ -37,13 +101,17 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
     const order = orderRes.rows[0]
     if (!order) {
       await client.query("ROLLBACK")
-      return { ok: false, reason: "Pedido não encontrado" }
+      return { ok: false, reason: "Pedido não encontrado", code: "not_found" }
     }
 
     // Idempotency: if already delivered, do nothing.
     if (order.deliveryStatus === "delivered") {
       await client.query("ROLLBACK")
-      return { ok: false, reason: "Pedido já entregue" }
+      return {
+        ok: false,
+        reason: "Pedido já entregue",
+        code: "already_delivered",
+      }
     }
 
     // Claim one available stock item without racing other transactions.
@@ -59,7 +127,7 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
     const item = stockRes.rows[0]
     if (!item) {
       await client.query("ROLLBACK")
-      return { ok: false, reason: "Sem estoque disponível" }
+      return { ok: false, reason: "Sem estoque disponível", code: "no_stock" }
     }
 
     // Mark item sold, bind it to this order.
@@ -98,46 +166,70 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
     }
 
     await client.query("COMMIT")
+    committed = true
 
-    // Deliver via Telegram (outside the transaction), using this store's bot.
-    await deliverToCustomer(order, item.content)
-    // (order carries ownerId, customerId, productName — used below)
-
-    await logActivity({
-      storeId: order.ownerId,
-      action: `Pedido #${orderId} entregue automaticamente (item de estoque #${item.id})`,
-      category: "delivery",
-    })
-
-    return { ok: true, delivered: item.content, orderId }
+    return { ok: true, order, content: item.content, stockItemId: item.id }
   } catch (err) {
-    await client.query("ROLLBACK")
+    if (!committed) {
+      // The rollback itself can fail (e.g. the connection dropped); that must
+      // not mask the original error.
+      try {
+        await client.query("ROLLBACK")
+      } catch (rollbackErr) {
+        console.error(
+          `[fulfillment] rollback failed for order ${orderId}:`,
+          rollbackErr,
+        )
+      }
+    }
+    console.error(`[fulfillment] order ${orderId} failed:`, err)
     return {
       ok: false,
       reason: err instanceof Error ? err.message : "Erro na entrega",
+      code: "error",
     }
   } finally {
     client.release()
   }
 }
 
+type DeliverableOrder = {
+  id: number
+  ownerId: string
+  customerId: number | null
+  productName: string | null
+  pixChatId?: string | null
+  pixMessageId?: number | null
+}
+
+// Notifies the customer on Telegram. Returns a result instead of throwing so a
+// notification failure is reported without rolling back a committed delivery.
 async function deliverToCustomer(
-  order: {
-    id: number
-    ownerId: string
-    customerId: number | null
-    productName: string | null
-    pixChatId?: string | null
-    pixMessageId?: number | null
-  },
+  order: DeliverableOrder,
   content: string,
-) {
-  if (!order.customerId) return
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    return await sendDeliveryMessage(order, content)
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro ao notificar o cliente",
+    }
+  }
+}
+
+async function sendDeliveryMessage(
+  order: DeliverableOrder,
+  content: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!order.customerId) return { ok: false, error: "Pedido sem cliente vinculado" }
   const [customer] = await db
     .select()
     .from(customers)
     .where(eq(customers.id, order.customerId))
-  if (!customer?.telegramId) return
+  if (!customer?.telegramId) {
+    return { ok: false, error: "Cliente sem Telegram vinculado" }
+  }
 
   // Load this store's bot token + PIX config (for the approved message text).
   const rows = await db
@@ -152,7 +244,7 @@ async function deliverToCustomer(
   const map: Record<string, string> = {}
   for (const r of rows) map[r.key] = r.value ?? ""
   const token = map["telegram.botToken"]
-  if (!token) return
+  if (!token) return { ok: false, error: "Token do bot não configurado" }
   const pix = parsePixConfig(map["pix.config"])
 
   const client = new TelegramClient(token)
@@ -171,12 +263,19 @@ async function deliverToCustomer(
       approvedCaption,
     )
     if (!res.ok && !(res.description ?? "").toLowerCase().includes("not modified")) {
-      // Fallback for the text-only variant of the PIX message.
-      await client.editMessageText(
+      // Fallback for the text-only variant of the PIX message. Cosmetic: the
+      // product delivery below is what actually matters.
+      const edit = await client.editMessageText(
         order.pixChatId,
         order.pixMessageId,
         approvedCaption,
       )
+      if (!edit.ok) {
+        console.error(
+          `[fulfillment] could not flip PIX message for order ${order.id}:`,
+          edit.description ?? res.description,
+        )
+      }
     }
   }
 
@@ -191,5 +290,9 @@ async function deliverToCustomer(
     `Obrigado pela compra! Use /suporte se precisar de ajuda.`,
   ].join("\n")
 
-  await client.sendMessage(customer.telegramId, message)
+  const sent = await client.sendMessage(customer.telegramId, message)
+  if (!sent.ok) {
+    return { ok: false, error: sent.description ?? "Falha ao enviar no Telegram" }
+  }
+  return { ok: true }
 }
