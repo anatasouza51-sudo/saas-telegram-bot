@@ -6,9 +6,11 @@ import { authClient } from "@/lib/auth-client"
 import { revalidatePath } from "next/cache"
 
 export async function updateUserProfile(input: { name: string }) {
-  try {
-    const user = await requireUser()
+  // Outside the try: `requireUser` redirects by throwing, and that must not be
+  // turned into a generic "Erro ao atualizar perfil".
+  const user = await requireUser()
 
+  try {
     // Update user profile using better-auth
     const response = await fetch(`${process.env.BETTER_AUTH_URL || ""}/api/auth/update-profile`, {
       method: "POST",
@@ -21,6 +23,11 @@ export async function updateUserProfile(input: { name: string }) {
     })
 
     if (!response.ok) {
+      const detail = await response.text().catch(() => "")
+      console.error(
+        `[profile] update failed (HTTP ${response.status}):`,
+        detail.slice(0, 500),
+      )
       return { ok: false, error: "Falha ao atualizar perfil" }
     }
 
@@ -35,7 +42,10 @@ export async function updateUserProfile(input: { name: string }) {
     revalidatePath("/")
     return { ok: true }
   } catch (error) {
-    console.error("Erro ao atualizar perfil:", error)
-    return { ok: false, error: "Erro ao atualizar perfil" }
+    console.error("[profile] update failed:", error)
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao atualizar perfil",
+    }
   }
 }

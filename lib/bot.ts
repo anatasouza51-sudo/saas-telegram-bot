@@ -22,6 +22,7 @@ import {
 } from "@/lib/pix"
 import { randomBytes } from "node:crypto"
 import { fulfillOrder } from "@/lib/fulfillment"
+import { logActivity } from "@/lib/log"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
@@ -700,8 +701,12 @@ export async function expireDuePixOrders() {
         NO_KEYBOARD,
       )
       expired += 1
-    } catch {
+    } catch (err) {
       // Best-effort: retried on the next sweep, at most a minute later.
+      console.error(
+        `[bot] could not expire PIX message for order ${order.id}:`,
+        err,
+      )
     }
   }
 
@@ -745,7 +750,24 @@ async function handlePixVerify(
     // Safety net: if the webhook approved payment but delivery didn't complete,
     // deliver now (fulfillOrder is idempotent).
     if (order.deliveryStatus !== "delivered") {
-      await fulfillOrder(orderId)
+      const result = await fulfillOrder(orderId)
+      // "already_delivered" only means another flow won the race — not an error.
+      if (!result.ok && result.code !== "already_delivered") {
+        console.error(
+          `[bot] delivery retry failed for order ${orderId}:`,
+          result.reason,
+        )
+        await logActivity({
+          storeId: ctx.storeId,
+          action: `Falha ao reentregar o pedido #${orderId} após "Já efetuei o pagamento"`,
+          category: "delivery",
+          details: result.reason,
+        })
+        await ctx.tg.sendMessage(
+          chatId,
+          "Não conseguimos concluir a entrega automaticamente. Nossa equipe já foi avisada — use /suporte se precisar de ajuda.",
+        )
+      }
     }
     return
   }

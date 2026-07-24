@@ -87,9 +87,16 @@ export async function syncAllChannels(): Promise<{
   try {
     const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
     const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
-    await client.setWebhook(url, secret)
-  } catch {
+    const hook = await client.setWebhook(url, secret)
+    if (!hook.ok) {
+      console.error(
+        "[tg/channels] setWebhook rejected during sync:",
+        hook.description,
+      )
+    }
+  } catch (err) {
     // Non-fatal: revalidation of known chats can still proceed.
+    console.error("[tg/channels] setWebhook failed during sync:", err)
   }
 
   const res = await syncKnownChats(user.storeId, me.result.id, client)
@@ -142,10 +149,17 @@ export async function restartTelegramIntegration(): Promise<{
     await client.deleteWebhook(false)
     const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
     const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
-    await client.setWebhook(url, secret)
-    steps.push("Webhook reiniciado")
-  } catch {
-    steps.push("Falha ao reiniciar o webhook")
+    const hook = await client.setWebhook(url, secret)
+    steps.push(
+      hook.ok
+        ? "Webhook reiniciado"
+        : `Falha ao reiniciar o webhook: ${hook.description ?? "erro desconhecido"}`,
+    )
+  } catch (err) {
+    console.error("[tg/channels] webhook restart failed:", err)
+    steps.push(
+      `Falha ao reiniciar o webhook: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+    )
   }
 
   // 3. Purge invalid rows (bot itself / private chats).
