@@ -17,26 +17,26 @@ export default async function PostsPage() {
   try {
     const tg = await getStoreTelegram(user.storeId)
 
-    const [
-      channels,
-      topics,
-      posts,
-      schedules,
-      stats,
-      media,
-      templates,
-      reports,
-    ] =
-      await Promise.all([
-        listChannels(),
-        listTopics(),
-        listPosts("all"),
-        listSchedules(),
-        getPostStats(),
-        listMedia(),
-        listTemplates(),
-        getPostReports(),
-      ])
+    const results = await Promise.allSettled([
+      listChannels(),
+      listTopics(),
+      listPosts("all"),
+      listSchedules(),
+      getPostStats(),
+      listMedia(),
+      listTemplates(),
+      getPostReports(),
+    ])
+
+    // Extract values with fallbacks for failed promises
+    const channels = results[0].status === "fulfilled" ? results[0].value : []
+    const topics = results[1].status === "fulfilled" ? results[1].value : []
+    const posts = results[2].status === "fulfilled" ? results[2].value : []
+    const schedules = results[3].status === "fulfilled" ? results[3].value : []
+    const stats = results[4].status === "fulfilled" ? results[4].value : { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }
+    const media = results[5].status === "fulfilled" ? results[5].value : []
+    const templates = results[6].status === "fulfilled" ? results[6].value : []
+    const reports = results[7].status === "fulfilled" ? results[7].value : []
 
     // Resolve the bot's display name for the live preview (best-effort).
     let botName = "Seu Bot"
@@ -50,14 +50,14 @@ export default async function PostsPage() {
     return (
       <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
         <PostsWorkspace
-          channels={channels as never}
-          topics={topics as never}
-          posts={posts as never}
-          schedules={schedules as never}
-          stats={stats as never}
-          media={media as never}
-          templates={templates as never}
-          reports={reports as never}
+          channels={channels}
+          topics={topics}
+          posts={posts}
+          schedules={schedules}
+          stats={stats}
+          media={media}
+          templates={templates}
+          reports={reports}
           botName={botName}
           cdnReady={Boolean(tg.client && tg.cdnChatId)}
         />
