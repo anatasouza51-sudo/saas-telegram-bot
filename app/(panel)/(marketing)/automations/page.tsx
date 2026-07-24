@@ -6,18 +6,22 @@ import { requireCapability } from "@/lib/session"
 
 export default async function AutomationsPage() {
   await requireCapability("posts.manage")
-  const [automations, channels, templates] = await Promise.all([
+  const results = await Promise.allSettled([
     listAutomations(),
     listChannels(),
     listTemplates(),
   ])
 
+  const automations = results[0].status === "fulfilled" ? results[0].value : []
+  const channels = results[1].status === "fulfilled" ? results[1].value : []
+  const templates = results[2].status === "fulfilled" ? results[2].value : []
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <AutomationsView
-        automations={automations as never}
-        channels={channels as never}
-        templates={templates as never}
+        automations={automations}
+        channels={channels}
+        templates={templates}
       />
     </div>
   )
