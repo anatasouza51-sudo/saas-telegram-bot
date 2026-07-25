@@ -21,13 +21,18 @@ export type TemplateInput = {
 }
 
 export async function listTemplates() {
-  const user = await requireCapability("posts.manage")
-  return db
-    .select()
-    .from(telegramTemplates)
-    .where(eq(telegramTemplates.ownerId, user.storeId))
-    .orderBy(desc(telegramTemplates.updatedAt))
-    .limit(200)
+  try {
+    const user = await requireCapability("posts.manage")
+    return await db
+      .select()
+      .from(telegramTemplates)
+      .where(eq(telegramTemplates.ownerId, user.storeId))
+      .orderBy(desc(telegramTemplates.updatedAt))
+      .limit(200)
+  } catch (err) {
+    console.error("[tg/templates] listTemplates failed:", err)
+    return []
+  }
 }
 
 export async function saveTemplate(input: TemplateInput): Promise<number> {
