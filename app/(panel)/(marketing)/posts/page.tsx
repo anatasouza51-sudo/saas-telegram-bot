@@ -19,7 +19,16 @@ export default async function PostsPage() {
   try {
     const tg = await getStoreTelegram(user.storeId)
 
-    const results = await Promise.allSettled([
+    const [
+      channelsResult,
+      topicsResult,
+      postsResult,
+      schedulesResult,
+      statsResult,
+      mediaResult,
+      templatesResult,
+      reportsResult,
+    ] = await Promise.allSettled([
       listChannels(),
       listTopics(),
       listPosts("all"),
@@ -30,22 +39,26 @@ export default async function PostsPage() {
       getPostReports(),
     ])
 
-    // Extract values with fallbacks for failed promises
-    const channels = results[0].status === "fulfilled" ? results[0].value : []
-    const topics = results[1].status === "fulfilled" ? results[1].value : []
-    const posts = results[2].status === "fulfilled" ? results[2].value : []
-    const schedules = results[3].status === "fulfilled" ? results[3].value : []
-    const stats = results[4].status === "fulfilled" ? results[4].value : { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }
-    const media = results[5].status === "fulfilled" ? results[5].value : []
-    const templates = results[6].status === "fulfilled" ? results[6].value : []
-    const reports = results[7].status === "fulfilled" ? results[7].value : []
+    // Extract values with robust fallbacks for failed promises
+    const channels = channelsResult.status === "fulfilled" ? (channelsResult.value ?? []) : []
+    const topics = topicsResult.status === "fulfilled" ? (topicsResult.value ?? []) : []
+    const posts = postsResult.status === "fulfilled" ? (postsResult.value ?? []) : []
+    const schedules = schedulesResult.status === "fulfilled" ? (schedulesResult.value ?? []) : []
+    const stats = statsResult.status === "fulfilled" ? (statsResult.value ?? { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }) : { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }
+    const media = mediaResult.status === "fulfilled" ? (mediaResult.value ?? []) : []
+    const templates = templatesResult.status === "fulfilled" ? (templatesResult.value ?? []) : []
+    const reports = reportsResult.status === "fulfilled" ? (reportsResult.value ?? []) : []
 
     // Resolve the bot's display name for the live preview (best-effort).
     let botName = "Seu Bot"
     if (tg.client) {
-      const me = await tg.client.getMe()
-      if (me.ok && me.result) {
-        botName = me.result.first_name || me.result.username || botName
+      try {
+        const me = await tg.client.getMe()
+        if (me?.ok && me?.result) {
+          botName = me.result.first_name || me.result.username || botName
+        }
+      } catch (meError) {
+        console.error("[PostsPage] getMe failed:", meError)
       }
     }
 
