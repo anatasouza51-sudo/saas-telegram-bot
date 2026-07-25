@@ -52,6 +52,7 @@ export async function resolveTargets(
   const usable = rows.filter(
     (r) => r.status === "active" && r.botIsAdmin && r.purpose === "audience",
   )
+  const usableChatIds = new Set(usable.map((r) => r.chatId))
 
   const wantAll = targets.includes("all")
   const wantGroups = wantAll || targets.includes("all_groups")
@@ -70,7 +71,7 @@ export async function resolveTargets(
     }
   }
   for (const dest of explicit) {
-    if (!usableIds.has(dest.chatId)) continue
+    if (!usableChatIds.has(dest.chatId)) continue
     out.set(formatTarget(dest.chatId, dest.threadId), dest)
   }
   // A topic pick replaces the wildcard's chat-wide entry, so a chat covered by
