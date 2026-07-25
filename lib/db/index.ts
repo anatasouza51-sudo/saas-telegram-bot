@@ -41,4 +41,12 @@ pool.on("error", (err) => {
   console.error("[db] Erro inesperado no pool do Postgres:", err)
 })
 
+// Adiciona um listener global para rejeições de promessas não tratadas
+// que podem vir do Drizzle/PG e derrubar o Server Component.
+if (typeof process !== "undefined") {
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error("[db] Rejeição não tratada em:", promise, "motivo:", reason)
+  })
+}
+
 export const db = drizzle(pool, { schema })

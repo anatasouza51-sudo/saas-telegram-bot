@@ -369,19 +369,32 @@ export async function getPostReports(postIds?: number[]) {
   }))
 }
 export async function getPostStats() {
-  const user = await requireCapability("posts.manage")
-  const [row] = await db
-    .select({
-      total: sql<number>`COUNT(*)::int`,
-      sent: sql<number>`COUNT(*) FILTER (WHERE status = 'sent')::int`,
-      failed: sql<number>`COUNT(*) FILTER (WHERE status = 'failed')::int`,
-      scheduled: sql<number>`COUNT(*) FILTER (WHERE status = 'scheduled')::int`,
-      draft: sql<number>`COUNT(*) FILTER (WHERE status = 'draft')::int`,
-      today: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('day', now()))::int`,
-      week: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('week', now()))::int`,
-      month: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('month', now()))::int`,
-    })
-    .from(telegramPosts)
-    .where(eq(telegramPosts.ownerId, user.storeId))
-  return row
+  try {
+    const session = await requireCapability("posts.manage").catch(() => null)
+    if (!session) return {
+      total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0
+    }
+
+    const [row] = await db
+      .select({
+        total: sql<number>`COUNT(*)::int`,
+        sent: sql<number>`COUNT(*) FILTER (WHERE status = 'sent')::int`,
+        failed: sql<number>`COUNT(*) FILTER (WHERE status = 'failed')::int`,
+        scheduled: sql<number>`COUNT(*) FILTER (WHERE status = 'scheduled')::int`,
+        draft: sql<number>`COUNT(*) FILTER (WHERE status = 'draft')::int`,
+        today: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('day', now()))::int`,
+        week: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('week', now()))::int`,
+        month: sql<number>`COUNT(*) FILTER (WHERE status = 'sent' AND "sentAt" >= date_trunc('month', now()))::int`,
+      })
+      .from(telegramPosts)
+      .where(eq(telegramPosts.ownerId, session.storeId))
+    return row ?? {
+      total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0
+    }
+  } catch (err) {
+    console.error("[tg/posts] getPostStats failed:", err)
+    return {
+      total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0
+    }
+  }
 }

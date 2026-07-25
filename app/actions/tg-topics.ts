@@ -57,71 +57,76 @@ export async function addTopic(input: {
   threadId: number
   name: string
 }): Promise<TopicRow> {
-  const user = await requireCapability("posts.manage")
-  const threadId = Number(input.threadId)
-  if (!Number.isInteger(threadId) || threadId <= 0) {
-    throw new Error("Informe o ID numérico do tópico (message_thread_id).")
+  try {
+    const user = await requireCapability("posts.manage")
+    const threadId = Number(input.threadId)
+    if (!Number.isInteger(threadId) || threadId < 0) {
+      throw new Error("Informe o ID numérico do tópico (message_thread_id).")
+    }
+    const name = input.name?.trim()
+    if (!name) throw new Error("Informe um nome para o tópico.")
+
+    const [chat] = await db
+      .select({ id: telegramChats.id, type: telegramChats.type })
+      .from(telegramChats)
+      .where(
+        and(
+          eq(telegramChats.ownerId, user.storeId),
+          eq(telegramChats.chatId, input.chatId),
+        ),
+      )
+      .limit(1)
+    if (!chat) throw new Error("Grupo não encontrado.")
+    if (chat.type !== "supergroup") {
+      throw new Error("Somente supergrupos com tópicos aceitam este recurso.")
+    }
+
+    const now = new Date()
+    const [row] = await db
+      .insert(telegramTopics)
+      .values({
+        ownerId: user.storeId,
+        chatId: input.chatId,
+        threadId,
+        name,
+        source: "manual",
+        lastSeenAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [
+          telegramTopics.ownerId,
+          telegramTopics.chatId,
+          telegramTopics.threadId,
+        ],
+        set: { name, source: "manual", active: true, updatedAt: now },
+      })
+      .returning({
+        id: telegramTopics.id,
+        chatId: telegramTopics.chatId,
+        threadId: telegramTopics.threadId,
+        name: telegramTopics.name,
+        source: telegramTopics.source,
+        active: telegramTopics.active,
+      })
+
+    await db
+      .update(telegramChats)
+      .set({ isForum: true, updatedAt: now })
+      .where(eq(telegramChats.id, chat.id))
+
+    await logActivity({
+      storeId: user.storeId,
+      actor: { id: user.id, name: user.name },
+      action: `Cadastrou o tópico "${name}" (#${threadId})`,
+      category: "posts",
+    })
+    revalidatePath("/channels")
+    revalidatePath("/posts")
+    return row
+  } catch (err) {
+    console.error("[tg/topics] addTopic failed:", err)
+    throw new Error(err instanceof Error ? err.message : "Erro ao adicionar tópico.")
   }
-  const name = input.name?.trim()
-  if (!name) throw new Error("Informe um nome para o tópico.")
-
-  const [chat] = await db
-    .select({ id: telegramChats.id, type: telegramChats.type })
-    .from(telegramChats)
-    .where(
-      and(
-        eq(telegramChats.ownerId, user.storeId),
-        eq(telegramChats.chatId, input.chatId),
-      ),
-    )
-    .limit(1)
-  if (!chat) throw new Error("Grupo não encontrado.")
-  if (chat.type !== "supergroup") {
-    throw new Error("Somente supergrupos com tópicos aceitam este recurso.")
-  }
-
-  const now = new Date()
-  const [row] = await db
-    .insert(telegramTopics)
-    .values({
-      ownerId: user.storeId,
-      chatId: input.chatId,
-      threadId,
-      name,
-      source: "manual",
-      lastSeenAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [
-        telegramTopics.ownerId,
-        telegramTopics.chatId,
-        telegramTopics.threadId,
-      ],
-      set: { name, source: "manual", active: true, updatedAt: now },
-    })
-    .returning({
-      id: telegramTopics.id,
-      chatId: telegramTopics.chatId,
-      threadId: telegramTopics.threadId,
-      name: telegramTopics.name,
-      source: telegramTopics.source,
-      active: telegramTopics.active,
-    })
-
-  await db
-    .update(telegramChats)
-    .set({ isForum: true, updatedAt: now })
-    .where(eq(telegramChats.id, chat.id))
-
-  await logActivity({
-    storeId: user.storeId,
-    actor: { id: user.id, name: user.name },
-    action: `Cadastrou o tópico "${name}" (#${threadId})`,
-    category: "posts",
-  })
-  revalidatePath("/channels")
-  revalidatePath("/posts")
-  return row
 }
 
 export async function renameTopic(id: number, name: string) {
