@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { telegramTopics } from "@/lib/db/schema"
+import { telegramChats, telegramTopics } from "@/lib/db/schema"
 import { ensureDbStructure } from "@/lib/db/migrate"
 import { and, asc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"

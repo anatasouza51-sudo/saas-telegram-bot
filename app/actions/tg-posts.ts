@@ -24,7 +24,7 @@ export type PostInput = {
 }
 
 // Persists a post as a draft (create or update). Returns the row id.
-export async function savePost(input: PostInput): Promise<number> {
+export async function savePost(input: PostInput, revalidate = true): Promise<number> {
   try {
     const user = await requireCapability("posts.manage")
     const values = {
@@ -58,7 +58,7 @@ export async function savePost(input: PostInput): Promise<number> {
             eq(telegramPosts.ownerId, user.storeId),
           ),
         )
-      revalidatePath("/posts")
+      if (revalidate) revalidatePath("/posts")
       return input.id
     }
 
@@ -71,7 +71,7 @@ export async function savePost(input: PostInput): Promise<number> {
         createdByName: user.name,
       })
       .returning({ id: telegramPosts.id })
-    revalidatePath("/posts")
+    if (revalidate) revalidatePath("/posts")
     return row.id
   } catch (err) {
     console.error("[tg/posts] savePost failed:", err)
@@ -105,7 +105,7 @@ export async function publishNow(
     if (!targets || targets.length === 0) {
       throw new Error("Selecione ao menos um destino.")
     }
-    const id = await savePost(input)
+    const id = await savePost(input, false)
     const [post] = await db
       .select()
       .from(telegramPosts)
@@ -135,22 +135,12 @@ export async function publishNow(
       category: "posts",
     })
 
-    // Fire-and-forget first drain; cron handles the rest/retries.
-    // Usamos um pequeno atraso para não competir com a conexão atual
-    setTimeout(() => {
-      processQueue().catch((err) => {
-        console.error("[tg/posts] initial queue drain failed:", err)
-      })
-    }, 500)
-
     // Revalidate the posts page to refresh the UI after publishing.
-    // This is intentionally non-blocking: if revalidation fails (e.g. DB pool
-    // exhausted), the client will still get the success response and the next
-    // navigation will load fresh data.
+    // Usamos um bloco try/catch para garantir que o erro de revalidação não quebre a resposta da action
     try {
       revalidatePath("/posts")
-    } catch (revalErr) {
-      console.warn("[tg/posts] revalidatePath failed (non-critical):", revalErr)
+    } catch (e) {
+      console.error("[tg/posts] revalidatePath failed:", e)
     }
 
     return { enqueued }
@@ -176,7 +166,7 @@ export async function schedulePost(
     throw new Error("Escolha uma data/hora no futuro.")
   }
 
-  const id = await savePost(input)
+  const id = await savePost(input, false)
   const [post] = await db
     .select()
     .from(telegramPosts)
@@ -209,11 +199,8 @@ export async function schedulePost(
     action: `Agendou a postagem "${post.title ?? `#${id}`}" para ${runAt.toLocaleString("pt-BR")}`,
     category: "posts",
   })
-  try {
-    revalidatePath("/posts")
-  } catch (revalErr) {
-    console.warn("[tg/posts] revalidatePath failed (non-critical):", revalErr)
-  }
+  
+  revalidatePath("/posts")
 }
 
 export async function listPosts(status?: string) {
