@@ -45,3 +45,5 @@ export default function RootLayout({
     </html>
   )
 }
+
+// v1.0.3 - Force redeploy to ensure Vercel picks up the latest stability fixes
