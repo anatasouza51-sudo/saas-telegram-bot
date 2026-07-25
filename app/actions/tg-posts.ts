@@ -143,7 +143,16 @@ export async function publishNow(
       })
     }, 500)
 
-    revalidatePath("/posts")
+    // Revalidate the posts page to refresh the UI after publishing.
+    // This is intentionally non-blocking: if revalidation fails (e.g. DB pool
+    // exhausted), the client will still get the success response and the next
+    // navigation will load fresh data.
+    try {
+      revalidatePath("/posts")
+    } catch (revalErr) {
+      console.warn("[tg/posts] revalidatePath failed (non-critical):", revalErr)
+    }
+
     return { enqueued }
   } catch (err) {
     console.error("[tg/posts] publishNow failed:", err)
@@ -200,47 +209,61 @@ export async function schedulePost(
     action: `Agendou a postagem "${post.title ?? `#${id}`}" para ${runAt.toLocaleString("pt-BR")}`,
     category: "posts",
   })
-  revalidatePath("/posts")
+  try {
+    revalidatePath("/posts")
+  } catch (revalErr) {
+    console.warn("[tg/posts] revalidatePath failed (non-critical):", revalErr)
+  }
 }
 
 export async function listPosts(status?: string) {
-  const user = await requireCapability("posts.manage")
-  const conds = [eq(telegramPosts.ownerId, user.storeId)]
-  if (status && status !== "all") {
-    if (status === "history") {
-      conds.push(inArray(telegramPosts.status, ["sent", "failed"]))
-    } else {
-      conds.push(eq(telegramPosts.status, status))
+  try {
+    const user = await requireCapability("posts.manage")
+    const conds = [eq(telegramPosts.ownerId, user.storeId)]
+    if (status && status !== "all") {
+      if (status === "history") {
+        conds.push(inArray(telegramPosts.status, ["sent", "failed"]))
+      } else {
+        conds.push(eq(telegramPosts.status, status))
+      }
     }
+    return await db
+      .select()
+      .from(telegramPosts)
+      .where(and(...conds))
+      .orderBy(desc(telegramPosts.updatedAt))
+      .limit(200)
+  } catch (err) {
+    console.error("[tg/posts] listPosts failed:", err)
+    return []
   }
-  return db
-    .select()
-    .from(telegramPosts)
-    .where(and(...conds))
-    .orderBy(desc(telegramPosts.updatedAt))
-    .limit(200)
 }
 
 export async function listSchedules() {
-  const user = await requireCapability("posts.manage")
-  return db
-    .select({
-      id: telegramSchedules.id,
-      postId: telegramSchedules.postId,
-      scheduleType: telegramSchedules.scheduleType,
-      runAt: telegramSchedules.runAt,
-      nextRunAt: telegramSchedules.nextRunAt,
-      recurrence: telegramSchedules.recurrence,
-      active: telegramSchedules.active,
-      targets: telegramSchedules.targets,
-      createdByName: telegramSchedules.createdByName,
-      postTitle: telegramPosts.title,
-    })
-    .from(telegramSchedules)
-    .leftJoin(telegramPosts, eq(telegramSchedules.postId, telegramPosts.id))
-    .where(eq(telegramSchedules.ownerId, user.storeId))
-    .orderBy(desc(telegramSchedules.nextRunAt))
-    .limit(200)
+  try {
+    const user = await requireCapability("posts.manage")
+    return await db
+      .select({
+        id: telegramSchedules.id,
+        postId: telegramSchedules.postId,
+        scheduleType: telegramSchedules.scheduleType,
+        runAt: telegramSchedules.runAt,
+        nextRunAt: telegramSchedules.nextRunAt,
+        recurrence: telegramSchedules.recurrence,
+        active: telegramSchedules.active,
+        targets: telegramSchedules.targets,
+        createdByName: telegramSchedules.createdByName,
+        postTitle: telegramPosts.title,
+      })
+      .from(telegramSchedules)
+      .leftJoin(telegramPosts, eq(telegramSchedules.postId, telegramPosts.id))
+      .where(eq(telegramSchedules.ownerId, user.storeId))
+      .orderBy(desc(telegramSchedules.nextRunAt))
+      .limit(200)
+  } catch (err) {
+    console.error("[tg/posts] listSchedules failed:", err)
+    return []
+  }
 }
 
 export async function cancelSchedule(id: number) {
@@ -326,64 +349,63 @@ export async function deletePost(id: number) {
   revalidatePath("/posts")
 }
 
-// Lightweight stats for the dashboard cards.
-
 // Fetches post reports with queue details for the reporting UI.
 export async function getPostReports(postIds?: number[]) {
-  const user = await requireCapability("posts.manage")
-  const postConds = [eq(telegramPosts.ownerId, user.storeId)]
-  if (postIds && postIds.length > 0) {
-    postConds.push(inArray(telegramPosts.id, postIds))
-  } else {
-    // Only include posts that have been sent, failed, or are currently queued
-    postConds.push(inArray(telegramPosts.status, ["sent", "failed", "queued"]))
-  }
-
-  const posts = await db
-    .select()
-    .from(telegramPosts)
-    .where(and(...postConds))
-    .orderBy(desc(telegramPosts.sentAt))
-    .limit(50)
-
-  if (posts.length === 0) return []
-
-  // Antes: uma query de fila por postagem dentro de um for-loop com await
-  // (N+1) — com até 50 posts, isso era até 50 round-trips sequenciais ao
-  // banco numa única chamada, consumindo uma conexão do pool por um tempo
-  // desproporcional e sendo a principal responsável pelos timeouts/erros
-  // intermitentes na página de Postagens. Buscamos tudo de uma vez com
-  // `inArray` e agrupamos em memória.
-  const idsToFetch = posts.map((p) => p.id)
-  const allQueueItems = await db
-    .select()
-    .from(telegramQueue)
-    .where(
-      and(
-        eq(telegramQueue.ownerId, user.storeId),
-        inArray(telegramQueue.postId, idsToFetch),
-      ),
-    )
-    .orderBy(asc(telegramQueue.scheduledFor))
-
-  const queueByPostId = new Map<number, typeof allQueueItems>()
-  for (const item of allQueueItems) {
-    const list = queueByPostId.get(item.postId)
-    if (list) {
-      list.push(item)
+  try {
+    const user = await requireCapability("posts.manage")
+    const postConds = [eq(telegramPosts.ownerId, user.storeId)]
+    if (postIds && postIds.length > 0) {
+      postConds.push(inArray(telegramPosts.id, postIds))
     } else {
-      queueByPostId.set(item.postId, [item])
+      // Only include posts that have been sent, failed, or are currently queued
+      postConds.push(inArray(telegramPosts.status, ["sent", "failed", "queued"]))
     }
-  }
 
-  return posts.map((post) => ({
-    postId: post.id,
-    title: post.title,
-    status: post.status,
-    sentAt: post.sentAt,
-    queue: queueByPostId.get(post.id) ?? [],
-  }))
+    const posts = await db
+      .select()
+      .from(telegramPosts)
+      .where(and(...postConds))
+      .orderBy(desc(telegramPosts.sentAt))
+      .limit(50)
+
+    if (posts.length === 0) return []
+
+    // Buscamos tudo de uma vez com `inArray` e agrupamos em memória.
+    const idsToFetch = posts.map((p) => p.id)
+    const allQueueItems = await db
+      .select()
+      .from(telegramQueue)
+      .where(
+        and(
+          eq(telegramQueue.ownerId, user.storeId),
+          inArray(telegramQueue.postId, idsToFetch),
+        ),
+      )
+      .orderBy(asc(telegramQueue.scheduledFor))
+
+    const queueByPostId = new Map<number, typeof allQueueItems>()
+    for (const item of allQueueItems) {
+      const list = queueByPostId.get(item.postId)
+      if (list) {
+        list.push(item)
+      } else {
+        queueByPostId.set(item.postId, [item])
+      }
+    }
+
+    return posts.map((post) => ({
+      postId: post.id,
+      title: post.title,
+      status: post.status,
+      sentAt: post.sentAt,
+      queue: queueByPostId.get(post.id) ?? [],
+    }))
+  } catch (err) {
+    console.error("[tg/posts] getPostReports failed:", err)
+    return []
+  }
 }
+
 export async function getPostStats() {
   try {
     const session = await requireCapability("posts.manage").catch(() => null)
