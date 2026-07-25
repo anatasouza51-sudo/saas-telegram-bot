@@ -9,9 +9,10 @@ import {
 import { and, eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
-import { settings } from "@/lib/db/schema"
+import { settings, telegramChats } from "@/lib/db/schema"
 import { escapeHtml } from "@/lib/security"
 import { parsePixConfig } from "@/lib/pix"
+import { formatCurrency } from "@/lib/format"
 
 type FulfillResult =
   | {
@@ -66,6 +67,13 @@ export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
     action: `Pedido #${orderId} entregue automaticamente (item de estoque #${stockItemId})`,
     category: "delivery",
   })
+
+  // Public sales log (Sales Proof)
+  try {
+    await broadcastSale(order)
+  } catch (err) {
+    console.error(`[fulfillment] failed to broadcast sale for order ${orderId}:`, err)
+  }
 
   return {
     ok: true,
@@ -295,4 +303,58 @@ async function sendDeliveryMessage(
     return { ok: false, error: sent.description ?? "Falha ao enviar no Telegram" }
   }
   return { ok: true }
+}
+
+async function broadcastSale(order: any) {
+  // 1. Find the "Log" group/channel for this store
+  const [logChat] = await db
+    .select()
+    .from(telegramChats)
+    .where(
+      and(
+        eq(telegramChats.ownerId, order.ownerId),
+        eq(telegramChats.purpose, "management"), // Using management as logs destination
+        eq(telegramChats.status, "active"),
+      ),
+    )
+    .limit(1)
+
+  if (!logChat) return
+
+  // 2. Load bot token
+  const [setting] = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(
+      and(
+        eq(settings.ownerId, order.ownerId),
+        eq(settings.key, "telegram.botToken"),
+      ),
+    )
+    .limit(1)
+
+  if (!setting?.value) return
+
+  // 3. Get customer name
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, order.customerId))
+
+  const customerName = customer?.username 
+    ? `@${customer.username}` 
+    : (customer?.name || "Cliente")
+
+  const client = new TelegramClient(setting.value)
+  const message = [
+    `🔥 <b>NOVA VENDA REALIZADA!</b>`,
+    ``,
+    `👤 <b>Cliente:</b> ${escapeHtml(customerName)}`,
+    `📦 <b>Produto:</b> ${escapeHtml(order.productName || "Produto Digital")}`,
+    `💰 <b>Valor:</b> ${formatCurrency(Number(order.amount))}`,
+    ``,
+    `✅ <i>Pagamento aprovado e entrega realizada com sucesso.</i>`,
+  ].join("\n")
+
+  await client.sendMessage(logChat.chatId, message)
 }

@@ -5,6 +5,10 @@ import { pool } from "./index"
  * tenha a estrutura esperada pelo código.
  */
 export async function ensureDbStructure() {
+  if (!process.env.DATABASE_URL) {
+    console.warn("[db/migrate] DATABASE_URL não configurada. Pulando migração.")
+    return
+  }
   const client = await pool.connect()
   try {
     await client.query("BEGIN")
