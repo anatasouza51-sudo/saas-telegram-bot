@@ -25,54 +25,58 @@ export type PostInput = {
 
 // Persists a post as a draft (create or update). Returns the row id.
 export async function savePost(input: PostInput): Promise<number> {
-  const user = await requireCapability("posts.manage")
-  const values = {
-    ownerId: user.storeId,
-    title: input.title?.trim() || null,
-    text: input.text ?? null,
-    parseMode: input.parseMode ?? "HTML",
-    mediaIds: JSON.stringify(input.mediaIds ?? []),
-    buttons: JSON.stringify(input.buttons ?? []),
-    updatedAt: new Date(),
-  }
+  try {
+    const user = await requireCapability("posts.manage")
+    const values = {
+      ownerId: user.storeId,
+      title: input.title?.trim() || null,
+      text: input.text ?? null,
+      parseMode: input.parseMode ?? "HTML",
+      mediaIds: JSON.stringify(input.mediaIds ?? []),
+      buttons: JSON.stringify(input.buttons ?? []),
+      updatedAt: new Date(),
+    }
 
-  if (input.id) {
-    // Only touch a draft/failed post the caller owns; never rewrite a sent one.
-    const [existing] = await db
-      .select({ status: telegramPosts.status })
-      .from(telegramPosts)
-      .where(
-        and(
-          eq(telegramPosts.id, input.id),
-          eq(telegramPosts.ownerId, user.storeId),
-        ),
-      )
-      .limit(1)
-    if (!existing) throw new Error("Postagem não encontrada.")
-    await db
-      .update(telegramPosts)
-      .set(values)
-      .where(
-        and(
-          eq(telegramPosts.id, input.id),
-          eq(telegramPosts.ownerId, user.storeId),
-        ),
-      )
+    if (input.id) {
+      const [existing] = await db
+        .select({ status: telegramPosts.status })
+        .from(telegramPosts)
+        .where(
+          and(
+            eq(telegramPosts.id, input.id),
+            eq(telegramPosts.ownerId, user.storeId),
+          ),
+        )
+        .limit(1)
+      if (!existing) throw new Error("Postagem não encontrada.")
+      await db
+        .update(telegramPosts)
+        .set(values)
+        .where(
+          and(
+            eq(telegramPosts.id, input.id),
+            eq(telegramPosts.ownerId, user.storeId),
+          ),
+        )
+      revalidatePath("/posts")
+      return input.id
+    }
+
+    const [row] = await db
+      .insert(telegramPosts)
+      .values({
+        ...values,
+        status: "draft",
+        createdBy: user.id,
+        createdByName: user.name,
+      })
+      .returning({ id: telegramPosts.id })
     revalidatePath("/posts")
-    return input.id
+    return row.id
+  } catch (err) {
+    console.error("[tg/posts] savePost failed:", err)
+    throw new Error(err instanceof Error ? err.message : "Erro ao salvar postagem.")
   }
-
-  const [row] = await db
-    .insert(telegramPosts)
-    .values({
-      ...values,
-      status: "draft",
-      createdBy: user.id,
-      createdByName: user.name,
-    })
-    .returning({ id: telegramPosts.id })
-  revalidatePath("/posts")
-  return row.id
 }
 
 // Validates that a post has something to send.
@@ -96,43 +100,55 @@ export async function publishNow(
   input: PostInput,
   targets: TargetSpec,
 ): Promise<{ enqueued: number }> {
-  const user = await requireCapability("posts.manage")
-  if (!targets || targets.length === 0) {
-    throw new Error("Selecione ao menos um destino.")
+  try {
+    const user = await requireCapability("posts.manage")
+    if (!targets || targets.length === 0) {
+      throw new Error("Selecione ao menos um destino.")
+    }
+    const id = await savePost(input)
+    const [post] = await db
+      .select()
+      .from(telegramPosts)
+      .where(and(eq(telegramPosts.id, id), eq(telegramPosts.ownerId, user.storeId)))
+      .limit(1)
+    
+    if (!post) throw new Error("Falha ao recuperar postagem salva.")
+    assertSendable(post.text, post.mediaIds)
+
+    const enqueued = await enqueuePost({
+      storeId: user.storeId,
+      postId: id,
+      targets,
+      scheduledFor: new Date(),
+    })
+    
+    if (enqueued === 0) {
+      throw new Error(
+        "Nenhum destino válido. Verifique se o bot é admin nos grupos/canais selecionados.",
+      )
+    }
+
+    await logActivity({
+      storeId: user.storeId,
+      actor: { id: user.id, name: user.name },
+      action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s)`,
+      category: "posts",
+    })
+
+    // Fire-and-forget first drain; cron handles the rest/retries.
+    // Usamos um pequeno atraso para não competir com a conexão atual
+    setTimeout(() => {
+      processQueue().catch((err) => {
+        console.error("[tg/posts] initial queue drain failed:", err)
+      })
+    }, 500)
+
+    revalidatePath("/posts")
+    return { enqueued }
+  } catch (err) {
+    console.error("[tg/posts] publishNow failed:", err)
+    throw new Error(err instanceof Error ? err.message : "Erro ao publicar postagem.")
   }
-  const id = await savePost(input)
-  const [post] = await db
-    .select()
-    .from(telegramPosts)
-    .where(and(eq(telegramPosts.id, id), eq(telegramPosts.ownerId, user.storeId)))
-    .limit(1)
-  assertSendable(post.text, post.mediaIds)
-
-  const enqueued = await enqueuePost({
-    storeId: user.storeId,
-    postId: id,
-    targets,
-    scheduledFor: new Date(),
-  })
-  if (enqueued === 0) {
-    throw new Error(
-      "Nenhum destino válido. Verifique se o bot é admin nos grupos/canais selecionados.",
-    )
-  }
-
-  await logActivity({
-    storeId: user.storeId,
-    actor: { id: user.id, name: user.name },
-    action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s)`,
-    category: "posts",
-  })
-
-  // Fire-and-forget first drain; cron handles the rest/retries.
-  processQueue().catch((err) => {
-    console.error("[tg/posts] initial queue drain failed:", err)
-  })
-  revalidatePath("/posts")
-  return { enqueued }
 }
 
 // Schedules a post for later (one-shot or recurring).
