@@ -11,29 +11,18 @@ import { getStoreTelegram } from "@/lib/tg/config"
 import { sendPost, type ResolvedMedia } from "@/lib/tg/send"
 import { parseButtons } from "@/lib/tg/buttons"
 import { notifyManagement } from "@/lib/tg/management"
-import { formatTarget, parseTarget, type Destination } from "@/lib/tg/topics"
+import { parseTarget, type Destination } from "@/lib/tg/topics"
 import type { TelegramMediaKind } from "@/lib/telegram"
 
-// Telegram allows ~30 msgs/sec globally and ~20/min per group. We stay well
-// under that: a small delay between sends and a modest per-run batch size.
 const SEND_DELAY_MS = 120
 const BATCH_SIZE = 20
 const BACKOFF_BASE_MS = 30_000
-// An item left in `processing` for longer than this is considered orphaned
-// (the run that claimed it crashed or timed out) and is requeued.
 const STALE_PROCESSING_MS = 10 * 60_000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-// Target tokens: "<chatId>", "<chatId>:<threadId>" (a forum topic), or one of
-// the wildcards all | all_groups | all_channels.
 export type TargetSpec = string[]
 
-/**
- * Expands a target spec into concrete, active destinations where the bot is
- * admin. Chats without admin rights are skipped (they can't receive posts).
- * A destination keeps the forum topic chosen by the admin, when any.
- */
 export async function resolveTargets(
   storeId: string,
   targets: TargetSpec,
@@ -61,7 +50,6 @@ export async function resolveTargets(
     .filter((t) => !t.startsWith("all"))
     .map(parseTarget)
 
-  const usableIds = new Set(usable.map((r) => r.chatId))
   const out = new Map<string, Destination>()
 
   for (const r of usable) {
@@ -70,28 +58,16 @@ export async function resolveTargets(
       out.set(r.chatId, { chatId: r.chatId, threadId: null })
     }
   }
+  
   for (const dest of explicit) {
     if (!usableChatIds.has(dest.chatId)) continue
-    out.set(formatTarget(dest.chatId, dest.threadId), dest)
-  }
-  // A topic pick replaces the wildcard's chat-wide entry, so a chat covered by
-  // "all" receives the post in the chosen topic only — not twice.
-  const pickedWholeChat = new Set(
-    explicit.filter((d) => d.threadId == null).map((d) => d.chatId),
-  )
-  for (const dest of explicit) {
-    if (dest.threadId != null && !pickedWholeChat.has(dest.chatId)) {
-      out.delete(dest.chatId)
-    }
+    // Força o envio para o chat geral, ignorando qualquer threadId (tópico)
+    out.set(dest.chatId, { chatId: dest.chatId, threadId: null })
   }
 
   return Array.from(out.values())
 }
 
-/**
- * Creates queue rows for a post against each resolved target chat.
- * Returns the number of enqueued messages.
- */
 export async function enqueuePost(params: {
   storeId: string
   postId: number
@@ -107,7 +83,7 @@ export async function enqueuePost(params: {
       postId: params.postId,
       scheduleId: params.scheduleId ?? null,
       chatId: dest.chatId,
-      messageThreadId: dest.threadId,
+      messageThreadId: null, // Sempre nulo para garantir envio ao chat geral
       scheduledFor: params.scheduledFor ?? new Date(),
       status: "pending" as const,
     })),
@@ -124,7 +100,6 @@ export async function enqueuePost(params: {
   return destinations.length
 }
 
-// Resolves a post's stored media id list into ordered {fileId,type} entries.
 async function resolveMedia(
   storeId: string,
   mediaIdsJson: string | null,
@@ -152,10 +127,6 @@ async function resolveMedia(
     .map((r) => ({ fileId: r!.fileId, type: r!.type as TelegramMediaKind }))
 }
 
-/**
- * Processes due queue items: sends each, applies retry/backoff, respects rate
- * limits, and bumps media usage counters. Safe to call from cron or on demand.
- */
 export async function processQueue(
   limit = BATCH_SIZE,
 ): Promise<{ processed: number; sent: number; failed: number }> {
@@ -175,7 +146,6 @@ export async function processQueue(
 
   if (items.length === 0) return { processed: 0, sent: 0, failed: 0 }
 
-  // Cache one client + post payload per store/post within this run.
   const clients = new Map<string, Awaited<ReturnType<typeof getStoreTelegram>>>()
   const posts = new Map<number, Awaited<ReturnType<typeof loadPost>>>()
 
@@ -183,10 +153,7 @@ export async function processQueue(
   let failed = 0
 
   for (const item of items) {
-    // Every item is isolated: an unexpected error must not abort the batch nor
-    // strand the item in `processing` forever.
     try {
-      // Mark processing to avoid double-send if runs overlap.
       await db
         .update(telegramQueue)
         .set({ status: "processing", updatedAt: new Date() })
@@ -219,7 +186,7 @@ export async function processQueue(
         cfg.client,
         item.chatId,
         post.renderable,
-        item.messageThreadId,
+        null, // Força threadId nulo no envio real
       )
 
       if (res.ok) {
@@ -243,8 +210,6 @@ export async function processQueue(
       try {
         await failItem(item.id, item.attempts, item.maxAttempts, message)
       } catch (persistErr) {
-        // The DB is unreachable: stop the run instead of burning the batch
-        // against a backend that cannot record any outcome.
         console.error("[tg/queue] could not persist failure:", persistErr)
         throw err
       }
@@ -253,14 +218,11 @@ export async function processQueue(
     await sleep(SEND_DELAY_MS)
   }
 
-  // Finalize posts that have no more pending/processing queue items.
   await finalizePosts(Array.from(posts.keys()))
 
   return { processed: items.length, sent, failed }
 }
 
-// Returns items abandoned mid-flight by a crashed run back to `pending` so the
-// next run retries them (respecting their attempt counter).
 async function requeueStaleItems(now: Date) {
   const cutoff = new Date(now.getTime() - STALE_PROCESSING_MS)
   await db
@@ -286,7 +248,6 @@ async function loadPost(storeId: string, postId: number) {
     .limit(1)
   if (!row) return null
   const media = await resolveMedia(storeId, row.mediaIds)
-  // Count each media use once per post dispatch (not per chat) — bump here.
   return {
     row,
     renderable: {
@@ -311,7 +272,6 @@ async function failItem(
       .set({ status: "failed", attempts: next, lastError: error, updatedAt: new Date() })
       .where(eq(telegramQueue.id, id))
   } else {
-    // Exponential backoff before the next attempt.
     const delay = BACKOFF_BASE_MS * Math.pow(2, attempts)
     await db
       .update(telegramQueue)
@@ -326,14 +286,11 @@ async function failItem(
   }
 }
 
-// Marks posts as sent/failed once their queue is drained, and mirrors a summary
-// into the management group.
 async function finalizePosts(postIds: number[]) {
   for (const postId of postIds) {
     try {
       await finalizePost(postId)
     } catch (err) {
-      // One bad post must not prevent the others from being finalized.
       console.error(`[tg/queue] could not finalize post ${postId}:`, err)
     }
   }
@@ -349,7 +306,7 @@ async function finalizePost(postId: number) {
       .from(telegramQueue)
     .where(eq(telegramQueue.postId, postId))
 
-  if (!counts || counts.pending > 0) return // still in flight
+  if (!counts || counts.pending > 0) return 
 
   const [post] = await db
     .select()
@@ -364,7 +321,6 @@ async function finalizePost(postId: number) {
     .set({ status, sentAt: new Date(), updatedAt: new Date() })
     .where(eq(telegramPosts.id, postId))
 
-  // Bump usage counters for the media used by this dispatched post.
   if (post.mediaIds) {
     const ids = parseMediaIds(post.mediaIds)
     if (ids.length) {
@@ -383,8 +339,6 @@ async function finalizePost(postId: number) {
   )
 }
 
-// A malformed media list is a data problem, not a reason to fail the post — it
-// is logged and treated as "no media".
 function parseMediaIds(raw: string): number[] {
   try {
     const ids = JSON.parse(raw) as unknown

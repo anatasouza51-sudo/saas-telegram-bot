@@ -21,7 +21,6 @@ export default async function PostsPage() {
 
     const [
       channelsResult,
-      topicsResult,
       postsResult,
       schedulesResult,
       statsResult,
@@ -30,7 +29,6 @@ export default async function PostsPage() {
       reportsResult,
     ] = await Promise.allSettled([
       listChannels(),
-      listTopics(),
       listPosts("all"),
       listSchedules(),
       getPostStats(),
@@ -41,7 +39,7 @@ export default async function PostsPage() {
 
     // Extract values with robust fallbacks for failed promises
     const channels = channelsResult.status === "fulfilled" ? (channelsResult.value ?? []) : []
-    const topics = topicsResult.status === "fulfilled" ? (topicsResult.value ?? []) : []
+    const topics = [] // Tópicos removidos por solicitação do usuário
     const posts = postsResult.status === "fulfilled" ? (postsResult.value ?? []) : []
     const schedules = schedulesResult.status === "fulfilled" ? (schedulesResult.value ?? []) : []
     const stats = statsResult.status === "fulfilled" ? (statsResult.value ?? { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }) : { total: 0, sent: 0, failed: 0, scheduled: 0, draft: 0, today: 0, week: 0, month: 0 }
