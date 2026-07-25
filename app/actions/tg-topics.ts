@@ -22,29 +22,11 @@ export type TopicRow = {
  * Removes topics that belong to chats no longer owned by the store or no longer
  * marked as forums.
  */
-async function cleanupTopics(storeId: string) {
-  const chats = await db
-    .select({ chatId: telegramChats.chatId })
-    .from(telegramChats)
-    .where(and(eq(telegramChats.ownerId, storeId), eq(telegramChats.isForum, true)))
-  const validChatIds = new Set(chats.map((c) => c.chatId))
-
-  const topics = await db
-    .select({ id: telegramTopics.id, chatId: telegramTopics.chatId })
-    .from(telegramTopics)
-    .where(eq(telegramTopics.ownerId, storeId))
-
-  for (const t of topics) {
-    if (!validChatIds.has(t.chatId)) {
-      await db.delete(telegramTopics).where(eq(telegramTopics.id, t.id))
-    }
-  }
-}
-
 export async function listTopics(): Promise<TopicRow[]> {
   try {
-    const { storeId } = await requireCapability("posts.manage")
-    await cleanupTopics(storeId)
+    const session = await requireCapability("posts.manage").catch(() => null)
+    if (!session) return []
+
     const rows = await db
       .select({
         id: telegramTopics.id,
@@ -55,7 +37,7 @@ export async function listTopics(): Promise<TopicRow[]> {
         active: telegramTopics.active,
       })
       .from(telegramTopics)
-      .where(eq(telegramTopics.ownerId, storeId))
+      .where(eq(telegramTopics.ownerId, session.storeId))
       .orderBy(asc(telegramTopics.chatId), asc(telegramTopics.threadId))
     return rows
   } catch (err) {
