@@ -43,11 +43,11 @@ export async function resolveTargets(
   )
   const usableChatIds = new Set(usable.map((r) => r.chatId))
 
-  const wantAll = targets.includes("all")
-  const wantGroups = wantAll || targets.includes("all_groups")
-  const wantChannels = wantAll || targets.includes("all_channels")
-  const explicit = targets
-    .filter((t) => !t.startsWith("all"))
+  const wantAll = (targets || []).includes("all")
+  const wantGroups = wantAll || (targets || []).includes("all_groups")
+  const wantChannels = wantAll || (targets || []).includes("all_channels")
+  const explicit = (targets || [])
+    .filter((t) => t && !t.startsWith("all"))
     .map(parseTarget)
 
   const out = new Map<string, Destination>()
