@@ -16,7 +16,7 @@ const globalForDb = globalThis as unknown as { __pgPool?: Pool }
 export const pool =
   globalForDb.__pgPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || "postgres://localhost:5432/placeholder",
     // Baixo de propósito: multiplicado pelo número de instâncias de função
     // simultâneas, isso já soma bastante. Ajuste conforme o limite do plano
     // do seu banco.
