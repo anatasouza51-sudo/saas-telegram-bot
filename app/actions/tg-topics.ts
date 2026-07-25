@@ -20,7 +20,6 @@ export type TopicRow = {
 
 export async function listTopics(): Promise<TopicRow[]> {
   try {
-    await ensureDbStructure()
     const { storeId } = await requireCapability("posts.manage")
     const rows = await db
       .select({
