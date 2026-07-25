@@ -1019,14 +1019,27 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       // topic registers it as a selectable destination in the panel.
       const threadId = update.message.message_thread_id
       if (threadId && update.message.is_topic_message) {
+        // Se não tivermos o nome no update, tentamos buscar via API para não ficar "Tópico X"
+        let topicName =
+          update.message.forum_topic_created?.name ??
+          update.message.forum_topic_edited?.name ??
+          null
+
+        if (!topicName && ctx.tg) {
+          try {
+            // Nota: getForumTopicIconStickers não ajuda, e não há getForumTopic direto.
+            // Mas se for uma mensagem de serviço de criação/edição, o nome está lá.
+            // Se for mensagem comum, o recordTopicFromUpdate usará o nome já salvo ou o fallback.
+          } catch (e) {
+            console.error("[v0] erro ao buscar nome do tópico:", e)
+          }
+        }
+
         await recordTopicFromUpdate({
           storeId,
           chatId: String(update.message.chat.id),
           threadId,
-          name:
-            update.message.forum_topic_created?.name ??
-            update.message.forum_topic_edited?.name ??
-            null,
+          name: topicName,
         })
       }
       // Only these explicit, bot-directed admin commands get a reply. We match
