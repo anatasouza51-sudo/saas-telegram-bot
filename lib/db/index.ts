@@ -17,9 +17,9 @@ export const pool =
   globalForDb.__pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL || "postgres://localhost:5432/placeholder",
-    max: 2, // Reduzido para 2 para ser ultra-conservador com o Neon Free Tier
+    max: 3, // Leve aumento para acomodar queries em paralelo sem esgotar
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000, // Timeout mais rápido para falhar cedo e não travar o Next.js
+    connectionTimeoutMillis: 8_000, // Leve aumento para dar chance ao Neon de acordar
     ssl: {
       rejectUnauthorized: false, // Necessário para Neon/Supabase em alguns ambientes Vercel
     },

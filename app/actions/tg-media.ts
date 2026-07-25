@@ -21,25 +21,30 @@ export async function listMedia(opts?: {
   type?: string
   search?: string
 }) {
-  const user = await requireCapability("posts.manage")
-  const conds = [eq(telegramMedia.ownerId, user.storeId)]
-  if (opts?.folderId === null) {
-    conds.push(isNull(telegramMedia.folderId))
-  } else if (typeof opts?.folderId === "number") {
-    conds.push(eq(telegramMedia.folderId, opts.folderId))
+  try {
+    const user = await requireCapability("posts.manage")
+    const conds = [eq(telegramMedia.ownerId, user.storeId)]
+    if (opts?.folderId === null) {
+      conds.push(isNull(telegramMedia.folderId))
+    } else if (typeof opts?.folderId === "number") {
+      conds.push(eq(telegramMedia.folderId, opts.folderId))
+    }
+    if (opts?.type && opts.type !== "all") {
+      conds.push(eq(telegramMedia.type, opts.type))
+    }
+    if (opts?.search) {
+      conds.push(sql`${telegramMedia.fileName} ILIKE ${"%" + opts.search + "%"}`)
+    }
+    return await db
+      .select()
+      .from(telegramMedia)
+      .where(and(...conds))
+      .orderBy(desc(telegramMedia.createdAt))
+      .limit(500)
+  } catch (err) {
+    console.error("[tg/media] listMedia failed:", err)
+    return []
   }
-  if (opts?.type && opts.type !== "all") {
-    conds.push(eq(telegramMedia.type, opts.type))
-  }
-  if (opts?.search) {
-    conds.push(sql`${telegramMedia.fileName} ILIKE ${"%" + opts.search + "%"}`)
-  }
-  return db
-    .select()
-    .from(telegramMedia)
-    .where(and(...conds))
-    .orderBy(desc(telegramMedia.createdAt))
-    .limit(500)
 }
 
 export async function createFolder(name: string, parentId?: number | null) {
