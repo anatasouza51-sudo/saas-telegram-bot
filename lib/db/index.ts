@@ -25,9 +25,13 @@ export const pool =
     connectionTimeoutMillis: 20_000,
   })
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__pgPool = pool
-}
+// Guardamos o pool no globalThis SEMPRE (inclusive em produção). Antes isso
+// só ocorria fora de produção, então em serverless (Vercel) cada invocação
+// criava um pool novo e esgotava o limite de conexões do banco — a causa
+// raiz do erro genérico "An error occurred in the Server Components render"
+// ao publicar (o revalidatePath re-renderiza /posts com várias queries em
+// paralelo e não sobra conexão).
+globalForDb.__pgPool = pool
 
 // Sem este listener, um erro em uma conexão ociosa (ex.: o banco derrubando
 // a conexão) emite um evento "error" não tratado no processo e derruba a
