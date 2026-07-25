@@ -555,40 +555,7 @@ function TargetGroup({
                 </div>
               </button>
 
-              {chatTopics.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pl-3">
-                  <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                    <MessagesSquare className="h-3 w-3" />
-                    Tópicos
-                  </span>
-                  {chatTopics.map((t) => {
-                    const token = topicTarget(item.chatId, t.threadId)
-                    const on = targets.has(token)
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => onToggle(token)}
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-[10px] font-bold transition-all active:scale-[0.98]",
-                          on
-                            ? "border-primary/40 bg-primary/15 text-primary"
-                            : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
-                        )}
-                      >
-                        {t.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {chatTopics.length === 0 && item.isForum && (
-                <p className="pl-3 text-[10px] text-muted-foreground/60">
-                  Grupo com tópicos: cadastre-os em Grupos &amp; Canais ou envie
-                  /id dentro do tópico para detectá-lo.
-                </p>
-              )}
+{/* Tópicos removidos para simplificação do envio para o chat geral */}
             </div>
           )
         })}
