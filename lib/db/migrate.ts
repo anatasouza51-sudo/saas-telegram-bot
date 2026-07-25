@@ -105,3 +105,5 @@ export async function ensureDbStructure() {
 }
 
 // v1.0.1 - Forced redeploy for Vercel synchronization
+
+// v1.0.2 - Forced redeploy for database synchronization and table creation
