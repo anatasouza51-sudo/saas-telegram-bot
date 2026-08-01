@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 export default async function ProductsPage() {
   await requireCapability("products.manage")
+  console.log("DEPLOY CHECK: Coupons version 1.0.1 loaded")
   const [products, categories, stats, coupons] = await Promise.all([
     listProductsAdvanced(),
     listCategories(),
