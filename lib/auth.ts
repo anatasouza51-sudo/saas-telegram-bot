@@ -95,6 +95,9 @@ export const auth = betterAuth({
       },
     },
   },
+  // Cookie defaults are HttpOnly + Secure (set automatically by Better Auth
+  // in production via the `baseURL` being HTTPS). SameSite is managed by the
+  // framework's built-in handler, which emits Lax for the sign-in flow.
   ...(process.env.NODE_ENV === "development"
     ? {
         advanced: {

@@ -8,6 +8,7 @@ import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
 import { getSetting, saveSetting } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
+import { validateAdminIds } from "@/lib/validation"
 
 export async function saveTelegramSettings(input: {
   botToken?: string
@@ -22,7 +23,8 @@ export async function saveTelegramSettings(input: {
   if (token) {
     await saveSetting(user.storeId, "telegram.botToken", token)
   }
-  await saveSetting(user.storeId, "telegram.adminIds", input.adminIds)
+  const adminIds = validateAdminIds(input.adminIds)
+  await saveSetting(user.storeId, "telegram.adminIds", adminIds.join(","))
 
   // Auto-register the webhook whenever admin IDs change or a new token is saved.
   // This guarantees the bot always stays connected — no need for a separate

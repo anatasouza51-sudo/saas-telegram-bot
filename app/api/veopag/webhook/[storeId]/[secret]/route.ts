@@ -78,6 +78,12 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  // Idempotency: if this paymentId was already processed, return early.
+  // Telegram/VeoPag may replay webhooks; we must not double-deliver.
+  if (order.paymentId && order.paymentId === paymentId && order.paymentStatus === status) {
+    return NextResponse.json({ received: true, idempotent: true })
+  }
+
   // Amount reconciliation: reject if the webhook amount disagrees with the
   // recorded order amount (protects against tampered/replayed approvals).
   const rawAmount = payload.amount ?? payload.value ?? payload.total

@@ -132,6 +132,8 @@ export async function processQueue(
 ): Promise<{ processed: number; sent: number; failed: number }> {
   const now = new Date()
   await requeueStaleItems(now)
+  // Use FOR UPDATE SKIP LOCKED to prevent duplicate processing across
+  // concurrent cron instances (Vercel may spin up multiple replicas).
   const items = await db
     .select()
     .from(telegramQueue)
@@ -143,6 +145,7 @@ export async function processQueue(
     )
     .orderBy(asc(telegramQueue.scheduledFor))
     .limit(limit)
+    .for("update", { skipLocked: true })
 
   if (items.length === 0) return { processed: 0, sent: 0, failed: 0 }
 
