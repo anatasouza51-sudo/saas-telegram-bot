@@ -7,6 +7,16 @@ import { logActivity } from "@/lib/log"
 import { runAutomations } from "@/lib/tg/automations"
 import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import {
+  validateProductName,
+  validateProductDescription,
+  validateImageUrl,
+  validateProductStatus,
+  validateDeliveryType,
+  validatePositiveNumber,
+  VALID_PRODUCT_STATUS,
+  VALID_DELIVERY_TYPE,
+} from "@/lib/validation"
 
 export type ProductInput = {
   name: string
@@ -78,19 +88,32 @@ export async function getProduct(id: number) {
 
 export async function createProduct(input: ProductInput) {
   const user = await requireCapability("products.manage")
+  // Validate input to prevent Mass Assignment and injection
+  const name = validateProductName(input.name)
+  const description = validateProductDescription(input.description)
+  const imageUrl = validateImageUrl(input.imageUrl)
+  const status = input.status ? validateProductStatus(input.status) : "active"
+  const deliveryType = input.deliveryType ? validateDeliveryType(input.deliveryType) : "stock"
+  const price = validatePositiveNumber(input.price, "Preço")
+  const lowStockThreshold = input.lowStockThreshold !== undefined
+    ? validatePositiveNumber(input.lowStockThreshold, "Limite de estoque")
+    : 5
+  const position = input.position !== undefined
+    ? validatePositiveNumber(input.position, "Posição")
+    : 0
   const [row] = await db
     .insert(products)
     .values({
       ownerId: user.storeId,
-      name: input.name,
-      description: input.description ?? null,
+      name,
+      description,
       categoryId: input.categoryId ?? null,
-      imageUrl: input.imageUrl ?? null,
-      price: String(input.price),
-      status: input.status ?? "active",
-      deliveryType: input.deliveryType ?? "stock",
-      lowStockThreshold: input.lowStockThreshold ?? 5,
-      position: input.position ?? 0,
+      imageUrl,
+      price: String(price),
+      status,
+      deliveryType,
+      lowStockThreshold,
+      position,
     })
     .returning()
   await logActivity({
@@ -112,18 +135,31 @@ export async function createProduct(input: ProductInput) {
 
 export async function updateProduct(id: number, input: ProductInput) {
   const user = await requireCapability("products.manage")
+  // Validate input to prevent Mass Assignment and injection
+  const name = validateProductName(input.name)
+  const description = validateProductDescription(input.description)
+  const imageUrl = validateImageUrl(input.imageUrl)
+  const status = input.status ? validateProductStatus(input.status) : "active"
+  const deliveryType = input.deliveryType ? validateDeliveryType(input.deliveryType) : "stock"
+  const price = validatePositiveNumber(input.price, "Preço")
+  const lowStockThreshold = input.lowStockThreshold !== undefined
+    ? validatePositiveNumber(input.lowStockThreshold, "Limite de estoque")
+    : 5
+  const position = input.position !== undefined
+    ? validatePositiveNumber(input.position, "Posição")
+    : 0
   await db
     .update(products)
     .set({
-      name: input.name,
-      description: input.description ?? null,
+      name,
+      description,
       categoryId: input.categoryId ?? null,
-      imageUrl: input.imageUrl ?? null,
-      price: String(input.price),
-      status: input.status ?? "active",
-      deliveryType: input.deliveryType ?? "stock",
-      lowStockThreshold: input.lowStockThreshold ?? 5,
-      position: input.position ?? 0,
+      imageUrl,
+      price: String(price),
+      status,
+      deliveryType,
+      lowStockThreshold,
+      position,
       updatedAt: new Date(),
     })
     .where(and(eq(products.id, id), eq(products.ownerId, user.storeId)))
