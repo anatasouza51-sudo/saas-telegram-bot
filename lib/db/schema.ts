@@ -432,3 +432,4 @@ export const telegramAutomations = pgTable("telegram_automations", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 // Force redeploy: Sat Aug  1 16:24:47 UTC 2026
+// Build trigger: Sat Aug  1 16:33:48 UTC 2026
