@@ -93,6 +93,60 @@ export async function ensureDbStructure() {
       END $$;
     `)
 
+    // 6. Criar tabela coupons se não existir
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        code TEXT NOT NULL,
+        "discountPercent" INTEGER NOT NULL,
+        "maxUses" INTEGER,
+        "usedCount" INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active',
+        "expiresAt" TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // 7. Garantir índice único em coupons
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'coupons_owner_code_uidx') THEN
+          CREATE UNIQUE INDEX coupons_owner_code_uidx ON coupons ("ownerId", code);
+        END IF;
+      END $$;
+    `)
+
+    // 8. Adicionar colunas faltantes em customers (activeCoupon)
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='activeCoupon') THEN
+          ALTER TABLE customers ADD COLUMN "activeCoupon" TEXT;
+        END IF;
+      END $$;
+    `)
+
+    // 9. Adicionar colunas faltantes em orders (originalAmount, couponCode)
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='originalAmount') THEN
+          ALTER TABLE orders ADD COLUMN "originalAmount" NUMERIC(12,2);
+        END IF;
+      END $$;
+    `)
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='couponCode') THEN
+          ALTER TABLE orders ADD COLUMN "couponCode" TEXT;
+        END IF;
+      END $$;
+    `)
+
     await client.query("COMMIT")
     console.log("[db/migrate] Estrutura do banco de dados verificada/atualizada com sucesso.")
   } catch (err) {
