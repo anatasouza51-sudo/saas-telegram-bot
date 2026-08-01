@@ -12,12 +12,20 @@ import {
   getSupportConfig,
 } from "@/app/actions/categories"
 import { requireCapability } from "@/lib/session"
+import { safeLoad } from "@/lib/safe-load"
+import { ErrorView } from "@/components/error-view"
 
 export default async function CategoriesPage() {
-  await requireCapability("products.manage")
+  try {
+    await requireCapability("products.manage")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/categories" />
+  }
+
   const [categories, support] = await Promise.all([
-    listCategoriesDetailed(),
-    getSupportConfig(),
+    safeLoad("listCategoriesDetailed", () => listCategoriesDetailed(), []),
+    safeLoad("getSupportConfig", () => getSupportConfig(), null),
   ])
 
   return (

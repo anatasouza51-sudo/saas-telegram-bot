@@ -1,5 +1,4 @@
 import { requireCapability } from "@/lib/session"
-import { PageHeader } from "@/components/page-header"
 import {
   Card,
   CardContent,
@@ -11,22 +10,34 @@ import { TelegramFormImproved as TelegramForm } from "@/components/settings/tele
 import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
 import { getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
+import { safeLoad } from "@/lib/safe-load"
+import { ErrorView } from "@/components/error-view"
 
 export default async function TelegramPage() {
-  const user = await requireCapability("telegram.manage")
-  const saved = await getSettings(user.storeId, [
-    "telegram.botToken",
-    "telegram.adminIds",
-    "store.welcomeMessage",
-    "store.welcomeImageUrl",
-  ])
+  let user
+  try {
+    user = await requireCapability("telegram.manage")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/telegram" />
+  }
+
+  const saved = await safeLoad(
+    "getSettings",
+    () => getSettings(user.storeId, [
+      "telegram.botToken",
+      "telegram.adminIds",
+      "store.welcomeMessage",
+      "store.welcomeImageUrl",
+    ]),
+    {} as Record<string, string | null>
+  )
+
   const webhookUrl = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
   const botConfigured = Boolean(saved["telegram.botToken"])
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      {/* PageHeader removed for cleaner UI */}
-
       <Card>
         <CardHeader>
           <CardTitle>Configurações do bot</CardTitle>

@@ -5,6 +5,7 @@ import {
 } from "@/app/actions/tg-channels"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
+import { ErrorView } from "@/components/error-view"
 
 // Always render fresh: chats are auto-detected via webhook events, so the
 // panel must reflect the latest state on every load / poll.
@@ -12,7 +13,14 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 60 // 60 seconds
 
 export default async function ChannelsPage() {
-  const user = await requireCapability("posts.manage")
+  let user
+  try {
+    user = await requireCapability("posts.manage")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/channels" />
+  }
+
   const results = await Promise.allSettled([
     listChannels(),
     getStoreTelegram(user.storeId),
