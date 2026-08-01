@@ -129,6 +129,8 @@ export const customers = pgTable("customers", {
   purchaseCount: integer("purchaseCount").notNull().default(0),
   lastPurchaseAt: timestamp("lastPurchaseAt"),
   status: text("status").notNull().default("active"),
+  // Coupon code the customer has applied but not yet used.
+  activeCoupon: text("activeCoupon"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
@@ -139,6 +141,10 @@ export const orders = pgTable("orders", {
   productId: integer("productId"),
   productName: text("productName"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  // Original price before coupon discount (null when no coupon was applied).
+  originalAmount: numeric("originalAmount", { precision: 12, scale: 2 }),
+  // Coupon code used in this order (null when no coupon was applied).
+  couponCode: text("couponCode"),
   // pending | approved | refused | cancelled
   paymentStatus: text("paymentStatus").notNull().default("pending"),
   // pending | delivered | cancelled
@@ -383,6 +389,33 @@ export const telegramQueue = pgTable("telegram_queue", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
+
+/* ---------------------------------------------------------------------------
+ * Coupons
+ * ------------------------------------------------------------------------- */
+export const coupons = pgTable(
+  "coupons",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    // The code the customer types (stored uppercase).
+    code: text("code").notNull(),
+    // Discount percentage (1-100).
+    discountPercent: integer("discountPercent").notNull(),
+    // Maximum number of total uses (null = unlimited).
+    maxUses: integer("maxUses"),
+    // How many times this coupon has been used.
+    usedCount: integer("usedCount").notNull().default(0),
+    // active | inactive
+    status: text("status").notNull().default("active"),
+    expiresAt: timestamp("expiresAt"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    ownerCodeUnique: uniqueIndex("coupons_owner_code_uidx").on(t.ownerId, t.code),
+  }),
+)
 
 export const telegramAutomations = pgTable("telegram_automations", {
   id: serial("id").primaryKey(),
