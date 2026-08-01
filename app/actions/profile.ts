@@ -2,44 +2,41 @@
 
 import { requireUser } from "@/lib/session"
 import { logActivity } from "@/lib/log"
-import { db } from "@/lib/db"
-import { user as userTable } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
-import { clerkClient } from "@clerk/nextjs/server"
+import { authClient } from "@/lib/auth-client"
 import { revalidatePath } from "next/cache"
 
 export async function updateUserProfile(input: { name: string }) {
   // Outside the try: `requireUser` redirects by throwing, and that must not be
   // turned into a generic "Erro ao atualizar perfil".
-  const currentUser = await requireUser()
+  const user = await requireUser()
 
   try {
-    // Update user name in our DB
-    await db
-      .update(userTable)
-      .set({
+    // Update user profile using better-auth
+    const response = await fetch(`${process.env.BETTER_AUTH_URL || ""}/api/auth/update-profile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         name: input.name.trim(),
-        updatedAt: new Date(),
-      })
-      .where(eq(userTable.id, currentUser.id))
+      }),
+    })
 
-    // Also update in Clerk
-    try {
-      await clerkClient.users.updateUser(currentUser.id, {
-        firstName: input.name.trim().split(" ")[0],
-        lastName: input.name.trim().split(" ").slice(1).join(" ") || undefined,
-      })
-    } catch (clerkErr) {
-      console.error("[profile] Clerk update failed:", clerkErr)
-      // Non-fatal: our DB is the source of truth
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "")
+      console.error(
+        `[profile] update failed (HTTP ${response.status}):`,
+        detail.slice(0, 500),
+      )
+      return { ok: false, error: "Falha ao atualizar perfil" }
     }
 
     // Log the activity
     await logActivity({
-      storeId: currentUser.storeId,
+      storeId: user.storeId,
       action: `Perfil atualizado: nome alterado para "${input.name.trim()}"`,
       category: "admin",
-      actor: currentUser,
+      actor: user,
     })
 
     revalidatePath("/")

@@ -1,5 +1,4 @@
 import { Analytics } from '@vercel/analytics/next'
-import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
@@ -25,6 +24,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Removido maximumScale e userScalable: false para permitir que o navegador
+  // e o "Modo Desktop" funcionem como esperado.
   colorScheme: 'dark',
   themeColor: '#0f1220',
 }
@@ -35,14 +36,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY} dynamic={true}>
-      <html lang="pt-BR" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
-        <body className="bg-background font-sans antialiased bg-grain relative">
-          {children}
-          <Toaster />
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="pt-BR" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
+      <body className="bg-background font-sans antialiased bg-grain relative">
+        {children}
+        <Toaster />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
+      </body>
+    </html>
   )
 }
+
+// v1.0.3 - Force redeploy to ensure Vercel picks up the latest stability fixes
