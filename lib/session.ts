@@ -1,8 +1,10 @@
 import "server-only"
 import { cache } from "react"
-import { cookies } from "next/headers"
+import { auth, currentUser } from "@clerk/nextjs/server"
+import { db } from "@/lib/db"
+import { user as userTable } from "@/lib/db/schema"
+import { eq, or } from "drizzle-orm"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
 import { can, type Role } from "@/lib/roles"
 export type { Role } from "@/lib/roles"
 
@@ -18,45 +20,45 @@ export type SessionUser = {
 /**
  * Returns the current session user or null. Does not redirect.
  *
- * Works around Next.js 16.2.x compatibility issue where
- * auth.api.getSession({ headers: await headers() }) crashes in SSR
- * because Next.js HeadersReadonly is incompatible with new Headers()
- * inside better-auth's dispatch layer.
- *
- * Solution: build a plain Headers object from cookies() and pass it
- * directly, bypassing the problematic Next.js headers() helper.
+ * Reads the Clerk user from the server context and looks up the
+ * corresponding row in our `user` table to get role/ownerId/storeId.
+ * `cache()` deduplicates calls within a single request/render.
  */
-// A página de Postagens (e outras) chama `requireCapability` uma vez por
-// server action carregada em paralelo — até 9 vezes na mesma requisição.
-// Sem cache, isso é 9 consultas de sessão ao banco por carregamento de
-// página, uma das maiores causas do esgotamento de conexões. `cache()` do
-// React deduplica chamadas com os mesmos argumentos dentro de uma única
-// requisição/render no servidor, então isso vira 1 consulta real.
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   try {
-    const cookieStore = await cookies()
-    const entries = cookieStore.getAll()
-    if (!entries.length) return null
+    const clerkUser = await currentUser()
+    if (!clerkUser) return null
 
-    const cookieHeader = entries.map((c) => `${c.name}=${c.value}`).join("; ")
-    const h = new Headers()
-    h.set("cookie", cookieHeader)
+    const email = clerkUser.emailAddresses[0]?.emailAddress
+    if (!email) return null
 
-    const session = await auth.api.getSession({ headers: h })
-    if (!session?.user) return null
+    // Look up the app-level user record in our DB (synced from Clerk).
+    // Match by Clerk ID first (primary), then by email as fallback for existing users.
+    const [record] = await db
+      .select({
+        id: userTable.id,
+        name: userTable.name,
+        email: userTable.email,
+        role: userTable.role,
+        ownerId: userTable.ownerId,
+      })
+      .from(userTable)
+      .where(or(
+        eq(userTable.id, clerkUser.id),
+        eq(userTable.email, email as string),
+      ))
+      .limit(1)
 
-    const u = session.user as typeof session.user & {
-      role?: string
-      ownerId?: string | null
-    }
-    const ownerId = u.ownerId ?? null
+    if (!record) return null
+
+    const ownerId = record.ownerId ?? null
     return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: (u.role as Role) || "support",
+      id: record.id,
+      name: record.name,
+      email: record.email,
+      role: (record.role as Role) || "support",
       ownerId,
-      storeId: ownerId ?? u.id,
+      storeId: ownerId ?? record.id,
     }
   } catch (error) {
     console.error("[getSessionUser] Session lookup failed:", error)
