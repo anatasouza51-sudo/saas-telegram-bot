@@ -36,22 +36,40 @@ export class TelegramClient {
     if (!this.token) {
       return { ok: false, description: "Token do bot não configurado" }
     }
+    const startedAt = Date.now()
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15_000)
     try {
       const res = await fetch(`${API_BASE}${this.token}/${method}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       })
-      return (await res.json()) as {
+      const data = (await res.json()) as {
         ok: boolean
         result?: T
         description?: string
       }
+      const elapsed = Date.now() - startedAt
+      if (elapsed > 2_000) {
+        console.warn(
+          `[tg/${method}] slow: ${elapsed}ms`,
+        )
+      }
+      return data
     } catch (err) {
+      const elapsed = Date.now() - startedAt
+      console.warn(
+        `[tg/${method}] failed after ${elapsed}ms:`,
+        err instanceof Error ? err.message : "Erro de rede",
+      )
       return {
         ok: false,
         description: err instanceof Error ? err.message : "Erro de rede",
       }
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
@@ -192,14 +210,32 @@ export class TelegramClient {
       }
       const blob = new Blob([photo as BlobPart], { type: "image/png" })
       form.append("photo", blob, options?.filename ?? "pix-qr.png")
-      const res = await fetch(`${API_BASE}${this.token}/sendPhoto`, {
-        method: "POST",
-        body: form,
-      })
+      const startedAt = Date.now()
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15_000)
+      let res
+      try {
+        res = await fetch(`${API_BASE}${this.token}/sendPhoto`, {
+          method: "POST",
+          body: form,
+          signal: controller.signal,
+        })
+      } catch (err) {
+        return {
+          ok: false,
+          description: `sendPhoto failed after ${Date.now() - startedAt}ms: ` + (err instanceof Error ? err.message : "Erro de rede"),
+        }
+      } finally {
+        clearTimeout(timeout)
+      }
       const json = (await res.json()) as {
         ok: boolean
         result?: TelegramMessage
         description?: string
+      }
+      const elapsed = Date.now() - startedAt
+      if (elapsed > 2_000) {
+        console.warn(`[tg/sendPhoto] slow: ${elapsed}ms`)
       }
       return json
     } catch (err) {
@@ -347,14 +383,32 @@ export class TelegramClient {
         type: file.mimeType || "application/octet-stream",
       })
       form.append(field, blob, file.filename)
-      const res = await fetch(`${API_BASE}${this.token}/${method}`, {
-        method: "POST",
-        body: form,
-      })
+      const startedAt = Date.now()
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15_000)
+      let res
+      try {
+        res = await fetch(`${API_BASE}${this.token}/${method}`, {
+          method: "POST",
+          body: form,
+          signal: controller.signal,
+        })
+      } catch (err) {
+        return {
+          ok: false,
+          description: `uploadMedia failed after ${Date.now() - startedAt}ms: ` + (err instanceof Error ? err.message : "Erro de rede"),
+        }
+      } finally {
+        clearTimeout(timeout)
+      }
       const json = (await res.json()) as {
         ok: boolean
         result?: TelegramMessage
         description?: string
+      }
+      const elapsed = Date.now() - startedAt
+      if (elapsed > 2_000) {
+        console.warn(`[tg/${method}] slow upload: ${elapsed}ms`)
       }
       if (!json.ok || !json.result) {
         return { ok: false, description: json.description ?? "Falha no upload" }
