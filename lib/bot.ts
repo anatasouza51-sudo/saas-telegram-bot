@@ -8,7 +8,7 @@ import {
   settings,
   stockItems,
 } from "@/lib/db/schema"
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, isNull, isNotNull, lte, sql } from "drizzle-orm"
 import {
   TelegramClient,
   buildInlineKeyboard,
@@ -705,13 +705,15 @@ export async function expireDuePixOrders() {
     .where(
       and(
         eq(orders.paymentStatus, "pending"),
-        sql`${orders.expiresAt} is not null`,
-        sql`${orders.expiresAt} <= ${now}`,
-        sql`${orders.pixMessageId} is not null`,
+        isNotNull(orders.expiresAt),
+        lte(orders.expiresAt, now),
+        isNotNull(orders.pixMessageId),
       ),
     )
 
   if (due.length === 0) return { checked: 0, expired: 0 }
+
+  console.log(`[bot] Encontrados ${due.length} pedidos PIX expirados para processar.`)
 
   let expired = 0
   const contextCache = new Map<string, StoreContext | null>()
@@ -727,6 +729,8 @@ export async function expireDuePixOrders() {
     if (!ctx) continue
 
     try {
+      console.log(`[bot] Expirando pedido #${order.id} no chat ${order.pixChatId}...`)
+      // 1. Edit the message in Telegram to show the expired state.
       await editPixMessage(
         ctx,
         Number(order.pixChatId),
@@ -734,6 +738,16 @@ export async function expireDuePixOrders() {
         [`🧾 <b>Pedido #${order.id}</b>`, ``, ctx.pix.expiredMessage].join("\n"),
         NO_KEYBOARD,
       )
+      
+      // 2. Update the database so it's no longer pending and won't be picked up again.
+      await db
+        .update(orders)
+        .set({ 
+          paymentStatus: "refused", 
+          updatedAt: new Date() 
+        })
+        .where(eq(orders.id, order.id))
+
       expired += 1
     } catch (err) {
       // Best-effort: retried on the next sweep, at most a minute later.
