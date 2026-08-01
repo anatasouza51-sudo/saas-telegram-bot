@@ -41,12 +41,6 @@ type Channel = {
   isForum?: boolean
 }
 
-type Topic = {
-  id: number
-  chatId: string
-  threadId: number
-  name: string
-}
 
 type Post = {
   id: number
@@ -124,7 +118,6 @@ function parseTargets(json: string | null): string[] {
   }
 }
 
-// Shows which destinations (chat and/or topic) a template will pre-select.
 function TemplateTargets({
   tokens,
   labelFor,
@@ -193,7 +186,6 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function PostsWorkspace({
   channels,
-  topics,
   posts,
   schedules,
   stats,
@@ -204,7 +196,6 @@ export function PostsWorkspace({
   cdnReady,
 }: {
   channels: Channel[]
-  topics: Topic[]
   posts: Post[]
   schedules: Schedule[]
   stats: Stats
@@ -377,7 +368,6 @@ export function PostsWorkspace({
             <PostEditor
               key={editing?.id ?? (prefill ? "tpl" : "blank")}
               channels={channels}
-              topics={topics}
               botName={botName}
               cdnReady={cdnReady}
               initial={editing ? parseInitial(editing) : (prefill ?? undefined)}
@@ -423,7 +413,6 @@ export function PostsWorkspace({
             <TemplateList
               templates={templates}
               channels={channels}
-              topics={topics}
               onUse={useTemplate}
             />
           </TabsContent>
@@ -440,31 +429,13 @@ export function PostsWorkspace({
 function TemplateList({
   templates,
   channels,
-  topics,
   onUse,
 }: {
   templates: Template[]
   channels: Channel[]
-  topics: Topic[]
   onUse: (tpl: Template) => void
 }) {
   const router = useRouter()
-
-  // Human-readable label for each saved target token, e.g. "Ofertas › Promoções".
-  const targetLabels = useMemo(() => {
-    const chatById = new Map(channels.map((c) => [c.chatId, c.title]))
-    const topicByToken = new Map(
-      topics.map((t) => [`${t.chatId}:${t.threadId}`, t.name]),
-    )
-    return (token: string) => {
-      const topicName = topicByToken.get(token)
-      if (topicName) {
-        const chatId = token.slice(0, token.lastIndexOf(":"))
-        return `${chatById.get(chatId) ?? chatId} › ${topicName}`
-      }
-      return chatById.get(token) ?? token
-    }
-  }, [channels, topics])
 
   async function onDelete(id: number) {
     try {

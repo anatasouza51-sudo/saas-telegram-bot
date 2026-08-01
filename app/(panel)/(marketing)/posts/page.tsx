@@ -21,12 +21,6 @@ type Channel = {
   isForum?: boolean
 }
 
-type Topic = {
-  id: number
-  chatId: string
-  threadId: number
-  name: string
-}
 
 type Post = {
   id: number
@@ -205,7 +199,6 @@ export default async function PostsPage() {
     <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
       <PostsWorkspace
         channels={channels}
-        topics={[]}
         posts={posts}
         schedules={schedules}
         stats={stats}
