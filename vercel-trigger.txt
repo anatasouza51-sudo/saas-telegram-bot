@@ -1,1 +1,1 @@
-Force deploy Sat Aug  1 17:35:43 UTC 2026
+v1.0.4-reconnected-deploy
