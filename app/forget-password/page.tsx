@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Mail, ArrowLeft } from "lucide-react"
+import { GhostLogo } from "@/components/ghost-logo"
 
 export default function ForgetPasswordPage() {
   const [email, setEmail] = useState("")
@@ -19,10 +21,11 @@ export default function ForgetPasswordPage() {
     setLoading(true)
 
     try {
-      // Clerk handles password reset via the sign-in flow's "Forgot password" link.
-      // We redirect to sign-in where Clerk's built-in forgot-password flow lives.
-      // For a standalone recovery page, we can use Clerk's client to trigger reset.
-      // Since Clerk's prebuilt components handle this natively, we simply redirect.
+      const { error } = await authClient.forgetPassword({
+        email,
+        redirectTo: "/reset-password",
+      })
+      if (error) throw new Error(error.message || "Falha ao enviar email")
       setSuccess(true)
     } catch (err) {
       setError((err as Error).message)
@@ -39,6 +42,7 @@ export default function ForgetPasswordPage() {
 
       <div className="w-full max-w-[440px] px-4 py-8">
         <div className="mb-10 flex flex-col items-center text-center">
+          <GhostLogo className="mb-6" />
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Recuperar senha
           </h1>

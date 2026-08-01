@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { useClerk } from "@clerk/nextjs"
+import { authClient } from "@/lib/auth-client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,6 @@ export const UserMenu = memo(({
   roleLabel: string
 }) => {
   const router = useRouter()
-  const { signOut } = useClerk()
   
   const initials = useMemo(() => name
     .split(" ")
@@ -35,8 +34,10 @@ export const UserMenu = memo(({
     .toUpperCase(), [name])
 
   const handleSignOut = useCallback(async () => {
-    await signOut(() => router.push("/sign-in"))
-  }, [router, signOut])
+    await authClient.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }, [router])
 
   return (
     <DropdownMenu>
