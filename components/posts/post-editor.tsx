@@ -232,8 +232,19 @@ export function PostEditor({
     }
     startTransition(async () => {
       try {
-        const { enqueued } = await publishNow(buildInput(), spec)
-        toast.success(`Postagem enfileirada para ${enqueued} destino(s)`)
+        const { enqueued, sent, failed } = await publishNow(buildInput(), spec)
+        if (failed > 0) {
+          toast.error(
+            `${sent} enviado(s), ${failed} falhou(aram) de ${enqueued} destino(s).`,
+          )
+        } else if (sent > 0) {
+          toast.success(
+            `Postagem enviada para ${sent} grupo(s)/canal(ais)!`,
+          )
+        } else {
+          // processQueue may not have picked up items yet (e.g. cold start).
+          toast.success(`Postagem publicada para ${enqueued} destino(s).`)
+        }
         if (onDone) onDone()
         else router.refresh()
       } catch (e) {

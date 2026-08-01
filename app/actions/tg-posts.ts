@@ -99,7 +99,7 @@ function assertSendable(text: string | null, mediaIds: string | null) {
 export async function publishNow(
   input: PostInput,
   targets: TargetSpec,
-): Promise<{ enqueued: number }> {
+): Promise<{ enqueued: number; sent: number; failed: number }> {
   try {
     const user = await requireCapability("posts.manage")
     if (!targets || targets.length === 0) {
@@ -128,36 +128,37 @@ export async function publishNow(
       )
     }
 
-    // Kick the queue processor immediately so the user sees near-instant
-    // delivery. Without this, items sit in the queue until the next cron
-    // tick (up to 1 minute). The cron route will still catch anything
-    // missed here, so this is a safe best-effort trigger.
+    // Process the queue immediately so the post is sent to the groups/channels
+    // right away. The cron route will still catch anything missed here.
+    let sent = 0
+    let failed = 0
     try {
       const result = await processQueue(enqueued)
+      sent = result.sent
+      failed = result.failed
       console.log(
-        `[tg/posts] publishNow kicked queue: processed=${result.processed}, sent=${result.sent}, failed=${result.failed}`,
+        `[tg/posts] publishNow: ${sent} sent, ${failed} failed out of ${enqueued}`,
       )
     } catch (err) {
       // Best-effort: the cron route will process these items within a minute.
-      console.error("[tg/posts] publishNow queue kick failed:", err)
+      console.error("[tg/posts] publishNow queue processing failed:", err)
     }
 
     await logActivity({
       storeId: user.storeId,
       actor: { id: user.id, name: user.name },
-      action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s)`,
+      action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s) — ${sent} enviados, ${failed} falhas`,
       category: "posts",
     })
 
     // Revalidate the posts page to refresh the UI after publishing.
-    // Usamos um bloco try/catch para garantir que o erro de revalidação não quebre a resposta da action
     try {
       revalidatePath("/posts")
     } catch (e) {
       console.error("[tg/posts] revalidatePath failed:", e)
     }
 
-    return { enqueued }
+    return { enqueued, sent, failed }
   } catch (err) {
     console.error("[tg/posts] publishNow failed:", err)
     throw new Error(err instanceof Error ? err.message : "Erro ao publicar postagem.")
