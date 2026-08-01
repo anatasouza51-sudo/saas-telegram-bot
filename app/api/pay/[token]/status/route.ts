@@ -19,9 +19,10 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  // Throttle abusive polling/enumeration per IP. The page polls every few
-  // seconds, so 60/min per IP is comfortably above legitimate usage.
-  const limit = rateLimit(`paystatus:${clientIpFrom(req)}`, {
+  // Throttle abusive polling/enumeration per token+IP. The page polls every few
+  // seconds, so 60/min per token+IP is comfortably above legitimate usage.
+  // Scoping to token prevents shared-IP false positives.
+  const limit = rateLimit(`paystatus:${token}:${clientIpFrom(req)}`, {
     max: 60,
     windowMs: 60_000,
   })

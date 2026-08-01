@@ -53,6 +53,9 @@ export function escapeHtml(input: unknown): string {
  * deployment each instance keeps its own counters. It still meaningfully
  * blunts brute-force/spam bursts. For strict distributed limits, back this
  * with Upstash Redis — the call sites won't change.
+ *
+ * Callers should include the storeId/userId in the key when available
+ * to avoid false positives from shared IPs/proxies.
  */
 type Bucket = { count: number; resetAt: number }
 const buckets = new Map<string, Bucket>()
@@ -73,6 +76,17 @@ export function rateLimit(
   existing.count += 1
   return { ok: true, retryAfterMs: 0 }
 }
+
+/**
+ * Prune stale buckets periodically to prevent unbounded memory growth.
+ * Runs every 5 minutes.
+ */
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, bucket] of buckets) {
+    if (now >= bucket.resetAt) buckets.delete(key)
+  }
+}, 5 * 60 * 1000)
 
 /** Extracts a best-effort client IP from request headers. */
 export function clientIpFrom(req: Request): string {

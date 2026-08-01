@@ -12,6 +12,41 @@ export const runtime = "nodejs"
 // Telegram bot API allows up to 50MB for bot uploads.
 const MAX_BYTES = 50 * 1024 * 1024
 
+// Allowed MIME type prefixes — block executables, scripts, and dangerous types.
+const ALLOWED_MIME_PREFIXES = [
+  "image/",
+  "video/",
+  "audio/",
+  "application/pdf",
+]
+const BLOCKED_MIME_PREFIXES = [
+  "application/javascript",
+  "application/x-sh",
+  "application/x-executable",
+  "application/vnd.ms-excel",
+]
+
+/**
+ * Basic magic-byte check for common file types.
+ * Returns the detected MIME or null if unrecognized.
+ */
+function detectMimeType(buf: Buffer): string | null {
+  if (buf.length < 4) return null
+  // PNG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png"
+  // JPEG
+  if (buf[0] === 0xff && buf[1] === 0xd8) return "image/jpeg"
+  // GIF
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif"
+  // WebP
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[8] === 0x57) return "image/webp"
+  // MP4
+  if (buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) return "video/mp4"
+  // PDF
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return "application/pdf"
+  return null
+}
+
 // Maps a MIME type to the Telegram send method / media kind we should use.
 function kindFor(mime: string, forceDocument: boolean): TelegramMediaKind {
   if (forceDocument) return "document"
@@ -72,8 +107,22 @@ export async function POST(req: Request) {
     )
   }
 
-  const kind = kindFor(file.type || "", forceDocument)
+  // Validate MIME type against whitelist; block dangerous types.
+  const declaredMime = (file.type || "").toLowerCase()
+  const isBlocked = BLOCKED_MIME_PREFIXES.some((p) => declaredMime.startsWith(p))
+  if (isBlocked) {
+    return NextResponse.json({ error: "Tipo de arquivo não permitido" }, { status: 400 })
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer())
+
+  // Magic-byte detection for images — verify the actual content matches the claim.
+  const detected = detectMimeType(buffer)
+  if (declaredMime.startsWith("image/") && detected && !detected.startsWith("image/")) {
+    return NextResponse.json({ error: "Conteúdo não corresponde à extensão declarada" }, { status: 400 })
+  }
+
+  const kind = kindFor(detected ?? declaredMime, forceDocument)
 
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
   const result = await client.uploadMedia(cdnChatId, kind, {
