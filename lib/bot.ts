@@ -1121,7 +1121,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     // The shop/catalog is a PRIVATE-chat experience only. If inline buttons
     // from an old shop message get clicked inside a group/supergroup/channel,
     // ignore them so the product flow never renders in a group.
-    const cbChatType = cq.message?.chat.type
+    const cbChatType = (cq.message as any)?.chat?.type
     if (cbChatType && cbChatType !== "private") return
 
     if (data === "noop") return
@@ -1223,7 +1223,7 @@ async function replyGroupDetection(
 ) {
   if (!ctx.botId) return
   const memberRes = await ctx.tg.getChatMember(chat.id, ctx.botId)
-  const status = memberRes.ok ? memberRes.result.status : "unknown"
+  const status = memberRes.ok && memberRes.result ? memberRes.result.status : "unknown"
   const isAdmin = status === "administrator" || status === "creator"
   const typeLabel =
     chat.type === "supergroup"
