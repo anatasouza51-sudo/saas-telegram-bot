@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { telegramMedia } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import type { TelegramMediaKind } from "@/lib/telegram"
+import { sanitizeFileName } from "@/lib/validation"
 import { logActivity } from "@/lib/log"
 
 export const runtime = "nodejs"
@@ -127,7 +128,7 @@ export async function POST(req: Request) {
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
   const result = await client.uploadMedia(cdnChatId, kind, {
     data: buffer,
-    filename: file.name || "arquivo",
+    filename: sanitizeFileName(file.name),
     mimeType: file.type || undefined,
   })
 

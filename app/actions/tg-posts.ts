@@ -11,8 +11,9 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { enqueuePost, processQueue, type TargetSpec } from "@/lib/tg/queue"
 import { nextRun, parseRecurrence, type Recurrence } from "@/lib/tg/recurrence"
-import type { ButtonRows } from "@/lib/tg/buttons"
+import { resolveButtonUrl, type ButtonRows } from "@/lib/tg/buttons"
 import { revalidatePath } from "next/cache"
+import { sanitizeTelegramHtml, sanitizeDisplayName, validateSafeUrl } from "@/lib/validation"
 
 export type PostInput = {
   id?: number
@@ -27,13 +28,33 @@ export type PostInput = {
 export async function savePost(input: PostInput, revalidate = true): Promise<number> {
   try {
     const user = await requireCapability("posts.manage")
+    // Validation: prevent XSS, HTML injection and protocol bypass.
+    const title = sanitizeDisplayName(input.title)
+    const text = input.parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : input.text
+    
+    const validatedButtons = (input.buttons ?? []).map(row => 
+      row.map(btn => {
+        const resolved = resolveButtonUrl(btn)
+        if (resolved && !resolved.startsWith("http")) {
+          // If it's not a standard URL, it might be a callback or formatted link.
+          // We validate the resulting URL if it's meant to be one.
+          if (["url", "site", "deeplink"].includes(btn.type)) {
+            validateSafeUrl(resolved, `Botão "${btn.text}"`)
+          }
+        } else if (resolved) {
+          validateSafeUrl(resolved, `Botão "${btn.text}"`)
+        }
+        return btn
+      })
+    )
+
     const values = {
       ownerId: user.storeId,
-      title: input.title?.trim() || null,
-      text: input.text ?? null,
+      title: title || null,
+      text: text ?? null,
       parseMode: input.parseMode ?? "HTML",
       mediaIds: JSON.stringify(input.mediaIds ?? []),
-      buttons: JSON.stringify(input.buttons ?? []),
+      buttons: JSON.stringify(validatedButtons),
       updatedAt: new Date(),
     }
 
