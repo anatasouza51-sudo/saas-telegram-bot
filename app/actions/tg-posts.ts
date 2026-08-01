@@ -128,6 +128,20 @@ export async function publishNow(
       )
     }
 
+    // Kick the queue processor immediately so the user sees near-instant
+    // delivery. Without this, items sit in the queue until the next cron
+    // tick (up to 1 minute). The cron route will still catch anything
+    // missed here, so this is a safe best-effort trigger.
+    try {
+      const result = await processQueue(enqueued)
+      console.log(
+        `[tg/posts] publishNow kicked queue: processed=${result.processed}, sent=${result.sent}, failed=${result.failed}`,
+      )
+    } catch (err) {
+      // Best-effort: the cron route will process these items within a minute.
+      console.error("[tg/posts] publishNow queue kick failed:", err)
+    }
+
     await logActivity({
       storeId: user.storeId,
       actor: { id: user.id, name: user.name },
