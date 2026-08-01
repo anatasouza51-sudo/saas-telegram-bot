@@ -4,11 +4,12 @@ import type React from "react"
 import { useState, useCallback, memo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useSignIn, useSignUp } from "@clerk/nextjs"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react"
+import { GhostLogo } from "@/components/ghost-logo"
 
 const FormInput = memo(({ 
   id, 
@@ -46,8 +47,6 @@ FormInput.displayName = "FormInput"
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter()
-  const { signIn, setActive: setActiveSignIn } = useSignIn()
-  const { signUp, setActive: setActiveSignUp } = useSignUp()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -71,47 +70,43 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     
     try {
       if (isSignUp) {
-        const result = await signUp?.create({
-          emailAddress: email,
-          password,
-          firstName: name.split(" ")[0],
-          lastName: name.split(" ").slice(1).join(" ") || undefined,
-        })
-        if (result?.status === "complete") {
-          await setActiveSignUp?.({ session: result.createdSessionId })
-          router.push("/")
-        } else {
-          // Clerk may require email verification — let the user know
-          setError("Verifique seu email para completar o cadastro.")
+        const result = await authClient.signUp.email({ email, password, name })
+        if (result.error) {
+          setError(result.error.message || "Falha ao criar conta")
           setLoading(false)
           return
         }
+        await authClient.signIn.email({ email, password })
       } else {
-        const result = await signIn?.create({
-          identifier: email,
-          password,
-        })
-        if (result?.status === "complete") {
-          await setActiveSignIn?.({ session: result.createdSessionId })
-          router.push("/")
-        } else {
-          setError("Credenciais inválidas")
+        const result = await authClient.signIn.email({ email, password })
+        if (result.error) {
+          setError(result.error.message || "Credenciais inválidas")
           setLoading(false)
           return
         }
       }
+      
+      // Sucesso no login
+      router.refresh();
+      
+      // Redirecionamento forçado para a raiz (onde agora o painel assumirá o controle)
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 300);
+      
     } catch (err) {
-      console.error("Auth error:", err)
-      setError("Erro de sistema. Tente novamente.")
+      console.error("Auth error:", err);
+      setError("Erro de sistema. Tente novamente.");
       setLoading(false)
     }
-  }, [isSignUp, email, password, confirmPassword, name, router, signIn, signUp, setActiveSignIn, setActiveSignUp])
+  }, [isSignUp, email, password, confirmPassword, name, router])
 
   const togglePassword = useCallback(() => setShowPassword(prev => !prev), [])
 
   return (
     <div className="w-full max-w-[420px] px-4 py-6">
       <div className="mb-8 flex flex-col items-center text-center">
+        <GhostLogo className="w-14 h-14 mb-5" />
         <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-white uppercase italic">
           {isSignUp ? "Faça parte do" : "Bem-vindo ao"} <span className="text-primary">Ghost</span>Bot
         </h1>
@@ -138,7 +133,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           placeholder="••••••••"
           minLength={8}
           required
-          rightElement={!isSignUp && <Link href="/sign-in" size="sm" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
+          rightElement={!isSignUp && <Link href="/forget-password" size="sm" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
         />
         {isSignUp && (
           <FormInput id="confirmPassword" label="Confirmar Senha" icon={Lock} type={showPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" minLength={8} required />

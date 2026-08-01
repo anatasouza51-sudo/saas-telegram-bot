@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
-import { useClerk } from "@clerk/nextjs"
+import { authClient } from "@/lib/auth-client"
 import {
   Search,
   Settings,
@@ -44,7 +44,6 @@ export const TopNavBar = memo(({
 }) => {
   const pathname = usePathname()
   const router = useRouter()
-  const { signOut } = useClerk()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
@@ -52,8 +51,10 @@ export const TopNavBar = memo(({
   const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
 
   const handleSignOut = useCallback(async () => {
-    await signOut(() => router.push("/sign-in"))
-  }, [router, signOut])
+    await authClient.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }, [router])
   const openSearch = useCallback(() => setSearchOpen(true), [])
   const closeSearch = useCallback(() => setSearchOpen(false), [])
 
