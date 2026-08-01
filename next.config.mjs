@@ -28,7 +28,7 @@ const securityHeaders = [
       "object-src 'none'",
       "img-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'" + (isProd ? "" : " 'unsafe-eval'"),
+      "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com" + (isProd ? "" : " 'unsafe-eval'"),
       "font-src 'self' data:",
       "connect-src 'self' https:",
       "form-action 'self'",
