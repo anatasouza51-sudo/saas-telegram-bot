@@ -20,6 +20,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ storeId: string }> },
 ) {
+  const startedAt = Date.now()
   const { storeId } = await params
   const ip = clientIpFrom(req)
 
@@ -53,10 +54,17 @@ export async function POST(
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
-  // Record diagnostics before handling so the panel reflects delivery even if
-  // handling throws. Diagnostics are best-effort and must not drop the update.
-  await recordWebhookEvent(storeId, update)
+  // Record diagnostics. Fire-and-forget: diagnostics are best-effort and must
+  // not block the response. The cron route also records events, so missing a
+  // single entry is acceptable.
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  recordWebhookEvent(storeId, update).catch((err) => {
+    console.error("[telegram/webhook] recordWebhookEvent failed:", err)
+  })
 
+  // Process the update (this is the only operation we must await, because
+  // Telegram needs the ack to stop retrying).
+  const handleStarted = Date.now()
   let handled = true
   try {
     await handleUpdate(storeId, update)
@@ -72,26 +80,45 @@ export async function POST(
       details: err instanceof Error ? err.message : "Erro desconhecido",
     })
   }
+  const handleElapsed = Date.now() - handleStarted
 
-  // Opportunistically check for due schedules on every webhook hit.
-  // This catches missed firings without needing a per-minute cron.
-  try {
-    await processSchedules()
-  } catch (err) {
-    // Best-effort — the cron route will also catch these on the hour.
-    console.error("[telegram/webhook] processSchedules failed:", err)
+  // Opportunistically check for due schedules — fire-and-forget.
+  // The cron route will catch anything missed here within a minute.
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  processSchedules()
+    .then((result) => {
+      const elapsed = Date.now() - startedAt
+      if (result.fired > 0 || elapsed > 3_000) {
+        console.log(
+          `[telegram/webhook] post-processing complete: ${result.fired} schedules fired, ${result.failed} failed, total ${Date.now() - startedAt}ms`,
+        )
+      }
+    })
+    .catch((err) => {
+      console.error("[telegram/webhook] processSchedules failed:", err)
+    })
+
+  // Sweep for expired PIX orders — fire-and-forget.
+  // The cron route will catch anything missed here within a minute.
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  expireDuePixOrders()
+    .then((result) => {
+      if (result.expired > 0 || (Date.now() - startedAt) > 3_000) {
+        console.log(
+          `[telegram/webhook] expire sweep: ${result.checked} checked, ${result.expired} expired`,
+        )
+      }
+    })
+    .catch((err) => {
+      console.error("[telegram/webhook] expireDuePixOrders failed:", err)
+    })
+
+  // Always ack immediately so Telegram doesn't retry. Total time logged.
+  const totalElapsed = Date.now() - startedAt
+  if (totalElapsed > 2_000) {
+    console.warn(
+      `[telegram/webhook] slow response: ${totalElapsed}ms (handleUpdate: ${handleElapsed}ms)`,
+    )
   }
-
-  // BUGFIX: also sweep for expired PIX orders on every webhook hit, so an
-  // active bot (any store getting traffic) flips stale payments faster than
-  // the once-a-minute cron alone.
-  try {
-    await expireDuePixOrders()
-  } catch (err) {
-    // Best-effort — the cron route will also catch these within a minute.
-    console.error("[telegram/webhook] expireDuePixOrders failed:", err)
-  }
-
-  // Always ack so Telegram doesn't retry indefinitely.
   return NextResponse.json({ ok: true, handled })
 }

@@ -52,14 +52,22 @@ async function getToken(
     return { ok: true, token: cached.token }
   }
   try {
-    const res = await fetch(`${VEOPAG_BASE}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: credentials.publicKey,
-        client_secret: credentials.secretKey,
-      }),
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10_000)
+    let res
+    try {
+      res = await fetch(`${VEOPAG_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: credentials.publicKey,
+          client_secret: credentials.secretKey,
+        }),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
     const data = (await res.json().catch(() => ({}))) as Record<string, any>
     if (!res.ok || !data?.token) {
       return {
@@ -99,25 +107,38 @@ export async function createCharge(
     input.payer?.email ?? `${input.externalId}@cliente.veopag.local`
   const payerDocument = input.payer?.document ?? FALLBACK_DOCUMENT
 
+  const chargeStarted = Date.now()
   try {
-    const res = await fetch(`${VEOPAG_BASE}/api/payments/deposit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${auth.token}`,
-      },
-      body: JSON.stringify({
-        amount: input.amount,
-        external_id: input.externalId,
-        clientCallbackUrl: input.callbackUrl,
-        payer: {
-          name: payerName,
-          email: payerEmail,
-          document: payerDocument,
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10_000)
+    let res
+    try {
+      res = await fetch(`${VEOPAG_BASE}/api/payments/deposit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
         },
-      }),
-    })
+        body: JSON.stringify({
+          amount: input.amount,
+          external_id: input.externalId,
+          clientCallbackUrl: input.callbackUrl,
+          payer: {
+            name: payerName,
+            email: payerEmail,
+            document: payerDocument,
+          },
+        }),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
     const data = (await res.json().catch(() => ({}))) as Record<string, any>
+    const chargeElapsed = Date.now() - chargeStarted
+    if (chargeElapsed > 3_000) {
+      console.warn(`[veopag/createCharge] slow: ${chargeElapsed}ms`)
+    }
 
     if (res.status === 401) {
       // Token was revoked; drop cache so the next attempt re-authenticates.
