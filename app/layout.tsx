@@ -46,4 +46,4 @@ export default function RootLayout({
   )
 }
 
-// Deploy trigger: Sat Aug  1 17:39:48 UTC 2026
+// Deploy trigger: Sat Aug  1 18:00:00 UTC 2026 — BUGFIX: /start silence (upsertCustomer race + sendPhoto fallback + cron schedule + DB migration)

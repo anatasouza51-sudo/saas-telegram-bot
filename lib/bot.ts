@@ -126,27 +126,16 @@ async function upsertCustomer(
   from: { id: number; username?: string; first_name?: string },
 ) {
   const telegramId = String(from.id)
-  const [existing] = await db
-    .select()
-    .from(customers)
-    .where(and(eq(customers.ownerId, storeId), eq(customers.telegramId, telegramId)))
-  
   // Sanitization: prevent XSS if the name is displayed in the admin panel.
   const name = sanitizeDisplayName(from.first_name)
-  
-  if (existing) {
-    if (existing.name !== name) {
-      const [updated] = await db
-        .update(customers)
-        .set({ name })
-        .where(eq(customers.id, existing.id))
-        .returning()
-      return updated ?? existing
-    }
-    return existing
-  }
-  
-  const [created] = await db
+
+  // BUGFIX: the previous read-then-write pattern was susceptible to a race
+  // condition: two concurrent /start messages (e.g. Telegram retry) could
+  // both see no existing row and both attempt an INSERT, causing a duplicate-
+  // key error that propagated as an unhandled exception and silenced the bot.
+  // We now use a single atomic upsert. The unique index on (ownerId, telegramId)
+  // is added in the migration below so the ON CONFLICT target is valid.
+  const [row] = await db
     .insert(customers)
     .values({
       ownerId: storeId,
@@ -155,8 +144,16 @@ async function upsertCustomer(
       name,
       status: "active",
     })
+    .onConflictDoUpdate({
+      target: [customers.ownerId, customers.telegramId],
+      set: {
+        name,
+        // Keep username fresh in case the user renamed their Telegram account.
+        username: from.username ?? null,
+      },
+    })
     .returning()
-  return created
+  return row
 }
 
 /* ---------------------------------------------------------------------------
@@ -184,9 +181,23 @@ async function renderScreen(
   // Fresh send (e.g. from /start): no message to edit.
   if (messageId == null) {
     if (hasImage) {
-      await ctx.tg.sendPhoto(chatId, image, screen.text, screen.keyboard)
+      // BUGFIX: sendPhoto can fail silently (invalid/inaccessible URL, Telegram
+      // rejects the image, etc.). When it does, fall back to a plain text
+      // message so the customer always gets a response instead of silence.
+      const photoRes = await ctx.tg.sendPhoto(chatId, image, screen.text, screen.keyboard)
+      if (!photoRes.ok) {
+        console.warn(
+          `[bot/renderScreen] sendPhoto failed (${photoRes.description}); falling back to sendMessage`,
+        )
+        await ctx.tg.sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard })
+      }
     } else {
-      await ctx.tg.sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard })
+      const msgRes = await ctx.tg.sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard })
+      if (!msgRes.ok) {
+        console.error(
+          `[bot/renderScreen] sendMessage failed: ${msgRes.description}`,
+        )
+      }
     }
     return
   }

@@ -117,22 +117,35 @@ export const stockItems = pgTable("stock_items", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
-export const customers = pgTable("customers", {
-  id: serial("id").primaryKey(),
-  ownerId: text("ownerId").notNull(),
-  telegramId: text("telegramId").notNull(),
-  username: text("username"),
-  name: text("name"),
-  totalSpent: numeric("totalSpent", { precision: 12, scale: 2 })
-    .notNull()
-    .default("0"),
-  purchaseCount: integer("purchaseCount").notNull().default(0),
-  lastPurchaseAt: timestamp("lastPurchaseAt"),
-  status: text("status").notNull().default("active"),
-  // Coupon code the customer has applied but not yet used.
-  activeCoupon: text("activeCoupon"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-})
+export const customers = pgTable(
+  "customers",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: text("ownerId").notNull(),
+    telegramId: text("telegramId").notNull(),
+    username: text("username"),
+    name: text("name"),
+    totalSpent: numeric("totalSpent", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    purchaseCount: integer("purchaseCount").notNull().default(0),
+    lastPurchaseAt: timestamp("lastPurchaseAt"),
+    status: text("status").notNull().default("active"),
+    // Coupon code the customer has applied but not yet used.
+    activeCoupon: text("activeCoupon"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    // BUGFIX: unique constraint required for the atomic upsert in upsertCustomer.
+    // Without this index, ON CONFLICT (ownerId, telegramId) has no target and
+    // Drizzle/Postgres throws a "there is no unique or exclusion constraint"
+    // error, which propagates as an unhandled exception and silences the bot.
+    ownerTelegramUnique: uniqueIndex("customers_owner_telegramid_uidx").on(
+      t.ownerId,
+      t.telegramId,
+    ),
+  }),
+)
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
