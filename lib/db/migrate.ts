@@ -129,6 +129,19 @@ export async function ensureDbStructure() {
       END $$;
     `)
 
+    // 8b. BUGFIX: criar índice único em customers(ownerId, telegramId).
+    // Necessário para o upsert atômico em upsertCustomer. Sem este índice,
+    // o ON CONFLICT falha com erro de constraint inexistente, o que propaga
+    // como exceção não tratada e silencia o bot no /start.
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'customers_owner_telegramid_uidx') THEN
+          CREATE UNIQUE INDEX customers_owner_telegramid_uidx ON customers ("ownerId", "telegramId");
+        END IF;
+      END $$;
+    `)
+
     // 9. Adicionar colunas faltantes em orders (originalAmount, couponCode)
     await client.query(`
       DO $$ 
@@ -161,3 +174,6 @@ export async function ensureDbStructure() {
 // v1.0.1 - Forced redeploy for Vercel synchronization
 
 // v1.0.2 - Forced redeploy for database synchronization and table creation
+
+// v1.0.3 - BUGFIX: added unique index on customers(ownerId, telegramId) to
+// support atomic upsert in upsertCustomer and prevent /start silence on race.

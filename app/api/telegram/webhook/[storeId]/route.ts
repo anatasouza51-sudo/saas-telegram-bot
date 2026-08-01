@@ -7,6 +7,15 @@ import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
 import { processSchedules } from "@/lib/tg/scheduler"
 import { expireDuePixOrders } from "@/lib/bot"
+import { ensureDbStructure } from "@/lib/db/migrate"
+
+// BUGFIX: run DB migrations once per cold start so the unique index on
+// customers(ownerId, telegramId) — required for the atomic upsert in
+// upsertCustomer — is always present before any /start is processed.
+// Fire-and-forget: a failure here must never block the webhook response.
+ensureDbStructure().catch((err) => {
+  console.error("[telegram/webhook] ensureDbStructure failed:", err)
+})
 
 /**
  * Telegram webhook — authenticated per store.
