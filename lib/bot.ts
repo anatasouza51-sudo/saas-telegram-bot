@@ -428,7 +428,7 @@ async function buildProductScreen(
     `\n💰 <b>${formatCurrency(Number(product.price))}</b>`,
     product.deliveryType === "stock"
       ? inStock
-        ? "✅ Em estoque"
+        ? `✅ ${Number(count)} em estoque`
         : "⛔ Esgotado"
       : "✅ Disponível",
   ]
