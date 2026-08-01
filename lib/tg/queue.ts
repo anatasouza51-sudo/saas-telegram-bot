@@ -39,7 +39,7 @@ export async function resolveTargets(
     .where(eq(telegramChats.ownerId, storeId))
 
   const usable = rows.filter(
-    (r) => r.status === "active" && r.botIsAdmin && r.purpose === "audience",
+    (r) => r.status === "active" && r.purpose === "audience",
   )
   const usableChatIds = new Set(usable.map((r) => r.chatId))
 
