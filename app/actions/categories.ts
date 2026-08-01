@@ -6,6 +6,13 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { and, asc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import {
+  validateSafeUrl,
+  sanitizeTelegramHtml,
+  sanitizeDisplayName,
+  validateImageUrl,
+  validateProductName,
+} from "@/lib/validation"
 
 export type CategoryInput = {
   name: string
@@ -53,6 +60,13 @@ export async function listCategoriesDetailed() {
 
 export async function createCategoryFull(input: CategoryInput) {
   const user = await requireCapability("products.manage")
+  
+  // Validation: prevent XSS and malformed content.
+  const name = sanitizeDisplayName(input.name)
+  if (!name) throw new Error("Nome da categoria inválido")
+  const description = input.description ? sanitizeTelegramHtml(input.description) : null
+  const imageUrl = validateImageUrl(input.imageUrl)
+
   // New categories go to the end of the list by default.
   const [{ max }] = await db
     .select({ max: sql<number>`COALESCE(MAX(${categories.position}), 0)::int` })
@@ -63,11 +77,11 @@ export async function createCategoryFull(input: CategoryInput) {
     .insert(categories)
     .values({
       ownerId: user.storeId,
-      name: input.name,
-      slug: slugify(input.name),
+      name,
+      slug: slugify(name),
       emoji: input.emoji ?? null,
-      description: input.description ?? null,
-      imageUrl: input.imageUrl ?? null,
+      description,
+      imageUrl,
       status: input.status ?? "active",
       position: input.position ?? Number(max) + 1,
     })
@@ -86,14 +100,20 @@ export async function createCategoryFull(input: CategoryInput) {
 
 export async function updateCategoryFull(id: number, input: CategoryInput) {
   const user = await requireCapability("products.manage")
+  
+  const name = sanitizeDisplayName(input.name)
+  if (!name) throw new Error("Nome da categoria inválido")
+  const description = input.description ? sanitizeTelegramHtml(input.description) : null
+  const imageUrl = validateImageUrl(input.imageUrl)
+
   await db
     .update(categories)
     .set({
-      name: input.name,
-      slug: slugify(input.name),
+      name,
+      slug: slugify(name),
       emoji: input.emoji ?? null,
-      description: input.description ?? null,
-      imageUrl: input.imageUrl ?? null,
+      description,
+      imageUrl,
       status: input.status ?? "active",
       updatedAt: new Date(),
     })
@@ -214,14 +234,21 @@ export async function getSupportConfig(): Promise<SupportConfig> {
 
 export async function saveSupportConfig(input: SupportConfig) {
   const user = await requireCapability("products.manage")
+  
+  // Validation: prevent HTML injection and protocol bypass.
+  const label = sanitizeDisplayName(input.label) || SUPPORT_DEFAULTS.label
+  const message = sanitizeTelegramHtml(input.message) || SUPPORT_DEFAULTS.message
+  const whatsappUrl = validateSafeUrl(input.whatsappUrl, "URL do WhatsApp")
+  const buttonLabel = sanitizeDisplayName(input.buttonLabel) || SUPPORT_DEFAULTS.buttonLabel
+
   const entries: Array<[string, string]> = [
     ["support.enabled", input.enabled ? "true" : "false"],
-    ["support.label", input.label],
-    ["support.message", input.message],
-    ["support.telegramUsername", input.telegramUsername],
-    ["support.whatsappUrl", input.whatsappUrl],
-    ["support.hours", input.hours],
-    ["support.buttonLabel", input.buttonLabel],
+    ["support.label", label],
+    ["support.message", message],
+    ["support.telegramUsername", input.telegramUsername.replace(/^@/, "").trim()],
+    ["support.whatsappUrl", whatsappUrl],
+    ["support.hours", input.hours.trim()],
+    ["support.buttonLabel", buttonLabel],
   ]
   await db.transaction(async (tx) => {
     for (const [key, value] of entries) {

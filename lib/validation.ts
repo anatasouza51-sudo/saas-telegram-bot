@@ -136,3 +136,57 @@ export const VALID_PRODUCT_STATUS = new Set(["active", "inactive"])
 export const VALID_DELIVERY_TYPE = new Set(["stock", "manual"])
 export const VALID_PAYMENT_STATUS = new Set(["pending", "approved", "refused", "cancelled"])
 export const VALID_DELIVERY_STATUS = new Set(["pending", "delivered", "cancelled"])
+
+/**
+ * Validates and sanitizes a URL for general use (buttons, support links).
+ * Only allows safe protocols to prevent javascript:/data: injections.
+ */
+export function validateSafeUrl(url: unknown, label = "URL"): string {
+  if (typeof url !== "string") return ""
+  const trimmed = url.trim()
+  if (trimmed.length === 0) return ""
+  if (trimmed.length > MAX_URL_LENGTH) throw new Error(`${label} muito longa`)
+  
+  try {
+    const u = new URL(trimmed)
+    if (!["http:", "https:", "mailto:", "tel:"].includes(u.protocol)) {
+      throw new Error(`Protocolo da ${label} não permitido. Use http, https, mailto ou tel.`)
+    }
+    return u.toString()
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("Protocolo")) throw err
+    throw new Error(`${label} inválida.`)
+  }
+}
+
+/**
+ * Basic sanitization for Telegram HTML messages.
+ * Telegram only supports a small subset of tags. This helper ensures we only
+ * allow supported tags and helps prevent broken markup.
+ */
+export function sanitizeTelegramHtml(html: unknown): string {
+  if (typeof html !== "string") return ""
+  return html
+    .replace(/<(?!\/?(b|i|u|s|code|pre|a|em|strong|ins|strike|del|span|tg-emoji|tg-spoiler)\b)[^>]+>/gi, "")
+    .trim()
+}
+
+/**
+ * Sanitizes a filename to prevent path traversal and shell metacharacter issues.
+ */
+export function sanitizeFileName(name: unknown): string {
+  if (typeof name !== "string") return "arquivo"
+  return name
+    .replace(/[\/\\]/g, "_") // No path separators
+    .replace(/^\.+/, "")      // No leading dots
+    .replace(/[<>:"|?*]/g, "") // No Windows-forbidden chars
+    .trim() || "arquivo"
+}
+
+/**
+ * Sanitizes a display name (like Telegram firstName) to prevent XSS in the panel.
+ */
+export function sanitizeDisplayName(name: unknown): string {
+  if (typeof name !== "string") return ""
+  return name.replace(/<[^>]*>?/gm, "").trim()
+}

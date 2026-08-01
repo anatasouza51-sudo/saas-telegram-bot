@@ -8,7 +8,7 @@ import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
 import { getSetting, saveSetting } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
-import { validateAdminIds } from "@/lib/validation"
+import { validateAdminIds, sanitizeTelegramHtml, validateImageUrl } from "@/lib/validation"
 
 export async function saveTelegramSettings(input: {
   botToken?: string
@@ -119,8 +119,13 @@ export async function saveStoreCustomization(input: {
   welcomeImageUrl: string
 }) {
   const user = await requireCapability("telegram.manage")
-  await saveSetting(user.storeId, "store.welcomeMessage", input.welcomeMessage)
-  await saveSetting(user.storeId, "store.welcomeImageUrl", input.welcomeImageUrl)
+  
+  // Sanitization: prevent broken HTML in the bot and XSS in the panel.
+  const welcomeMessage = sanitizeTelegramHtml(input.welcomeMessage)
+  const welcomeImageUrl = validateImageUrl(input.welcomeImageUrl)
+
+  await saveSetting(user.storeId, "store.welcomeMessage", welcomeMessage)
+  await saveSetting(user.storeId, "store.welcomeImageUrl", welcomeImageUrl)
   await logActivity({
     storeId: user.storeId,
     action: "Personalização da loja atualizada",

@@ -26,7 +26,7 @@ import { logActivity } from "@/lib/log"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
-import { escapeHtml } from "@/lib/security"
+import { escapeHtml, sanitizeDisplayName } from "@/lib/validation"
 import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
@@ -128,14 +128,24 @@ async function upsertCustomer(
     .select()
     .from(customers)
     .where(and(eq(customers.ownerId, storeId), eq(customers.telegramId, telegramId)))
-  if (existing) return existing
+  
+  // Sanitization: prevent XSS if the name is displayed in the admin panel.
+  const name = sanitizeDisplayName(from.first_name)
+  
+  if (existing) {
+    if (existing.name !== name) {
+      await db.update(customers).set({ name }).where(eq(customers.id, existing.id))
+    }
+    return existing
+  }
+  
   const [created] = await db
     .insert(customers)
     .values({
       ownerId: storeId,
       telegramId,
       username: from.username ?? null,
-      name: from.first_name ?? null,
+      name,
       status: "active",
     })
     .returning()
@@ -258,7 +268,7 @@ async function buildHomeScreen(
   const welcome = (
     ctx.welcomeMessage.trim() ||
     "👋 Bem-vindo(a) à nossa loja!"
-  ).replace(/\{nome\}/gi, firstName)
+  ).replace(/\{nome\}/gi, escapeHtml(firstName))
 
   const rows: InlineButton[][] = slice.map((e) => [
     { text: e.label, callback_data: `cat:${e.id}:0` },
@@ -365,7 +375,7 @@ async function buildCategoryScreen(
   if (nav.length) rows.push(nav)
   rows.push([{ text: "⬅️ Voltar", callback_data: "home:0" }])
 
-  const parts = [`<b>${title}</b>`]
+  const parts = [`<b>${escapeHtml(title)}</b>`]
   if (description) parts.push("", description)
   parts.push(
     "",
