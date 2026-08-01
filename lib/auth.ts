@@ -30,7 +30,7 @@ export const auth = betterAuth({
   // Reaproveitar o mesmo pool corta pela metade o número de conexões
   // simultâneas que uma única requisição pode consumir.
   database: pool,
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret: process.env.BETTER_AUTH_SECRET || "development_secret_key_placeholder_12345",
   baseURL: getBaseURL(),
   trustedOrigins,
   emailAndPassword: {
