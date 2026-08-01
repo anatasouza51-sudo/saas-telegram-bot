@@ -206,6 +206,10 @@ export function PostsWorkspace({
   cdnReady: boolean
 }) {
   const router = useRouter()
+  const targetLabels = useMemo(() => {
+    const chatById = new Map(channels.map((c) => [c.chatId, c.title]))
+    return (token: string) => chatById.get(token) ?? token
+  }, [channels])
   const [tab, setTab] = useState("new")
   const [editing, setEditing] = useState<Post | null>(null)
   const [prefill, setPrefill] = useState<
@@ -436,6 +440,10 @@ function TemplateList({
   onUse: (tpl: Template) => void
 }) {
   const router = useRouter()
+  const targetLabels = useMemo(() => {
+    const chatById = new Map(channels.map((c) => [c.chatId, c.title]))
+    return (token: string) => chatById.get(token) ?? token
+  }, [channels])
 
   async function onDelete(id: number) {
     try {
