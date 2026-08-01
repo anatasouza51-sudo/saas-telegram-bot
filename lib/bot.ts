@@ -323,6 +323,21 @@ async function buildCategoryScreen(
       ? isNull(products.categoryId)
       : eq(products.categoryId, Number(catId))
 
+  // Paginate at the DB level instead of loading all products into memory.
+  const [{ count: totalItems }] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(products)
+    .where(
+      and(
+        eq(products.ownerId, ctx.storeId),
+        eq(products.status, "active"),
+        catCondition,
+      ),
+    )
+
+  const totalPages = Math.max(1, Math.ceil(Number(totalItems) / PAGE_SIZE))
+  const safePage = Math.min(Math.max(0, page), totalPages - 1)
+
   const items = await db
     .select({ id: products.id, name: products.name, price: products.price })
     .from(products)
@@ -334,10 +349,10 @@ async function buildCategoryScreen(
       ),
     )
     .orderBy(asc(products.position), asc(products.price), asc(products.id))
+    .limit(PAGE_SIZE)
+    .offset(safePage * PAGE_SIZE)
 
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
-  const safePage = Math.min(Math.max(0, page), totalPages - 1)
-  const slice = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+  const slice = items
 
   const rows: InlineButton[][] = slice.map((p) => [
     {
@@ -453,6 +468,7 @@ async function startPurchase(
   productId: number,
   from: { id: number; username?: string; first_name?: string },
 ) {
+  const purchaseStarted = Date.now()
   const [product] = await db
     .select()
     .from(products)
@@ -547,6 +563,12 @@ async function startPurchase(
         .set({ pixMessageId: sent.result.message_id })
         .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
     }
+  }
+  const purchaseElapsed = Date.now() - purchaseStarted
+  if (purchaseElapsed > 3_000) {
+    console.warn(
+      `[bot/startPurchase] slow: ${purchaseElapsed}ms for order #${order.id}`,
+    )
   }
 }
 
@@ -971,6 +993,7 @@ async function handleAdminCommand(ctx: StoreContext, chatId: number, command: st
 // ---------- Router ----------
 
 export async function handleUpdate(storeId: string, update: TelegramUpdate) {
+  const handleStarted = Date.now()
   const ctx = await loadStoreContext(storeId)
   if (!ctx) {
     // Store has no bot token configured; nothing we can send.
@@ -1082,6 +1105,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     // gets a generic immediate ack so the button stops its loading spinner.
     const isPixAction = data.startsWith("pixver:") || data.startsWith("pixcxl:")
     if (!isPixAction) await ctx.tg.answerCallbackQuery(cq.id)
+    const cbStarted = Date.now()
 
     // The shop/catalog is a PRIVATE-chat experience only. If inline buttons
     // from an old shop message get clicked inside a group/supergroup/channel,
@@ -1116,6 +1140,12 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       await handlePixVerify(ctx, cq.id, chatId, Number(data.split(":")[1]))
     } else if (data.startsWith("pixcxl:")) {
       await handlePixCancel(ctx, cq.id, chatId, Number(data.split(":")[1]))
+    }
+    const cbElapsed = Date.now() - cbStarted
+    if (cbElapsed > 1_500) {
+      console.warn(
+        `[bot/callback] slow: ${cbElapsed}ms for "${data}"`,
+      )
     }
     return
   }
@@ -1162,6 +1192,12 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         `/compras — histórico`,
         `/suporte — falar com suporte`,
       ].join("\n"),
+    )
+  }
+  const totalElapsed = Date.now() - handleStarted
+  if (totalElapsed > 2_000) {
+    console.warn(
+      `[bot/handleUpdate] slow: ${totalElapsed}ms for store=${storeId}`,
     )
   }
 }
