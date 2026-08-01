@@ -143,7 +143,7 @@ export async function listProductsAdvanced(opts?: {
     
     filtered = filtered.filter((p) => {
       if (filterSet.has("active") && p.status !== "active") return false
-      if (filterSet.has("inactive") && p.status !== "active") return true
+      if (filterSet.has("inactive") && p.status === "active") return false
       if (filterSet.has("no-stock") && p.deliveryType === "stock" && p.stockAvailable > 0) return false
       if (filterSet.has("low-stock") && !(p.deliveryType === "stock" && p.stockAvailable <= p.lowStockThreshold)) return false
       if (filterSet.has("auto-delivery") && p.deliveryType !== "stock") return false
