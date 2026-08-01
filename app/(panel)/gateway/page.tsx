@@ -1,5 +1,4 @@
 import { requireCapability } from "@/lib/session"
-import { PageHeader } from "@/components/page-header"
 import {
   Card,
   CardContent,
@@ -13,20 +12,33 @@ import { getSettings } from "@/lib/settings"
 import { parsePixConfig } from "@/lib/pix-config"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
+import { safeLoad } from "@/lib/safe-load"
+import { ErrorView } from "@/components/error-view"
 
 export default async function GatewayPage() {
-  const user = await requireCapability("gateway.manage")
-  const saved = await getSettings(user.storeId, [
-    "veopag.publicKey",
-    "veopag.secretKey",
-    "pix.config",
-  ])
+  let user
+  try {
+    user = await requireCapability("gateway.manage")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/gateway" />
+  }
+
+  const saved = await safeLoad(
+    "getSettings",
+    () => getSettings(user.storeId, ["veopag.publicKey", "veopag.secretKey", "pix.config"]),
+    {} as Record<string, string | null>
+  )
+
   const pixConfig = parsePixConfig(saved["pix.config"])
-  // The secret key is never sent to the client — only whether one is stored.
   const hasSecretKey = Boolean(saved["veopag.secretKey"])
-  // The authenticated owner needs their own signed webhook URL to paste into
-  // VeoPag. The embedded secret authenticates inbound callbacks.
-  const webhookSecret = await getOrCreateWebhookSecret(user.storeId, "veopag")
+  
+  const webhookSecret = await safeLoad(
+    "getOrCreateWebhookSecret",
+    () => getOrCreateWebhookSecret(user.storeId, "veopag"),
+    "error_fallback"
+  )
+  
   const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}/${webhookSecret}`
 
   return (

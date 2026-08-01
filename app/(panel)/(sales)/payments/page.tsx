@@ -4,10 +4,19 @@ import { StatCard } from "@/components/stat-card"
 import { getOrders } from "@/lib/queries/records"
 import { formatCurrency } from "@/lib/format"
 import { CircleDollarSign, CheckCircle2, Clock, XCircle } from "lucide-react"
+import { safeLoad } from "@/lib/safe-load"
+import { ErrorView } from "@/components/error-view"
 
 export default async function PaymentsPage() {
-  const user = await requireCapability("payments.view")
-  const orders = await getOrders(user.storeId)
+  let user
+  try {
+    user = await requireCapability("payments.view")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/payments" />
+  }
+
+  const orders = await safeLoad("getOrders", () => getOrders(user.storeId), [])
 
   const approved = orders.filter((o) => o.paymentStatus === "approved")
   const pending = orders.filter((o) => o.paymentStatus === "pending")

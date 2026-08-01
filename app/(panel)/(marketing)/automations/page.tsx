@@ -3,11 +3,18 @@ import { listAutomations } from "@/app/actions/tg-automations"
 import { listChannels } from "@/app/actions/tg-channels"
 import { listTemplates } from "@/app/actions/tg-templates"
 import { requireCapability } from "@/lib/session"
+import { ErrorView } from "@/components/error-view"
 
 export const maxDuration = 60 // 60 seconds
 
 export default async function AutomationsPage() {
-  await requireCapability("posts.manage")
+  try {
+    await requireCapability("posts.manage")
+  } catch (e) {
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
+    return <ErrorView retryHref="/automations" />
+  }
+
   const results = await Promise.allSettled([
     listAutomations(),
     listChannels(),
