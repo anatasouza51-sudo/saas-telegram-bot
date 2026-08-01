@@ -48,6 +48,7 @@ async function loadDue(now: Date) {
         lte(telegramSchedules.nextRunAt, now),
       ),
     )
+    .for("update", { skipLocked: true })
 }
 
 // Fires a single schedule. Returns whether a post was actually enqueued.
