@@ -2,11 +2,11 @@
 
 import { db } from "@/lib/db"
 import { user } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { ROLES, type Role } from "@/lib/roles"
 import { and, eq, or } from "drizzle-orm"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 
 import { revalidatePath } from "next/cache"
 
@@ -44,24 +44,24 @@ export async function createAdmin(input: {
   }
 
   try {
-    // Better Auth creates the user (with hashed password). The signup hook
-    // defaults new accounts to an owner (role=admin, ownerId=null), so we
-    // override afterwards to attach the member to THIS store.
-    const created = await auth.api.signUpEmail({
-      body: {
-        name: input.name,
-        email: input.email,
-        password: input.password,
-      },
+    // Create user in Clerk first (handles password hashing)
+    const clerkUser = await clerkClient.users.createUser({
+      emailAddress: [input.email],
+      password: input.password,
+      firstName: input.name.split(" ")[0],
+      lastName: input.name.split(" ").slice(1).join(" ") || undefined,
     })
 
-    const newUserId = created.user?.id
-    if (newUserId) {
-      await db
-        .update(user)
-        .set({ role: input.role, ownerId: actor.storeId })
-        .where(eq(user.id, newUserId))
-    }
+    const clerkUserId = clerkUser.id
+
+    // Insert the app-level user record in our DB
+    await db.insert(user).values({
+      id: clerkUserId,
+      name: input.name,
+      email: input.email,
+      role: input.role,
+      ownerId: actor.storeId,
+    })
 
     await logActivity({
       storeId: actor.storeId,
@@ -138,7 +138,17 @@ export async function deleteAdmin(userId: string) {
     }
   }
 
+  // Delete from DB
   await db.delete(user).where(eq(user.id, userId))
+
+  // Also delete from Clerk
+  try {
+    await clerkClient.users.deleteUser(userId)
+  } catch (clerkErr) {
+    console.error("[admins] Clerk delete failed:", clerkErr)
+    // Non-fatal: the DB record is already gone
+  }
+
   await logActivity({
     storeId: actor.storeId,
     action: `Administrador removido: ${target.email ?? userId}`,
