@@ -299,7 +299,7 @@ export function ProductsViewRefactored({
             <Select
               value={categoryFilter}
               onValueChange={(v) => {
-                setCategoryFilter(v)
+                setCategoryFilter(v ?? "all")
                 setPage(1)
               }}
             >

@@ -7,9 +7,14 @@ const Popover = PopoverPrimitive.Root
 
 const PopoverTrigger = PopoverPrimitive.Trigger
 
+interface PopoverContentProps extends React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Popup> {
+  align?: "start" | "center" | "end"
+  sideOffset?: number
+}
+
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Popup>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Popup>
+  PopoverContentProps
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Positioner sideOffset={sideOffset} align={align}>

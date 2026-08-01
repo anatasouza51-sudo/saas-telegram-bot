@@ -133,7 +133,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           placeholder="••••••••"
           minLength={8}
           required
-          rightElement={!isSignUp && <Link href="/forget-password" size="sm" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
+          rightElement={!isSignUp && <Link href="/forget-password" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
         />
         {isSignUp && (
           <FormInput id="confirmPassword" label="Confirmar Senha" icon={Lock} type={showPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" minLength={8} required />

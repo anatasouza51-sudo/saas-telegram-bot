@@ -125,7 +125,7 @@ export async function saveStoreCustomization(input: {
   const welcomeImageUrl = validateImageUrl(input.welcomeImageUrl)
 
   await saveSetting(user.storeId, "store.welcomeMessage", welcomeMessage)
-  await saveSetting(user.storeId, "store.welcomeImageUrl", welcomeImageUrl)
+  await saveSetting(user.storeId, "store.welcomeImageUrl", welcomeImageUrl ?? "")
   await logActivity({
     storeId: user.storeId,
     action: "Personalização da loja atualizada",
