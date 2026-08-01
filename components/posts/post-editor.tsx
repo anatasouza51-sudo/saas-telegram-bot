@@ -106,6 +106,7 @@ export function PostEditor({
     [channels],
   )
   const groups = audience.filter((c) => c.type !== "channel")
+  const chans = audience.filter((c) => c.type === "channel")
 
   function wrapSelection(before: string, after = before) {
     const el = textareaRef.current
