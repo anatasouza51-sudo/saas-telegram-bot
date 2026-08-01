@@ -31,6 +31,7 @@ import { sanitizeDisplayName } from "@/lib/validation"
 import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
+import { validateCoupon, incrementCouponUsage } from "@/app/actions/coupons"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -135,7 +136,12 @@ async function upsertCustomer(
   
   if (existing) {
     if (existing.name !== name) {
-      await db.update(customers).set({ name }).where(eq(customers.id, existing.id))
+      const [updated] = await db
+        .update(customers)
+        .set({ name })
+        .where(eq(customers.id, existing.id))
+        .returning()
+      return updated ?? existing
     }
     return existing
   }
@@ -439,6 +445,7 @@ async function buildProductScreen(
   const rows: InlineButton[][] = []
   if (inStock) {
     rows.push([{ text: "🛍️ Comprar", callback_data: `buy:${product.id}` }])
+    rows.push([{ text: "🎟️ Aplicar Cupom", callback_data: `coupon:${product.id}` }])
   }
   rows.push([{ text: "⬅️ Voltar", callback_data: `cat:${backCat}:0` }])
 
@@ -488,6 +495,27 @@ async function startPurchase(
 
   const customer = await upsertCustomer(ctx.storeId, from)
 
+  // Apply active coupon if the customer has one set.
+  const originalPrice = Number(product.price)
+  let finalAmount = originalPrice
+  let appliedCouponCode: string | null = null
+  let discountPercent = 0
+
+  if (customer.activeCoupon) {
+    try {
+      const coupon = await validateCoupon(ctx.storeId, customer.activeCoupon)
+      discountPercent = coupon.discountPercent
+      finalAmount = Math.round(originalPrice * (1 - discountPercent / 100) * 100) / 100
+      appliedCouponCode = coupon.code
+    } catch {
+      // Coupon is no longer valid; clear it silently.
+      await db
+        .update(customers)
+        .set({ activeCoupon: null })
+        .where(eq(customers.id, customer.id))
+    }
+  }
+
   const [order] = await db
     .insert(orders)
     .values({
@@ -495,18 +523,32 @@ async function startPurchase(
       customerId: customer.id,
       productId: product.id,
       productName: product.name,
-      amount: product.price,
+      amount: String(finalAmount),
+      originalAmount: appliedCouponCode ? String(originalPrice) : null,
+      couponCode: appliedCouponCode,
       paymentStatus: "pending",
       deliveryStatus: "pending",
       gateway: "veopag",
     })
     .returning()
 
+  // Clear the customer's active coupon now that it's been consumed in the order.
+  if (appliedCouponCode) {
+    await db
+      .update(customers)
+      .set({ activeCoupon: null })
+      .where(eq(customers.id, customer.id))
+    // Increment coupon usage counter.
+    await incrementCouponUsage(ctx.storeId, appliedCouponCode)
+  }
+
   const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
   const charge = await createCharge(ctx.veopag, {
-    amount: Number(product.price),
+    amount: finalAmount,
     externalId: String(order.id),
-    description: product.name,
+    description: appliedCouponCode
+      ? `${product.name} (${discountPercent}% OFF com ${appliedCouponCode})`
+      : product.name,
     customerName: customer.name ?? undefined,
     callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
     payer: {
@@ -542,7 +584,10 @@ async function startPurchase(
   const caption = buildPixCaption(ctx, {
     orderId: order.id,
     productName: product.name,
-    amount: Number(product.price),
+    amount: finalAmount,
+    originalAmount: appliedCouponCode ? originalPrice : undefined,
+    couponCode: appliedCouponCode ?? undefined,
+    discountPercent: appliedCouponCode ? discountPercent : undefined,
     pixCode,
     expiresAt,
   })
@@ -591,6 +636,9 @@ function buildPixCaption(
     orderId: number
     productName: string
     amount: number
+    originalAmount?: number
+    couponCode?: string
+    discountPercent?: number
     pixCode: string
     expiresAt: Date
   },
@@ -599,9 +647,20 @@ function buildPixCaption(
     `🧾 <b>Pedido #${order.orderId}</b>`,
     ``,
     `Produto: <b>${escapeHtml(order.productName)}</b>`,
-    `Valor: <b>${formatCurrency(order.amount)}</b>`,
-    `⏳ Expira em <b>${ctx.pix.expireMinutes} min</b>`,
   ]
+
+  if (order.couponCode && order.originalAmount != null && order.discountPercent != null) {
+    lines.push(
+      `Valor original: <s>${formatCurrency(order.originalAmount)}</s>`,
+      `🎟️ Cupom <code>${escapeHtml(order.couponCode)}</code>: -${order.discountPercent}%`,
+      `Valor com desconto: <b>${formatCurrency(order.amount)}</b>`,
+    )
+  } else {
+    lines.push(`Valor: <b>${formatCurrency(order.amount)}</b>`)
+  }
+
+  lines.push(`⏳ Expira em <b>${ctx.pix.expireMinutes} min</b>`)
+
   if (order.pixCode) {
     lines.push("", ctx.pix.aboveCodeText, "", `<code>${escapeHtml(order.pixCode)}</code>`)
   } else {
@@ -1161,6 +1220,29 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       await renderScreen(ctx, chatId, messageId, await buildHomeScreen(ctx, firstName, 0))
     } else if (data.startsWith("buy:")) {
       await startPurchase(ctx, chatId, Number(data.split(":")[1]), cq.from)
+    } else if (data.startsWith("coupon:")) {
+      // Ask the customer to type their coupon code.
+      const productId = Number(data.split(":")[1])
+      await ctx.tg.sendMessage(
+        chatId,
+        [
+          `🎟️ <b>Aplicar Cupom</b>`,
+          ``,
+          `Digite o código do cupom abaixo para obter seu desconto.`,
+          `O desconto será aplicado automaticamente na sua próxima compra do produto <b>#${productId}</b>.`,
+        ].join("\n"),
+      )
+      // Store the product id in the customer's pending coupon state via a temporary flag.
+      // We use a special prefix in the text handler to detect the coupon reply.
+      await db
+        .update(customers)
+        .set({ activeCoupon: `__awaiting:${productId}` })
+        .where(
+          and(
+            eq(customers.ownerId, ctx.storeId),
+            eq(customers.telegramId, String(cq.from.id)),
+          ),
+        )
     } else if (data.startsWith("pixver:")) {
       await handlePixVerify(ctx, cq.id, chatId, Number(data.split(":")[1]))
     } else if (data.startsWith("pixcxl:")) {
@@ -1197,6 +1279,54 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
 
   // Customer flows.
   const firstName = msg.from.first_name ?? "cliente"
+
+  // Check if the customer is in the middle of a coupon-entry flow.
+  const [customerRecord] = await db
+    .select({ id: customers.id, activeCoupon: customers.activeCoupon })
+    .from(customers)
+    .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.telegramId, senderId)))
+
+  if (
+    customerRecord?.activeCoupon?.startsWith("__awaiting:") &&
+    !text.startsWith("/")
+  ) {
+    // The customer typed their coupon code.
+    const productId = Number(customerRecord.activeCoupon.split(":")[1])
+    const typedCode = text.trim().toUpperCase()
+    try {
+      const coupon = await validateCoupon(ctx.storeId, typedCode)
+      // Save the validated coupon code (without the __awaiting prefix).
+      await db
+        .update(customers)
+        .set({ activeCoupon: coupon.code })
+        .where(eq(customers.id, customerRecord.id))
+      await ctx.tg.sendMessage(
+        chatId,
+        [
+          `✅ Cupom <code>${escapeHtml(coupon.code)}</code> aplicado com sucesso!`,
+          `Você terá <b>${coupon.discountPercent}% de desconto</b> na sua próxima compra.`,
+          ``,
+          `Toque em 🛍️ <b>Comprar</b> no produto para finalizar com o desconto.`,
+        ].join("\n"),
+      )
+    } catch (err) {
+      // Invalid coupon — clear the awaiting state and inform the customer.
+      await db
+        .update(customers)
+        .set({ activeCoupon: null })
+        .where(eq(customers.id, customerRecord.id))
+      await ctx.tg.sendMessage(
+        chatId,
+        [
+          `❌ ${(err as Error).message}`,
+          ``,
+          `Verifique o código e tente novamente pelo botão 🎟️ Aplicar Cupom.`,
+        ].join("\n"),
+      )
+    }
+    return
+  }
+
   if (text === "/start") {
     await upsertCustomer(ctx.storeId, msg.from)
     // Single message: welcome + categories, sent fresh. All later navigation
