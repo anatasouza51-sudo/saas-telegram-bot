@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 export const TopNavBar = memo(({
   user,
 }: {
-  user: { name: string; email: string; role: Role; id: string; storeId: string }
+  user: { name: string; email: string; role: Role; id: string; storeId: string; image?: string | null }
 }) => {
   const pathname = usePathname()
   const router = useRouter()
@@ -131,14 +131,22 @@ export const TopNavBar = memo(({
                 Sair
               </button>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-sm font-black shadow-lg shadow-dashboard-accent/20">
-              {user.name.charAt(0).toUpperCase()}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-sm font-black shadow-lg shadow-dashboard-accent/20 overflow-hidden">
+              {user.image ? (
+                <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
           
           {/* Mobile User Avatar */}
-          <div className="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-xs font-black">
-            {user.name.charAt(0).toUpperCase()}
+          <div className="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-xs font-black overflow-hidden">
+            {user.image ? (
+              <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              user.name.charAt(0).toUpperCase()
+            )}
           </div>
         </div>
       </header>
