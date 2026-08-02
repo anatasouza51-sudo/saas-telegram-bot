@@ -7,6 +7,7 @@ import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
+import { isRedirectError } from "next/dist/client/components/redirect"
 
 export const maxDuration = 60 // 60 seconds
 
@@ -116,8 +117,13 @@ const EMPTY_STATS: Stats = {
 
 async function safeLoad<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
-    return await fn()
+    const result = await fn()
+    // Se o resultado for null ou undefined, retornamos o fallback para evitar erros de renderização
+    return (result ?? fallback) as T
   } catch (err) {
+    // Se for um erro de redirecionamento, não capturamos aqui para permitir que o Next.js lide com ele
+    if (isRedirectError(err)) throw err
+    
     console.error(`[PostsPage] "${label}" failed:`, err)
     return fallback
   }
@@ -131,7 +137,7 @@ export default async function PostsPage() {
     user = await requireCapability("posts.manage")
   } catch (e) {
     // If it's a redirect (e.g. no session), re-throw so Next.js handles it.
-    if (e instanceof Error && e.message === "NEXT_REDIRECT") throw e
+    if (isRedirectError(e)) throw e
     // Any other error (DB timeout, etc.) — show a friendly error page instead
     // of crashing the Server Component render.
     console.error("[PostsPage] Auth failed:", e)
@@ -182,7 +188,18 @@ export default async function PostsPage() {
 
   // CRITICAL: Next.js Server Components can crash if Date objects are passed 
   // to Client Components in production due to serialization mismatches.
-  // We convert all Dates to ISO strings here.
+  // We convert all Dates to ISO strings and ensure only plain objects are passed.
+  const channels = rawChannels.map(c => ({
+    id: c.id,
+    title: c.title,
+    chatId: c.chatId,
+    type: c.type,
+    purpose: c.purpose,
+    botIsAdmin: c.botIsAdmin,
+    status: c.status,
+    isForum: c.isForum,
+  })) as Channel[]
+
   const posts = rawPosts.map(p => ({
     ...p,
     sentAt: p.sentAt instanceof Date ? p.sentAt.toISOString() : p.sentAt,
@@ -200,6 +217,17 @@ export default async function PostsPage() {
     ...m,
     createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt,
   })) as MediaItem[]
+
+  const templates = rawTemplates.map(t => ({
+    id: t.id,
+    name: t.name,
+    category: t.category,
+    text: t.text,
+    parseMode: t.parseMode,
+    mediaIds: t.mediaIds,
+    buttons: t.buttons,
+    defaultTargets: t.defaultTargets,
+  })) as Template[]
 
   const reports = rawReports.map(r => ({
     ...r,
