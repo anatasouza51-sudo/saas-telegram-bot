@@ -38,6 +38,7 @@ import type { Recurrence } from "@/lib/tg/recurrence"
 import { publishNow, savePost, schedulePost } from "@/app/actions/tg-posts"
 import { saveTemplate } from "@/app/actions/tg-templates"
 import { cn } from "@/lib/utils"
+import { type CatalogConfig } from "@/lib/catalog-config"
 
 type Channel = {
   id: number
@@ -63,12 +64,14 @@ export function PostEditor({
   channels,
   botName,
   cdnReady,
+  catalogConfig,
   initial,
   onDone,
 }: {
   channels: Channel[]
   botName: string
   cdnReady: boolean
+  catalogConfig?: CatalogConfig
   onDone?: () => void
   initial?: {
     id?: number
@@ -198,6 +201,27 @@ export function PostEditor({
         toast.error(e instanceof Error ? e.message : "Erro ao salvar template")
       }
     })
+  }
+
+  function addQuickButton(type: "buy" | "coupon" | "back") {
+    if (!catalogConfig) return
+    
+    let btnText = ""
+    let btnValue = ""
+    
+    if (type === "buy") {
+      btnText = catalogConfig.buyButton.text
+      btnValue = "buy:0" // Placeholder, user should edit the ID
+    } else if (type === "coupon") {
+      btnText = catalogConfig.couponButton.text
+      btnValue = "coupon:0" // Placeholder
+    } else if (type === "back") {
+      btnText = catalogConfig.backButton.text
+      btnValue = "home:0"
+    }
+
+    setButtons((prev) => [...prev, [{ text: btnText, type: "callback", value: btnValue }]])
+    toast.success(`Botão "${btnText}" adicionado`)
   }
 
   function handlePublish() {
@@ -350,7 +374,41 @@ export function PostEditor({
 
         {/* Botões inline */}
         <div className="flex flex-col gap-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Botões inline</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Botões inline</Label>
+            
+            {catalogConfig && (
+              <div className="flex gap-1">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => addQuickButton("buy")}
+                  className="h-6 px-2 text-[9px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-lg"
+                >
+                  + Comprar
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => addQuickButton("coupon")}
+                  className="h-6 px-2 text-[9px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-lg"
+                >
+                  + Cupom
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => addQuickButton("back")}
+                  className="h-6 px-2 text-[9px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-lg"
+                >
+                  + Voltar
+                </Button>
+              </div>
+            )}
+          </div>
           <ButtonBuilder rows={buttons} onChange={setButtons} />
         </div>
       </Card>

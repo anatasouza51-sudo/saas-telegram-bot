@@ -29,6 +29,7 @@ import type { MediaItem } from "@/components/media/media-thumb"
 import type { ButtonRows } from "@/lib/tg/buttons"
 import { cancelSchedule, deletePost, duplicatePost } from "@/app/actions/tg-posts"
 import { deleteTemplate } from "@/app/actions/tg-templates"
+import { type CatalogConfig } from "@/lib/catalog-config"
 
 type Channel = {
   id: number
@@ -194,6 +195,7 @@ export function PostsWorkspace({
   reports,
   botName,
   cdnReady,
+  catalogConfig,
 }: {
   channels: Channel[]
   posts: Post[]
@@ -204,6 +206,7 @@ export function PostsWorkspace({
   reports: PostReportItem[]
   botName: string
   cdnReady: boolean
+  catalogConfig: CatalogConfig
 }) {
   const router = useRouter()
   const targetLabels = useMemo(() => {
@@ -374,6 +377,7 @@ export function PostsWorkspace({
               channels={channels}
               botName={botName}
               cdnReady={cdnReady}
+              catalogConfig={catalogConfig}
               initial={editing ? parseInitial(editing) : (prefill ?? undefined)}
               onDone={() => {
                 setEditing(null)

@@ -18,8 +18,12 @@ import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
 import {
   parsePixConfig,
   generatePixQrPng,
-  type PixConfig,
+  type   PixConfig,
 } from "@/lib/pix"
+import {
+  parseCatalogConfig,
+  type CatalogConfig,
+} from "@/lib/catalog-config"
 import { randomBytes } from "node:crypto"
 import { fulfillOrder } from "@/lib/fulfillment"
 import { logActivity } from "@/lib/log"
@@ -63,6 +67,7 @@ type StoreContext = {
   welcomeImageUrl: string
   support: SupportConfig
   pix: PixConfig
+  catalog: CatalogConfig
 }
 
 type InlineButton = {
@@ -118,6 +123,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
       buttonLabel: map["support.buttonLabel"] || "📞 Falar com Suporte",
     },
     pix: parsePixConfig(map["pix.config"]),
+    catalog: parseCatalogConfig(map["catalog.config"]),
   }
 }
 
@@ -334,7 +340,7 @@ async function buildCategoryScreen(
       return {
         text: "Categoria não encontrada.",
         keyboard: buildInlineKeyboard([
-          [{ text: "⬅️ Voltar", callback_data: "home:0" }],
+          [{ text: ctx.catalog.backButton.text, callback_data: "home:0" }],
         ]),
       }
     }
@@ -391,7 +397,9 @@ async function buildCategoryScreen(
 
   const nav = pageNav(`cat:${catId}:`, safePage, totalPages)
   if (nav.length) rows.push(nav)
-  rows.push([{ text: "⬅️ Voltar", callback_data: "home:0" }])
+  if (ctx.catalog.backButton.enabled) {
+    rows.push([{ text: ctx.catalog.backButton.text, callback_data: "home:0" }])
+  }
 
   const parts = [`<b>${escapeHtml(title)}</b>`]
   if (description) parts.push("", description)
@@ -420,7 +428,7 @@ async function buildProductScreen(
     return {
       text: "Produto não encontrado.",
       keyboard: buildInlineKeyboard([
-        [{ text: "⬅️ Voltar", callback_data: "home:0" }],
+        [{ text: ctx.catalog.backButton.text, callback_data: "home:0" }],
       ]),
     }
   }
@@ -455,10 +463,16 @@ async function buildProductScreen(
   const backCat = product.categoryId != null ? String(product.categoryId) : UNCATEGORIZED
   const rows: InlineButton[][] = []
   if (inStock) {
-    rows.push([{ text: "🛍️ Comprar", callback_data: `buy:${product.id}` }])
-    rows.push([{ text: "🎟️ Aplicar Cupom", callback_data: `coupon:${product.id}` }])
+    if (ctx.catalog.buyButton.enabled) {
+      rows.push([{ text: ctx.catalog.buyButton.text, callback_data: `buy:${product.id}` }])
+    }
+    if (ctx.catalog.couponButton.enabled) {
+      rows.push([{ text: ctx.catalog.couponButton.text, callback_data: `coupon:${product.id}` }])
+    }
   }
-  rows.push([{ text: "⬅️ Voltar", callback_data: `cat:${backCat}:0` }])
+  if (ctx.catalog.backButton.enabled) {
+    rows.push([{ text: ctx.catalog.backButton.text, callback_data: `cat:${backCat}:0` }])
+  }
 
   return {
     imageUrl: product.imageUrl,
@@ -482,7 +496,9 @@ function buildSupportScreen(ctx: StoreContext): Screen {
   } else if (ctx.support.whatsappUrl.trim()) {
     rows.push([{ text: ctx.support.buttonLabel, url: ctx.support.whatsappUrl.trim() }])
   }
-  rows.push([{ text: "⬅️ Voltar", callback_data: "home:0" }])
+  if (ctx.catalog.backButton.enabled) {
+    rows.push([{ text: ctx.catalog.backButton.text, callback_data: "home:0" }])
+  }
 
   return { text: parts.join("\n"), keyboard: buildInlineKeyboard(rows) }
 }

@@ -40,9 +40,9 @@ export async function resolveTargets(
     .where(eq(telegramChats.ownerId, storeId))
 
   const usable = rows.filter(
-    (r) => r.status === "active" && r.purpose === "audience",
+    (r: any) => r.status === "active" && r.purpose === "audience",
   )
-  const usableChatIds = new Set(usable.map((r) => r.chatId))
+  const usableChatIds = new Set(usable.map((r: any) => r.chatId))
 
   const wantAll = (targets || []).includes("all")
   const wantGroups = wantAll || (targets || []).includes("all_groups")
