@@ -5,38 +5,37 @@ import { logActivity } from "@/lib/log"
 import { authClient } from "@/lib/auth-client"
 import { revalidatePath } from "next/cache"
 
-export async function updateUserProfile(input: { name: string }) {
+import { db } from "@/lib/db"
+import { user as userTable } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+
+export async function updateUserProfile(input: { name?: string; image?: string }) {
   // Outside the try: `requireUser` redirects by throwing, and that must not be
   // turned into a generic "Erro ao atualizar perfil".
-  const user = await requireUser()
+  const sessionUser = await requireUser()
 
   try {
-    // Update user profile using better-auth
-    const response = await fetch(`${process.env.BETTER_AUTH_URL || ""}/api/auth/update-profile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: input.name.trim(),
-      }),
-    })
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "")
-      console.error(
-        `[profile] update failed (HTTP ${response.status}):`,
-        detail.slice(0, 500),
-      )
-      return { ok: false, error: "Falha ao atualizar perfil" }
+    const updateData: any = {
+      updatedAt: new Date(),
     }
+
+    if (input.name) {
+      updateData.name = input.name.trim()
+    }
+
+    if (input.image !== undefined) {
+      updateData.image = input.image
+    }
+
+    // Update user profile directly in DB
+    await db.update(userTable).set(updateData).where(eq(userTable.id, sessionUser.id))
 
     // Log the activity
     await logActivity({
-      storeId: user.storeId,
-      action: `Perfil atualizado: nome alterado para "${input.name.trim()}"`,
+      storeId: sessionUser.storeId,
+      action: `Perfil atualizado: ${input.name ? `nome alterado para "${input.name.trim()}"` : ""} ${input.image ? "foto alterada" : ""}`,
       category: "admin",
-      actor: user,
+      actor: sessionUser,
     })
 
     revalidatePath("/")

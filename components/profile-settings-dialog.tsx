@@ -11,10 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { updateUserProfile } from "@/app/actions/profile"
-import { Camera, Loader2 } from "lucide-react"
+import { Camera, Loader2, Trash2 } from "lucide-react"
+import { useRef } from "react"
 
 export function ProfileSettingsDialog({
   open,
@@ -23,10 +24,28 @@ export function ProfileSettingsDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: { id: string; name: string; email: string }
+  user: { id: string; name: string; email: string; image?: string | null }
 }) {
   const [name, setName] = useState(user.name)
+  const [image, setImage] = useState<string | null>(user.image || null)
   const [pending, startTransition] = useTransition()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 1MB")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   function handleSubmit() {
     if (!name.trim()) {
@@ -36,7 +55,10 @@ export function ProfileSettingsDialog({
 
     startTransition(async () => {
       try {
-        const result = await updateUserProfile({ name: name.trim() })
+        const result = await updateUserProfile({ 
+          name: name.trim(),
+          image: image || null
+        })
         if (result.ok) {
           toast.success("Perfil atualizado com sucesso")
           onOpenChange(false)
@@ -71,16 +93,37 @@ export function ProfileSettingsDialog({
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <Avatar className="h-20 w-20 border-2 border-primary/20">
+                {image && <AvatarImage src={image} alt={name} className="object-cover" />}
                 <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <button className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-white hover:bg-primary/90 transition-colors">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-white hover:bg-primary/90 transition-colors shadow-lg"
+                disabled={pending}
+              >
                 <Camera className="h-4 w-4" />
               </button>
+              {image && (
+                <button 
+                  onClick={() => setImage(null)}
+                  className="absolute -top-1 -right-1 rounded-full bg-destructive p-1.5 text-white hover:bg-destructive/90 transition-colors shadow-md"
+                  disabled={pending}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              Clique na câmera para alterar foto (em breve)
+              Clique na câmera para alterar sua foto de perfil
             </p>
           </div>
 

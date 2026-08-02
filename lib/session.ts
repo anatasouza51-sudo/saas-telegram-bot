@@ -10,6 +10,7 @@ export type SessionUser = {
   id: string
   name: string
   email: string
+  image?: string | null
   role: Role
   ownerId: string | null
   storeId: string
@@ -54,6 +55,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       id: u.id,
       name: u.name,
       email: u.email,
+      image: u.image,
       role: (u.role as Role) || "support",
       ownerId,
       storeId: ownerId ?? u.id,
