@@ -5,8 +5,7 @@ import { listMedia } from "@/app/actions/tg-media"
 import { listTemplates } from "@/app/actions/tg-templates"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
-import { getSettings } from "@/lib/settings"
-import { parseCatalogConfig, DEFAULT_CATALOG_CONFIG } from "@/lib/catalog-config"
+
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 // import { isRedirectError } from "next/dist/client/components/redirect"
@@ -178,7 +177,7 @@ export default async function PostsPage() {
 
   // All 7 loaders run in parallel, each wrapped in safeLoad to guarantee
   // a fallback even if the DB pool is exhausted or a query times out.
-  const [rawChannels, rawPosts, rawSchedules, stats, rawMedia, rawTemplates, rawReports, settingsMap] = await Promise.all([
+  const [rawChannels, rawPosts, rawSchedules, stats, rawMedia, rawTemplates, rawReports] = await Promise.all([
     safeLoad<Channel[]>("listChannels", () => listChannels() as Promise<Channel[]>, []),
     safeLoad<any[]>("listPosts", () => listPosts("all") as unknown as Promise<any[]>, []),
     safeLoad<any[]>("listSchedules", () => listSchedules() as Promise<any[]>, []),
@@ -186,10 +185,7 @@ export default async function PostsPage() {
     safeLoad<any[]>("listMedia", () => listMedia() as Promise<any[]>, []),
     safeLoad<Template[]>("listTemplates", () => listTemplates() as Promise<Template[]>, []),
     safeLoad<any[]>("getPostReports", () => getPostReports() as unknown as Promise<any[]>, []),
-    safeLoad<Record<string, string>>("getSettings", () => getSettings(user.storeId, ["catalog.config"]), {}),
   ])
-
-  const catalogConfig = parseCatalogConfig(settingsMap["catalog.config"])
 
   // CRITICAL: Next.js Server Components can crash if Date objects are passed 
   // to Client Components in production due to serialization mismatches.
@@ -272,7 +268,6 @@ export default async function PostsPage() {
         reports={reports}
         botName={botName}
         cdnReady={cdnReady}
-        catalogConfig={catalogConfig}
       />
     </div>
   )

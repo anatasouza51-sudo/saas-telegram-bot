@@ -114,6 +114,14 @@ export const MAIN_NAV: NavNode[] = [
         description:
           "Publique automaticamente quando eventos da loja acontecerem: novo produto, estoque, promoções.",
       },
+      {
+        title: "Botões do Catálogo",
+        href: "/catalog-buttons",
+        icon: "MousePointerClick",
+        capability: "posts.manage",
+        description:
+          "Configure os botões de Comprar, Cupom e Voltar que aparecem no bot Telegram.",
+      },
     ],
   },
 ]
