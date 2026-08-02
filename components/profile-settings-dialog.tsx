@@ -55,16 +55,29 @@ export function ProfileSettingsDialog({
 
     startTransition(async () => {
       try {
-        const result = await updateUserProfile({ 
+        // Primeiro, tentamos atualizar via Better Auth Client para garantir que a sessão local mude
+        const { error } = await authClient.updateUser({
           name: name.trim(),
-          image: image || null
+          image: image || null,
         })
-        if (result.ok) {
-          toast.success("Perfil atualizado com sucesso")
-          onOpenChange(false)
-        } else {
-          toast.error(result.error || "Erro ao atualizar perfil")
+
+        if (error) {
+          // Se falhar via client, tentamos via Server Action como fallback/garantia
+          const result = await updateUserProfile({ 
+            name: name.trim(),
+            image: image || null
+          })
+          
+          if (!result.ok) {
+            toast.error(error.message || result.error || "Erro ao atualizar perfil")
+            return
+          }
         }
+
+        toast.success("Perfil atualizado com sucesso")
+        // Forçar um refresh da página para garantir que todos os componentes (inclusive o Dashboard)
+        // recebam os novos dados da sessão/banco
+        window.location.reload()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao atualizar perfil")
       }
