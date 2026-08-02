@@ -17,7 +17,7 @@ export const pool =
   globalForDb.__pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL || "postgres://localhost:5432/placeholder",
-    max: 3, // Leve aumento para acomodar queries em paralelo sem esgotar
+    max: 10, // Aumentado para evitar esgotamento em renderizações paralelas e revalidações
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 8_000, // Leve aumento para dar chance ao Neon de acordar
     ssl: {

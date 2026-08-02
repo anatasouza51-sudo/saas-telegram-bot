@@ -26,8 +26,9 @@ export type TargetSpec = string[]
 export async function resolveTargets(
   storeId: string,
   targets: TargetSpec,
+  dctx: any = db, // Aceita db ou tx (transação)
 ): Promise<Destination[]> {
-  const rows = await db
+  const rows = await dctx
     .select({
       chatId: telegramChats.chatId,
       type: telegramChats.type,
