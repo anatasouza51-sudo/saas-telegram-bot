@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/card"
 import { TelegramFormImproved as TelegramForm } from "@/components/settings/telegram-form-improved"
 import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
+import { CatalogButtonsForm } from "@/components/settings/catalog-buttons-form"
 import { getSettings } from "@/lib/settings"
+import { parseCatalogConfig } from "@/lib/catalog-config"
 import { getAppBaseUrl } from "@/lib/urls"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
@@ -29,6 +31,7 @@ export default async function TelegramPage() {
       "telegram.adminIds",
       "store.welcomeMessage",
       "store.welcomeImageUrl",
+      "catalog.config",
     ]),
     {} as Record<string, string | null>
   )
@@ -72,6 +75,20 @@ export default async function TelegramPage() {
               welcomeMessage: saved["store.welcomeMessage"] ?? "",
               welcomeImageUrl: saved["store.welcomeImageUrl"] ?? "",
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Botões do Catálogo</CardTitle>
+          <CardDescription>
+            Personalize os nomes e emojis dos botões de compra, cupom e voltar que aparecem no bot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CatalogButtonsForm
+            initial={parseCatalogConfig(saved["catalog.config"])}
           />
         </CardContent>
       </Card>

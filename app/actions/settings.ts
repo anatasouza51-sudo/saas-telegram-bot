@@ -8,6 +8,7 @@ import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
 import { getSetting, saveSetting } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
+import { serializeCatalogConfig, type CatalogConfig } from "@/lib/catalog-config"
 import { validateAdminIds, sanitizeTelegramHtml, validateImageUrl } from "@/lib/validation"
 
 export async function saveTelegramSettings(input: {
@@ -111,6 +112,19 @@ export async function savePixSettings(config: PixConfig) {
     actor: user,
   })
   revalidatePath("/gateway")
+  return { ok: true }
+}
+
+export async function saveCatalogSettings(config: CatalogConfig) {
+  const user = await requireCapability("telegram.manage")
+  await saveSetting(user.storeId, "catalog.config", serializeCatalogConfig(config))
+  await logActivity({
+    storeId: user.storeId,
+    action: "Configurações de botões do catálogo atualizadas",
+    category: "settings",
+    actor: user,
+  })
+  revalidatePath("/telegram")
   return { ok: true }
 }
 
