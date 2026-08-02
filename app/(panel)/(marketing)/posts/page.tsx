@@ -7,7 +7,7 @@ import { getStoreTelegram } from "@/lib/tg/config"
 import { requireCapability } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import { isRedirectError } from "next/dist/client/components/redirect"
+// import { isRedirectError } from "next/dist/client/components/redirect"
 
 export const maxDuration = 60 // 60 seconds
 
@@ -122,7 +122,7 @@ async function safeLoad<T>(label: string, fn: () => Promise<T>, fallback: T): Pr
     return (result ?? fallback) as T
   } catch (err) {
     // Se for um erro de redirecionamento, não capturamos aqui para permitir que o Next.js lide com ele
-    if (isRedirectError(err)) throw err
+    if (err instanceof Error && (err.message === "NEXT_REDIRECT" || err.stack?.includes("redirect"))) throw err
     
     console.error(`[PostsPage] "${label}" failed:`, err)
     return fallback
@@ -137,7 +137,7 @@ export default async function PostsPage() {
     user = await requireCapability("posts.manage")
   } catch (e) {
     // If it's a redirect (e.g. no session), re-throw so Next.js handles it.
-    if (isRedirectError(e)) throw e
+    if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) throw e
     // Any other error (DB timeout, etc.) — show a friendly error page instead
     // of crashing the Server Component render.
     console.error("[PostsPage] Auth failed:", e)

@@ -216,11 +216,7 @@ export function PostEditor({
             `${sent} enviado(s), ${failed} falhou(aram) de ${enqueued} destino(s).`,
           )
         } else {
-          toast.success(
-            sent > 0 
-              ? `Postagem enviada para ${sent} grupo(s)/canal(ais)!`
-              : `Postagem publicada para ${enqueued} destino(s).`
-          )
+          toast.success("enviado a mensagem ao Telegram destino da mensagem")
         }
 
         // IMPORTANT: Clear the post state after successful publish to prevent 
