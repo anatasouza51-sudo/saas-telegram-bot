@@ -138,7 +138,8 @@ export async function publishNow(
 
     // Use a transaction to ensure atomic enqueueing and status update.
     const { enqueued, queueIds } = await db.transaction(async (tx) => {
-      const destinations = await resolveTargets(user.storeId, targets)
+      // Passamos o contexto da transação 'tx' para garantir atomicidade e evitar deadlock
+      const destinations = await resolveTargets(user.storeId, targets, tx)
       if (destinations.length === 0) return { enqueued: 0, queueIds: [] }
 
       const rows = await tx

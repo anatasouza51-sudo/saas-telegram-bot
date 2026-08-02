@@ -170,15 +170,47 @@ export default async function PostsPage() {
 
   // All 7 loaders run in parallel, each wrapped in safeLoad to guarantee
   // a fallback even if the DB pool is exhausted or a query times out.
-  const [channels, posts, schedules, stats, media, templates, reports] = await Promise.all([
+  const [channels, rawPosts, rawSchedules, stats, rawMedia, templates, rawReports] = await Promise.all([
     safeLoad<Channel[]>("listChannels", () => listChannels() as Promise<Channel[]>, []),
-    safeLoad<Post[]>("listPosts", () => listPosts("all") as unknown as Promise<Post[]>, []),
-    safeLoad<Schedule[]>("listSchedules", () => listSchedules() as Promise<Schedule[]>, []),
+    safeLoad<any[]>("listPosts", () => listPosts("all") as unknown as Promise<any[]>, []),
+    safeLoad<any[]>("listSchedules", () => listSchedules() as Promise<any[]>, []),
     safeLoad<Stats>("getPostStats", () => getPostStats() as Promise<Stats>, EMPTY_STATS),
-    safeLoad<MediaItem[]>("listMedia", () => listMedia() as Promise<MediaItem[]>, []),
+    safeLoad<any[]>("listMedia", () => listMedia() as Promise<any[]>, []),
     safeLoad<Template[]>("listTemplates", () => listTemplates() as Promise<Template[]>, []),
-    safeLoad<PostReportItem[]>("getPostReports", () => getPostReports() as unknown as Promise<PostReportItem[]>, []),
+    safeLoad<any[]>("getPostReports", () => getPostReports() as unknown as Promise<any[]>, []),
   ])
+
+  // CRITICAL: Next.js Server Components can crash if Date objects are passed 
+  // to Client Components in production due to serialization mismatches.
+  // We convert all Dates to ISO strings here.
+  const posts = rawPosts.map(p => ({
+    ...p,
+    sentAt: p.sentAt instanceof Date ? p.sentAt.toISOString() : p.sentAt,
+    updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt,
+    createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
+  })) as Post[]
+
+  const schedules = rawSchedules.map(s => ({
+    ...s,
+    runAt: s.runAt instanceof Date ? s.runAt.toISOString() : s.runAt,
+    nextRunAt: s.nextRunAt instanceof Date ? s.nextRunAt.toISOString() : s.nextRunAt,
+  })) as Schedule[]
+
+  const media = rawMedia.map(m => ({
+    ...m,
+    createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt,
+  })) as MediaItem[]
+
+  const reports = rawReports.map(r => ({
+    ...r,
+    sentAt: r.sentAt instanceof Date ? r.sentAt.toISOString() : r.sentAt,
+    queue: r.queue?.map((q: any) => ({
+      ...q,
+      scheduledFor: q.scheduledFor instanceof Date ? q.scheduledFor.toISOString() : q.scheduledFor,
+      createdAt: q.createdAt instanceof Date ? q.createdAt.toISOString() : q.createdAt,
+      updatedAt: q.updatedAt instanceof Date ? q.updatedAt.toISOString() : q.updatedAt,
+    }))
+  })) as PostReportItem[]
 
   // Resolve the bot's display name for the live preview (best-effort).
   let botName = "Seu Bot"
