@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache"
 import { sanitizeTelegramHtml, sanitizeDisplayName, validateSafeUrl } from "@/lib/validation"
 
 export type PostInput = {
-  id?: number
+  id?: string
   title?: string
   text?: string
   parseMode?: "HTML" | "Markdown"
@@ -25,7 +25,7 @@ export type PostInput = {
 }
 
 // Persists a post as a draft (create or update). Returns the row id.
-export async function savePost(input: PostInput, revalidate = true): Promise<number> {
+export async function savePost(input: PostInput, revalidate = true): Promise<string> {
   try {
     const user = await requireCapability("posts.manage")
     // Validation: prevent XSS, HTML injection and protocol bypass.
@@ -333,7 +333,7 @@ export async function listSchedules() {
   }
 }
 
-export async function cancelSchedule(id: number) {
+export async function cancelSchedule(id: number | string) {
   const user = await requireCapability("posts.manage")
   await db
     .update(telegramSchedules)
@@ -355,7 +355,7 @@ export async function cancelSchedule(id: number) {
 
 // Duplicates an existing post (any status) as a new draft. Used to reuse
 // old/history posts as new postings.
-export async function duplicatePost(id: number): Promise<{ newId: number }> {
+export async function duplicatePost(id: string): Promise<{ newId: string }> {
   const user = await requireCapability("posts.manage")
   const [original] = await db
     .select()
@@ -389,7 +389,7 @@ export async function duplicatePost(id: number): Promise<{ newId: number }> {
   return { newId: row.id }
 }
 
-export async function deletePost(id: number) {
+export async function deletePost(id: string) {
   const user = await requireCapability("posts.manage")
   // Remove dependent queue/schedule rows first (no FK cascade defined).
   await db
@@ -417,7 +417,7 @@ export async function deletePost(id: number) {
 }
 
 // Fetches post reports with queue details for the reporting UI.
-export async function getPostReports(postIds?: number[]) {
+export async function getPostReports(postIds?: string[]) {
   try {
     const user = await requireCapability("posts.manage")
     const postConds = [eq(telegramPosts.ownerId, user.storeId)]

@@ -8,7 +8,7 @@ import { fulfillOrder } from "@/lib/fulfillment"
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-async function requireOwnedOrder(orderId: number, storeId: string) {
+async function requireOwnedOrder(orderId: string, storeId: string) {
   const [order] = await db
     .select({ id: orders.id })
     .from(orders)
@@ -20,7 +20,7 @@ async function requireOwnedOrder(orderId: number, storeId: string) {
  * Manually approve + deliver an order from the admin panel. Uses the same
  * fulfillment path as the VeoPag webhook, so delivery is atomic and logged.
  */
-export async function approveAndDeliver(orderId: number) {
+export async function approveAndDeliver(orderId: string) {
   const user = await requireCapability("orders.manage")
   await requireOwnedOrder(orderId, user.storeId)
   const result = await fulfillOrder(orderId)
@@ -39,7 +39,7 @@ export async function approveAndDeliver(orderId: number) {
   return { ok: true }
 }
 
-export async function refuseOrder(orderId: number) {
+export async function refuseOrder(orderId: string) {
   const user = await requireCapability("orders.manage")
   await requireOwnedOrder(orderId, user.storeId)
   await db
@@ -56,7 +56,7 @@ export async function refuseOrder(orderId: number) {
   return { ok: true }
 }
 
-export async function cancelOrder(orderId: number) {
+export async function cancelOrder(orderId: string) {
   const user = await requireCapability("orders.manage")
   await requireOwnedOrder(orderId, user.storeId)
   await db

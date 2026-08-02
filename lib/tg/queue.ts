@@ -11,6 +11,7 @@ import { getStoreTelegram } from "@/lib/tg/config"
 import { sendPost, type ResolvedMedia } from "@/lib/tg/send"
 import { parseButtons } from "@/lib/tg/buttons"
 import { notifyManagement } from "@/lib/tg/management"
+import { decrypt } from "@/lib/crypto"
 import { parseTarget, type Destination } from "@/lib/tg/topics"
 import type { TelegramMediaKind } from "@/lib/telegram"
 
@@ -71,7 +72,7 @@ export async function resolveTargets(
 
 export async function enqueuePost(params: {
   storeId: string
-  postId: number
+  postId: string
   targets: TargetSpec
   scheduleId?: number | null
   scheduledFor?: Date
@@ -125,7 +126,7 @@ async function resolveMedia(
   return ids
     .map((id) => byId.get(id))
     .filter(Boolean)
-    .map((r) => ({ fileId: r!.fileId, type: r!.type as TelegramMediaKind }))
+    .map((r) => ({ fileId: decrypt(r!.fileId) ?? r!.fileId, type: r!.type as TelegramMediaKind }))
 }
 
 export async function processQueue(
@@ -156,7 +157,7 @@ export async function processQueue(
   if (items.length === 0) return { processed: 0, sent: 0, failed: 0 }
 
   const clients = new Map<string, Awaited<ReturnType<typeof getStoreTelegram>>>()
-  const posts = new Map<number, Awaited<ReturnType<typeof loadPost>>>()
+  const posts = new Map<string, Awaited<ReturnType<typeof loadPost>>>()
 
   let sent = 0
   let failed = 0
@@ -254,7 +255,7 @@ async function requeueStaleItems(now: Date) {
     )
 }
 
-async function loadPost(storeId: string, postId: number) {
+async function loadPost(storeId: string, postId: string) {
   const [row] = await db
     .select()
     .from(telegramPosts)
@@ -300,7 +301,7 @@ async function failItem(
   }
 }
 
-async function finalizePosts(postIds: number[]) {
+async function finalizePosts(postIds: string[]) {
   for (const postId of postIds) {
     try {
       await finalizePost(postId)
@@ -310,7 +311,7 @@ async function finalizePosts(postIds: number[]) {
   }
 }
 
-async function finalizePost(postId: number) {
+async function finalizePost(postId: string) {
   const [counts] = await db
       .select({
         pending: sql<number>`COUNT(*) FILTER (WHERE status IN ('pending','processing'))::int`,

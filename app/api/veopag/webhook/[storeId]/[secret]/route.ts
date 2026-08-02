@@ -6,7 +6,7 @@ import { mapPaymentStatus } from "@/lib/veopag"
 import { fulfillOrder } from "@/lib/fulfillment"
 import { logActivity } from "@/lib/log"
 import { getWebhookSecret } from "@/lib/webhook-secrets"
-import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
+import { safeEqual, rateLimit, clientIpFrom, hashIp } from "@/lib/security"
 
 /**
  * VeoPag deposit webhook — authenticated per store.
@@ -29,9 +29,10 @@ export async function POST(
   const ip = clientIpFrom(req)
 
   // Throttle abusive callers per store+ip.
-  const limit = rateLimit(`veopag:${storeId}:${ip}`, {
+  const limit = await rateLimit(`veopag:${storeId}:${hashIp(ip)}`, {
     max: 60,
     windowMs: 60_000,
+    namespace: "webhook",
   })
   if (!limit.ok) {
     return NextResponse.json({ error: "Too Many Requests" }, { status: 429 })
@@ -64,8 +65,8 @@ export async function POST(
   const rawStatus = String(payload.status ?? payload.payment_status ?? "")
   const status = mapPaymentStatus(rawStatus)
 
-  const orderId = Number(externalId)
-  if (!orderId || Number.isNaN(orderId)) {
+  const orderId = String(externalId)
+  if (!orderId) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 

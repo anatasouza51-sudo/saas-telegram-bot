@@ -13,7 +13,10 @@ export async function ensureDbStructure() {
   try {
     await client.query("BEGIN")
 
-    // 1. Criar tabela telegram_chats se não existir
+    // 0. Criar extensão para UUIDs
+    await client.query("CREATE EXTENSION IF NOT EXISTS pgcrypto;")
+
+    // 1. Criar tabelas base se não existirem (já com UUID onde solicitado)
     await client.query(`
       CREATE TABLE IF NOT EXISTS telegram_chats (
         id SERIAL PRIMARY KEY,
@@ -33,41 +36,26 @@ export async function ensureDbStructure() {
         "lastSyncedAt" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
         "updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL
-      )
+      );
     `)
 
-    // 2. Adicionar colunas faltantes (caso a tabela já existisse de uma versão antiga)
-    const columns = [
-      { name: "isForum", type: "BOOLEAN DEFAULT FALSE NOT NULL" },
-      { name: "memberCount", type: "INTEGER" },
-      { name: "lastSyncedAt", type: "TIMESTAMP" },
-      { name: "missingPermissions", type: "TEXT" },
-      { name: "grantedPermissions", type: "TEXT" },
-      { name: "purpose", type: "TEXT DEFAULT 'audience' NOT NULL" }
-    ]
+    // 2. Garantir que as tabelas customers, orders e telegram_posts usem UUID
+    // Esta função lida com a migração de SERIAL para UUID de forma segura.
+    await migrateTableToUuid(client, "customers", []);
+    await migrateTableToUuid(client, "orders", [
+      { table: "deliveries", column: "orderId" },
+      { table: "stock_items", column: "orderId" }
+    ]);
+    await migrateTableToUuid(client, "telegram_posts", [
+      { table: "telegram_schedules", column: "postId" },
+      { table: "telegram_queue", column: "postId" }
+    ]);
 
-    for (const col of columns) {
-      await client.query(`
-        DO $$ 
-        BEGIN 
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='telegram_chats' AND column_name='${col.name}') THEN
-            ALTER TABLE telegram_chats ADD COLUMN "${col.name}" ${col.type};
-          END IF;
-        END $$;
-      `)
-    }
+    // Atualizar referências cruzadas que não são PKs
+    await updateColumnToText(client, "orders", "customerId");
+    await updateColumnToText(client, "deliveries", "customerId");
 
-    // 3. Garantir índice único
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'telegram_chats_owner_chatid_uidx') THEN
-          CREATE UNIQUE INDEX telegram_chats_owner_chatid_uidx ON telegram_chats ("ownerId", "chatId");
-        END IF;
-      END $$;
-    `)
-
-    // 4. Garantir tabela telegram_topics
+    // 3. Outras tabelas e colunas
     await client.query(`
       CREATE TABLE IF NOT EXISTS telegram_topics (
         id SERIAL PRIMARY KEY,
@@ -83,17 +71,6 @@ export async function ensureDbStructure() {
       )
     `)
 
-    // 5. Garantir índice único em tópicos
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'telegram_topics_owner_chat_thread_uidx') THEN
-          CREATE UNIQUE INDEX telegram_topics_owner_chat_thread_uidx ON telegram_topics ("ownerId", "chatId", "threadId");
-        END IF;
-      END $$;
-    `)
-
-    // 6. Criar tabela coupons se não existir
     await client.query(`
       CREATE TABLE IF NOT EXISTS coupons (
         id SERIAL PRIMARY KEY,
@@ -109,56 +86,30 @@ export async function ensureDbStructure() {
       )
     `)
 
-    // 7. Garantir índice único em coupons
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'coupons_owner_code_uidx') THEN
-          CREATE UNIQUE INDEX coupons_owner_code_uidx ON coupons ("ownerId", code);
-        END IF;
-      END $$;
-    `)
+    // Garantir índices únicos
+    const indexes = [
+      { name: "telegram_chats_owner_chatid_uidx", table: "telegram_chats", cols: '("ownerId", "chatId")' },
+      { name: "telegram_topics_owner_chat_thread_uidx", table: "telegram_topics", cols: '("ownerId", "chatId", "threadId")' },
+      { name: "coupons_owner_code_uidx", table: "coupons", cols: '("ownerId", code)' },
+      { name: "customers_owner_telegramid_uidx", table: "customers", cols: '("ownerId", "telegramId")' },
+      { name: "settings_owner_key_uidx", table: "settings", cols: '("ownerId", key)' }
+    ]
 
-    // 8. Adicionar colunas faltantes em customers (activeCoupon)
-    await client.query(`
-      DO $$ 
-      BEGIN 
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='activeCoupon') THEN
-          ALTER TABLE customers ADD COLUMN "activeCoupon" TEXT;
-        END IF;
-      END $$;
-    `)
+    for (const idx of indexes) {
+      await client.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '${idx.name}') THEN
+            CREATE UNIQUE INDEX ${idx.name} ON ${idx.table} ${idx.cols};
+          END IF;
+        END $$;
+      `)
+    }
 
-    // 8b. BUGFIX: criar índice único em customers(ownerId, telegramId).
-    // Necessário para o upsert atômico em upsertCustomer. Sem este índice,
-    // o ON CONFLICT falha com erro de constraint inexistente, o que propaga
-    // como exceção não tratada e silencia o bot no /start.
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'customers_owner_telegramid_uidx') THEN
-          CREATE UNIQUE INDEX customers_owner_telegramid_uidx ON customers ("ownerId", "telegramId");
-        END IF;
-      END $$;
-    `)
-
-    // 9. Adicionar colunas faltantes em orders (originalAmount, couponCode)
-    await client.query(`
-      DO $$ 
-      BEGIN 
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='originalAmount') THEN
-          ALTER TABLE orders ADD COLUMN "originalAmount" NUMERIC(12,2);
-        END IF;
-      END $$;
-    `)
-    await client.query(`
-      DO $$ 
-      BEGIN 
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='couponCode') THEN
-          ALTER TABLE orders ADD COLUMN "couponCode" TEXT;
-        END IF;
-      END $$;
-    `)
+    // Colunas extras
+    await addColumnIfMissing(client, "customers", "activeCoupon", "TEXT");
+    await addColumnIfMissing(client, "orders", "originalAmount", "NUMERIC(12,2)");
+    await addColumnIfMissing(client, "orders", "couponCode", "TEXT");
 
     await client.query("COMMIT")
     console.log("[db/migrate] Estrutura do banco de dados verificada/atualizada com sucesso.")
@@ -171,9 +122,83 @@ export async function ensureDbStructure() {
   }
 }
 
-// v1.0.1 - Forced redeploy for Vercel synchronization
+async function addColumnIfMissing(client: any, table: string, column: string, type: string) {
+  await client.query(`
+    DO $$ 
+    BEGIN 
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='${column}') THEN
+        ALTER TABLE ${table} ADD COLUMN "${column}" ${type};
+      END IF;
+    END $$;
+  `)
+}
 
-// v1.0.2 - Forced redeploy for database synchronization and table creation
+async function updateColumnToText(client: any, table: string, column: string) {
+  await client.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='${table}' AND column_name='${column}' AND data_type='integer'
+      ) THEN
+        ALTER TABLE ${table} ALTER COLUMN "${column}" TYPE TEXT USING "${column}"::TEXT;
+      END IF;
+    END $$;
+  `)
+}
 
-// v1.0.3 - BUGFIX: added unique index on customers(ownerId, telegramId) to
-// support atomic upsert in upsertCustomer and prevent /start silence on race.
+async function migrateTableToUuid(client: any, tableName: string, references: { table: string, column: string }[]) {
+  // Verifica se a coluna ID já é TEXT/UUID
+  const res = await client.query(`
+    SELECT data_type FROM information_schema.columns 
+    WHERE table_name = '${tableName}' AND column_name = 'id';
+  `)
+  
+  if (res.rows.length === 0) {
+    // Tabela não existe, cria ela já com UUID
+    // Nota: Isso é simplificado, o ideal seria ter o CREATE TABLE completo aqui.
+    // Mas para o propósito do SaaS, as tabelas principais já existem.
+    return;
+  }
+
+  if (res.rows[0].data_type === 'text' || res.rows[0].data_type === 'uuid') {
+    return; // Já migrado
+  }
+
+  console.log(`[db/migrate] Migrando tabela ${tableName} para UUID...`)
+
+  // 1. Adicionar nova coluna UUID
+  await client.query(`ALTER TABLE ${tableName} ADD COLUMN id_new TEXT DEFAULT gen_random_uuid();`)
+  
+  // 2. Popular id_new para registros existentes
+  await client.query(`UPDATE ${tableName} SET id_new = gen_random_uuid() WHERE id_new IS NULL;`)
+
+  // 3. Atualizar referências em outras tabelas
+  for (const ref of references) {
+    // Garantir que a coluna de referência seja TEXT
+    await updateColumnToText(client, ref.table, ref.column);
+    
+    // Atualizar os valores para bater com o novo UUID
+    await client.query(`
+      UPDATE ${ref.table} r
+      SET "${ref.column}" = t.id_new
+      FROM ${tableName} t
+      WHERE r."${ref.column}" = t.id::TEXT;
+    `)
+  }
+
+  // 4. Trocar PK
+  // Remover PK antiga (geralmente nomeada como table_pkey)
+  await client.query(`ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${tableName}_pkey CASCADE;`)
+  
+  // Remover coluna antiga
+  await client.query(`ALTER TABLE ${tableName} DROP COLUMN id;`)
+  
+  // Renomear id_new para id
+  await client.query(`ALTER TABLE ${tableName} RENAME COLUMN id_new TO id;`)
+  
+  // Adicionar nova PK
+  await client.query(`ALTER TABLE ${tableName} ADD PRIMARY KEY (id);`)
+}
+
+// v1.1.0 - Migração para UUIDs e Criptografia em repouso
