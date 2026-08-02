@@ -25,11 +25,11 @@ const FormInput = memo(({
 }: any) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between ml-1">
-      <Label htmlFor={id} className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</Label>
+      <Label htmlFor={id} className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">{label}</Label>
       {rightElement}
     </div>
     <div className="relative">
-      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />}
+      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />}
       <Input
         id={id}
         type={type}
@@ -38,7 +38,7 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-11 text-base bg-white/5 border-white/10 focus:border-primary/40 focus:ring-primary/10 transition-all rounded-xl placeholder:text-white/20`}
+        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-11 text-sm bg-[#121319] border-gray-800 focus:border-gray-600 focus:ring-gray-600 transition-all rounded-xl placeholder:text-gray-600 text-white`}
       />
     </div>
   </div>
@@ -107,8 +107,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <div className="w-full max-w-[420px] px-4 py-6">
       <div className="mb-8 flex flex-col items-center text-center">
         <GhostLogo className="w-14 h-14 mb-5" />
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-white uppercase italic">
-          {isSignUp ? "Faça parte do" : "Bem-vindo ao"} <span className="text-primary">Ghost</span>Bot
+        <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
+          GHOST BOT
         </h1>
         <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
           {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operação."}
@@ -117,7 +117,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-5 rounded-[22px] border border-white/10 bg-slate-900/40 backdrop-blur-md p-6 sm:p-8 shadow-2xl"
+        className="flex flex-col gap-5 bg-[#0c0d12] border border-gray-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm"
       >
         {isSignUp && (
           <FormInput id="name" label="Nome Completo" icon={User} value={name} onChange={setName} placeholder="Seu nome" required />
@@ -141,18 +141,26 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
         {error && <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-medium text-red-400">{error}</div>}
 
-        <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-black font-black uppercase text-sm rounded-xl transition-all active:scale-[0.98]" disabled={loading}>
+        <button 
+          type="submit" 
+          disabled={loading} 
+          className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98]"
+        >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
             <span className="flex items-center gap-2">
               {isSignUp ? "Inicializar Sistema" : "Autorizar Acesso"}
               <ArrowRight className="h-4 w-4" />
             </span>
           )}
-        </Button>
+        </button>
 
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          <Link href={isSignUp ? "/sign-in" : "/sign-up"} className="text-primary hover:underline">{isSignUp ? "Já tem conta? Entrar" : "Novo operador? Registrar Agora"}</Link>
-        </p>
+        <div className="mt-2 text-center text-xs text-gray-400">
+          {isSignUp ? (
+            <>Já tem conta? <Link href="/sign-in" className="text-white font-bold hover:underline">Entrar</Link></>
+          ) : (
+            <>Não tem conta? <Link href="/sign-up" className="text-white font-bold hover:underline">Criar conta gratuita</Link></>
+          )}
+        </div>
       </form>
     </div>
   )

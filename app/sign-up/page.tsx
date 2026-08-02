@@ -9,12 +9,12 @@ export default async function SignUpPage() {
   if (current) redirect("/")
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-mesh p-4 relative overflow-hidden">
-      {/* Simplified Background - Reduced animation complexity for better performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[100px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 blur-[100px] rounded-full" />
-      </div>
+    <main className="min-h-screen w-full bg-[#050508] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Efeito de Fundo Estrelado - Igual à tela de login */}
+      <div 
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{ backgroundImage: `radial-gradient(circle at center, #ffffff 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
+      />
 
       <div className="relative z-10 w-full flex justify-center">
         <AuthForm mode="sign-up" />
