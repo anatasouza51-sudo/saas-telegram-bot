@@ -2,27 +2,39 @@ import "server-only"
 import { db } from "@/lib/db"
 import { settings } from "@/lib/db/schema"
 import { and, eq, inArray } from "drizzle-orm"
+import { encrypt, decrypt, isEncrypted } from "./crypto"
+
+/**
+ * Lista de chaves que devem ser criptografadas antes de serem salvas no banco.
+ */
+const SENSITIVE_KEYS = [
+  "telegram.botToken",
+  "veopag.secretKey",
+  "pix.config" // O PIX config pode conter dados sensíveis dependendo da implementação
+]
 
 /**
  * Internal, server-only settings helpers.
- *
- * These are NOT server actions: they take a raw storeId and perform no auth
- * checks, so they must only be called from trusted server code that has
- * already authorized the caller (e.g. after requireCapability). Exposing them
- * as server actions would allow any authenticated user to pass an arbitrary
- * storeId and read another tenant's secrets (IDOR). `server-only` guarantees
- * this module can never be imported into client code.
  */
 
-// Non-secret settings live in the DB, scoped per store.
 export async function getSettings(storeId: string, keys: string[]) {
   if (keys.length === 0) return {}
   const rows = await db
     .select()
     .from(settings)
     .where(and(eq(settings.ownerId, storeId), inArray(settings.key, keys)))
+  
   const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
+  for (const r of rows) {
+    let value = r.value ?? ""
+    
+    // Se a chave for sensível e o valor parecer criptografado, descriptografamos
+    if (SENSITIVE_KEYS.includes(r.key) && isEncrypted(value)) {
+      value = decrypt(value) ?? value
+    }
+    
+    map[r.key] = value
+  }
   return map
 }
 
@@ -35,17 +47,30 @@ export async function getSetting(
     .from(settings)
     .where(and(eq(settings.ownerId, storeId), eq(settings.key, key)))
     .limit(1)
-  return row?.value ?? null
+  
+  if (!row) return null
+  
+  let value = row.value ?? ""
+  if (SENSITIVE_KEYS.includes(key) && isEncrypted(value)) {
+    value = decrypt(value) ?? value
+  }
+  
+  return value
 }
 
 export async function saveSetting(storeId: string, key: string, value: string) {
-  // Atomic upsert backed by the unique index on (ownerId, key). Avoids the
-  // read-then-write race that could create duplicate rows under concurrency.
+  let valueToSave = value
+  
+  // Criptografamos se a chave for sensível
+  if (SENSITIVE_KEYS.includes(key) && value) {
+    valueToSave = encrypt(value)
+  }
+
   await db
     .insert(settings)
-    .values({ ownerId: storeId, key, value })
+    .values({ ownerId: storeId, key, value: valueToSave })
     .onConflictDoUpdate({
       target: [settings.ownerId, settings.key],
-      set: { value, updatedAt: new Date() },
+      set: { value: valueToSave, updatedAt: new Date() },
     })
 }

@@ -58,7 +58,7 @@ export async function saveTelegramSettings(input: {
       }
     } catch (err) {
       // Non-fatal: the admin can still click "Connect bot" to retry.
-      console.error("[settings] webhook auto-registration failed:", err)
+      console.error("[settings] webhook auto-registration failed (token redacted)")
       await logActivity({
         storeId: user.storeId,
         action: "Falha ao registrar o webhook do Telegram ao salvar configurações",
