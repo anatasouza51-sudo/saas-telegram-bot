@@ -46,27 +46,41 @@ export class TelegramClient {
         body: JSON.stringify(payload),
         signal: controller.signal,
       })
+      
       const data = (await res.json()) as {
         ok: boolean
         result?: T
         description?: string
+        error_code?: number
+        parameters?: { migrate_to_chat_id?: number; retry_after?: number }
       }
+      
       const elapsed = Date.now() - startedAt
-      if (elapsed > 2_000) {
-        console.warn(
-          `[tg/${method}] slow: ${elapsed}ms`,
-        )
+      
+      // Log essential data without exposing the full token
+      const botId = this.botId
+      const status = res.status
+      
+      if (!data.ok) {
+        console.error(`[TelegramAPI] Method: ${method} | Bot: ${botId} | Status: ${status} | Elapsed: ${elapsed}ms | Error: ${data.description || "Unknown error"}`)
+        if (data.error_code) console.error(`[TelegramAPI] Error Code: ${data.error_code}`, data.parameters || "")
+        // Log sanitized payload (exclude sensitive fields if any, though Telegram payload is usually safe)
+        const sanitizedPayload = { ...payload }
+        if (sanitizedPayload.text) sanitizedPayload.text = (sanitizedPayload.text as string).substring(0, 100) + "..."
+        console.error(`[TelegramAPI] Payload:`, JSON.stringify(sanitizedPayload))
+      } else if (elapsed > 2000) {
+        console.warn(`[TelegramAPI] SLOW Method: ${method} | Bot: ${botId} | Elapsed: ${elapsed}ms`)
       }
+
       return data
     } catch (err) {
       const elapsed = Date.now() - startedAt
-      console.warn(
-        `[tg/${method}] failed after ${elapsed}ms:`,
-        err instanceof Error ? err.message : "Erro de rede",
-      )
+      const errorMessage = err instanceof Error ? err.message : "Erro de rede"
+      console.error(`[TelegramAPI] CRITICAL Method: ${method} | Bot: ${this.botId} | Elapsed: ${elapsed}ms | Exception: ${errorMessage}`)
+      
       return {
         ok: false,
-        description: err instanceof Error ? err.message : "Erro de rede",
+        description: errorMessage,
       }
     } finally {
       clearTimeout(timeout)

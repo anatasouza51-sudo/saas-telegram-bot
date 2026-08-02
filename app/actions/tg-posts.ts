@@ -178,16 +178,28 @@ export async function publishNow(
     // processing items from other concurrent clicks/cron runs.
     let sent = 0
     let failed = 0
+    let queueError: string | null = null
+
     try {
       // processQueue already uses FOR UPDATE SKIP LOCKED, so even if cron
       // starts now, it won't touch these specific IDs if we process them first.
       const result = await processQueue(enqueued, queueIds)
       sent = result.sent
       failed = result.failed
-      console.log(
-        `[tg/posts] publishNow: ${sent} sent, ${failed} failed out of ${enqueued}`,
-      )
+      
+      console.log(`[tg/posts] publishNow success: ${sent} sent, ${failed} failed out of ${enqueued}`)
+      
+      // If all failed, we want to know why from the first item
+      if (failed === enqueued && enqueued > 0) {
+        const [firstItem] = await db
+          .select({ lastError: telegramQueue.lastError })
+          .from(telegramQueue)
+          .where(inArray(telegramQueue.id, queueIds))
+          .limit(1)
+        queueError = firstItem?.lastError || "Falha desconhecida no envio."
+      }
     } catch (err) {
+      queueError = err instanceof Error ? err.message : "Erro no processamento da fila."
       console.error("[tg/posts] publishNow queue processing failed:", err)
     }
 
@@ -205,10 +217,15 @@ export async function publishNow(
       console.error("[tg/posts] revalidatePath failed:", e)
     }
 
+    if (queueError && sent === 0) {
+      throw new Error(`Falha no envio: ${queueError}`)
+    }
+
     return { enqueued, sent, failed }
   } catch (err) {
-    console.error("[tg/posts] publishNow failed:", err)
-    throw new Error(err instanceof Error ? err.message : "Erro ao publicar postagem.")
+    const message = err instanceof Error ? err.message : "Erro ao publicar postagem."
+    console.error(`[tg/posts] publishNow failed | Error: ${message}`)
+    throw new Error(message)
   }
 }
 
