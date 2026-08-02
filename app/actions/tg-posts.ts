@@ -9,7 +9,7 @@ import {
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
-import { enqueuePost, processQueue, type TargetSpec } from "@/lib/tg/queue"
+import { enqueuePost, processQueue, resolveTargets, type TargetSpec } from "@/lib/tg/queue"
 import { nextRun, parseRecurrence, type Recurrence } from "@/lib/tg/recurrence"
 import { resolveButtonUrl, type ButtonRows } from "@/lib/tg/buttons"
 import { revalidatePath } from "next/cache"
