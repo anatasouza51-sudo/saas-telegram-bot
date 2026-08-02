@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { updateUserProfile } from "@/app/actions/profile"
+import { authClient } from "@/lib/auth-client"
 import { Camera, Loader2, Trash2 } from "lucide-react"
 import { useRef } from "react"
 
