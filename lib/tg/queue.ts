@@ -129,20 +129,25 @@ async function resolveMedia(
 
 export async function processQueue(
   limit = BATCH_SIZE,
+  specificIds?: number[],
 ): Promise<{ processed: number; sent: number; failed: number }> {
   const now = new Date()
   await requeueStaleItems(now)
+  
+  // Build conditions: either specific IDs (immediate publish) or due items (cron).
+  const conds = [eq(telegramQueue.status, "pending")]
+  if (specificIds && specificIds.length > 0) {
+    conds.push(inArray(telegramQueue.id, specificIds))
+  } else {
+    conds.push(lte(telegramQueue.scheduledFor, now))
+  }
+
   // Use FOR UPDATE SKIP LOCKED to prevent duplicate processing across
-  // concurrent cron instances (Vercel may spin up multiple replicas).
+  // concurrent cron instances or immediate publish clicks.
   const items = await db
     .select()
     .from(telegramQueue)
-    .where(
-      and(
-        eq(telegramQueue.status, "pending"),
-        lte(telegramQueue.scheduledFor, now),
-      ),
-    )
+    .where(and(...conds))
     .orderBy(asc(telegramQueue.scheduledFor))
     .limit(limit)
     .for("update", { skipLocked: true })

@@ -136,32 +136,58 @@ export async function publishNow(
     if (!post) throw new Error("Falha ao recuperar postagem salva.")
     assertSendable(post.text, post.mediaIds)
 
-    const enqueued = await enqueuePost({
-      storeId: user.storeId,
-      postId: id,
-      targets,
-      scheduledFor: new Date(),
+    // Use a transaction to ensure atomic enqueueing and status update.
+    const { enqueued, queueIds } = await db.transaction(async (tx) => {
+      const destinations = await resolveTargets(user.storeId, targets)
+      if (destinations.length === 0) return { enqueued: 0, queueIds: [] }
+
+      const rows = await tx
+        .insert(telegramQueue)
+        .values(
+          destinations.map((dest) => ({
+            ownerId: user.storeId,
+            postId: id,
+            chatId: dest.chatId,
+            messageThreadId: null,
+            scheduledFor: new Date(),
+            status: "pending" as const,
+          })),
+        )
+        .returning({ id: telegramQueue.id })
+
+      await tx
+        .update(telegramPosts)
+        .set({ status: "queued", updatedAt: new Date() })
+        .where(
+          and(
+            eq(telegramPosts.id, id),
+            eq(telegramPosts.ownerId, user.storeId),
+          ),
+        )
+
+      return { enqueued: destinations.length, queueIds: rows.map((r) => r.id) }
     })
-    
+
     if (enqueued === 0) {
       throw new Error(
         "Nenhum destino válido. Verifique se o bot é admin nos grupos/canais selecionados.",
       )
     }
 
-    // Process the queue immediately so the post is sent to the groups/channels
-    // right away. The cron route will still catch anything missed here.
+    // Process ONLY the items we just enqueued to avoid duplicate sends or
+    // processing items from other concurrent clicks/cron runs.
     let sent = 0
     let failed = 0
     try {
-      const result = await processQueue(enqueued)
+      // processQueue already uses FOR UPDATE SKIP LOCKED, so even if cron
+      // starts now, it won't touch these specific IDs if we process them first.
+      const result = await processQueue(enqueued, queueIds)
       sent = result.sent
       failed = result.failed
       console.log(
         `[tg/posts] publishNow: ${sent} sent, ${failed} failed out of ${enqueued}`,
       )
     } catch (err) {
-      // Best-effort: the cron route will process these items within a minute.
       console.error("[tg/posts] publishNow queue processing failed:", err)
     }
 
