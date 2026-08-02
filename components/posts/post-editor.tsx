@@ -209,18 +209,30 @@ export function PostEditor({
     startTransition(async () => {
       try {
         const { enqueued, sent, failed } = await publishNow(buildInput(), spec)
+        
+        // Success feedback
         if (failed > 0) {
           toast.error(
             `${sent} enviado(s), ${failed} falhou(aram) de ${enqueued} destino(s).`,
           )
-        } else if (sent > 0) {
-          toast.success(
-            `Postagem enviada para ${sent} grupo(s)/canal(ais)!`,
-          )
         } else {
-          // processQueue may not have picked up items yet (e.g. cold start).
-          toast.success(`Postagem publicada para ${enqueued} destino(s).`)
+          toast.success(
+            sent > 0 
+              ? `Postagem enviada para ${sent} grupo(s)/canal(ais)!`
+              : `Postagem publicada para ${enqueued} destino(s).`
+          )
         }
+
+        // IMPORTANT: Clear the post state after successful publish to prevent 
+        // accidental duplicate sends if the user clicks again before the 
+        // navigation/refresh completes.
+        setPostId(undefined)
+        setTitle("")
+        setText("")
+        setMedia([])
+        setButtons([])
+        setTargets(new Set())
+
         if (onDone) onDone()
         else router.refresh()
       } catch (e) {
