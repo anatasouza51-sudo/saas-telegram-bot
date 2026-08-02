@@ -4,7 +4,7 @@ import { handleUpdate } from "@/lib/bot"
 import { recordWebhookEvent } from "@/lib/tg/discovery"
 import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
-import { safeEqual, rateLimit, clientIpFrom } from "@/lib/security"
+import { safeEqual, rateLimit, clientIpFrom, hashIp } from "@/lib/security"
 import { processSchedules } from "@/lib/tg/scheduler"
 import { expireDuePixOrders } from "@/lib/bot"
 import { ensureDbStructure } from "@/lib/db/migrate"
@@ -33,9 +33,10 @@ export async function POST(
   const { storeId } = await params
   const ip = clientIpFrom(req)
 
-  const limit = rateLimit(`telegram:${storeId}:${ip}`, {
+  const limit = await rateLimit(`telegram:${storeId}:${hashIp(ip)}`, {
     max: 120,
     windowMs: 60_000,
+    namespace: "webhook",
   })
   if (!limit.ok) {
     return NextResponse.json({ error: "Too Many Requests" }, { status: 429 })

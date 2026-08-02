@@ -7,7 +7,9 @@ import {
   integer,
   numeric,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
 
 /* ---------------------------------------------------------------------------
  * Better Auth tables (do NOT rename columns — these match Better Auth defaults)
@@ -112,7 +114,7 @@ export const stockItems = pgTable("stock_items", {
   content: text("content").notNull(),
   // available | reserved | sold
   status: text("status").notNull().default("available"),
-  orderId: integer("orderId"),
+  orderId: text("orderId"), // Alterado para UUID (string no TS)
   soldAt: timestamp("soldAt"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
@@ -120,7 +122,7 @@ export const stockItems = pgTable("stock_items", {
 export const customers = pgTable(
   "customers",
   {
-    id: serial("id").primaryKey(),
+    id: text("id").primaryKey().default(sql`gen_random_uuid()`),
     ownerId: text("ownerId").notNull(),
     telegramId: text("telegramId").notNull(),
     username: text("username"),
@@ -148,9 +150,9 @@ export const customers = pgTable(
 )
 
 export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   ownerId: text("ownerId").notNull(),
-  customerId: integer("customerId"),
+  customerId: text("customerId"), // Referência a UUID
   productId: integer("productId"),
   productName: text("productName"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
@@ -182,9 +184,9 @@ export const orders = pgTable("orders", {
 export const deliveries = pgTable("deliveries", {
   id: serial("id").primaryKey(),
   ownerId: text("ownerId").notNull(),
-  orderId: integer("orderId").notNull(),
+  orderId: text("orderId").notNull(), // Referência a UUID
   productId: integer("productId"),
-  customerId: integer("customerId"),
+  customerId: text("customerId"), // Referência a UUID
   stockItemId: integer("stockItemId"),
   deliveredContent: text("deliveredContent"),
   status: text("status").notNull().default("delivered"),
@@ -345,7 +347,7 @@ export const telegramTemplates = pgTable("telegram_templates", {
 })
 
 export const telegramPosts = pgTable("telegram_posts", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   ownerId: text("ownerId").notNull(),
   title: text("title"),
   text: text("text"),
@@ -366,7 +368,7 @@ export const telegramPosts = pgTable("telegram_posts", {
 export const telegramSchedules = pgTable("telegram_schedules", {
   id: serial("id").primaryKey(),
   ownerId: text("ownerId").notNull(),
-  postId: integer("postId").notNull(),
+  postId: text("postId").notNull(), // Referência a UUID
   // JSON: array of target tokens ("<chatId>" or "<chatId>:<threadId>"), or
   // "all_groups" | "all_channels" | "all"
   targets: text("targets").notNull(),
@@ -387,7 +389,7 @@ export const telegramSchedules = pgTable("telegram_schedules", {
 export const telegramQueue = pgTable("telegram_queue", {
   id: serial("id").primaryKey(),
   ownerId: text("ownerId").notNull(),
-  postId: integer("postId").notNull(),
+  postId: text("postId").notNull(), // Referência a UUID
   scheduleId: integer("scheduleId"),
   chatId: text("chatId").notNull(),
   // Forum topic to deliver into (null = the chat's general area).

@@ -18,7 +18,7 @@ type FulfillResult =
   | {
       ok: true
       delivered: string
-      orderId: number
+      orderId: string
       // False when the stock item was committed but the customer could not be
       // notified on Telegram. The order IS fulfilled — the caller must surface
       // this so an operator can resend the content manually.
@@ -40,7 +40,7 @@ export type FulfillErrorCode =
  * using `FOR UPDATE SKIP LOCKED`, so two simultaneous approvals can never grab
  * the same item. The item is flipped to `sold` in the same transaction.
  */
-export async function fulfillOrder(orderId: number): Promise<FulfillResult> {
+export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
   const claim = await claimStockItem(orderId)
   if (!claim.ok) return claim
 
@@ -95,7 +95,7 @@ type ClaimResult =
 
 // Runs the transactional part of fulfillment: claims a stock item, flips the
 // order to approved/delivered and records the delivery. No side effects.
-async function claimStockItem(orderId: number): Promise<ClaimResult> {
+async function claimStockItem(orderId: string): Promise<ClaimResult> {
   const client = await pool.connect()
   let committed = false
   try {
@@ -202,9 +202,9 @@ async function claimStockItem(orderId: number): Promise<ClaimResult> {
 }
 
 type DeliverableOrder = {
-  id: number
+  id: string
   ownerId: string
-  customerId: number | null
+  customerId: string | null
   productName: string | null
   pixChatId?: string | null
   pixMessageId?: number | null

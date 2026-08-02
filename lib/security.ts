@@ -1,5 +1,8 @@
 import "server-only"
-import { createHmac, randomBytes, timingSafeEqual } from "crypto"
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
+import { Redis } from "@upstash/redis"
+import { Ratelimit } from "@upstash/ratelimit"
+import RedisIO from "ioredis"
 
 /**
  * Security primitives shared across webhooks, auth and the bot.
@@ -34,8 +37,6 @@ export function hmacSha256(secret: string, payload: string): string {
 
 /**
  * Escapes text for safe interpolation into Telegram HTML messages.
- * Prevents broken markup / HTML injection from product names, descriptions,
- * customer-provided content, etc.
  */
 export function escapeHtml(input: unknown): string {
   return String(input ?? "")
@@ -46,51 +47,132 @@ export function escapeHtml(input: unknown): string {
     .replaceAll("'", "&#39;")
 }
 
-/**
- * Best-effort in-memory sliding-window rate limiter.
- *
- * Note: state lives in the process, so in a multi-instance/serverless
- * deployment each instance keeps its own counters. It still meaningfully
- * blunts brute-force/spam bursts. For strict distributed limits, back this
- * with Upstash Redis — the call sites won't change.
- *
- * Callers should include the storeId/userId in the key when available
- * to avoid false positives from shared IPs/proxies.
- */
+// --- Rate Limiting ---
+
+type RateLimitResult = {
+  ok: boolean
+  retryAfterMs: number
+  limit: number
+  remaining: number
+  reset: number
+}
+
+// In-memory fallback for development
 type Bucket = { count: number; resetAt: number }
 const buckets = new Map<string, Bucket>()
 
-export function rateLimit(
+/**
+ * Rate limiter distribuído com suporte a Redis e Upstash.
+ * Fallback para memória local em desenvolvimento.
+ */
+export async function rateLimit(
   key: string,
-  opts: { max: number; windowMs: number },
-): { ok: boolean; retryAfterMs: number } {
+  opts: { max: number; windowMs: number; namespace?: string },
+): Promise<RateLimitResult> {
+  const fullKey = `${opts.namespace ?? "rl"}:${key}`
   const now = Date.now()
-  const existing = buckets.get(key)
+
+  // 1. Tentar Upstash Redis (Serverless HTTP)
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    try {
+      const redis = Redis.fromEnv()
+      const ratelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(opts.max, `${opts.windowMs} ms`),
+        prefix: "@upstash/ratelimit",
+      })
+      const { success, limit, remaining, reset } = await ratelimit.limit(fullKey)
+      return {
+        ok: success,
+        retryAfterMs: success ? 0 : reset - now,
+        limit,
+        remaining,
+        reset,
+      }
+    } catch (err) {
+      console.error("[security] Upstash rate limiting failed, falling back:", err)
+    }
+  }
+
+  // 2. Tentar Redis Padrão (TCP)
+  if (process.env.REDIS_URL) {
+    try {
+      const redis = new RedisIO(process.env.REDIS_URL)
+      // Estratégia atômica usando INCR e EXPIRE
+      const current = await redis.incr(fullKey)
+      if (current === 1) {
+        await redis.pexpire(fullKey, opts.windowMs)
+      }
+      
+      const ttl = await redis.pttl(fullKey)
+      const isOk = current <= opts.max
+      
+      // Cleanup connection if not persistent (optional, but good for serverless)
+      // Em um app real, usaríamos um singleton para o cliente Redis
+      
+      return {
+        ok: isOk,
+        retryAfterMs: isOk ? 0 : Math.max(0, ttl),
+        limit: opts.max,
+        remaining: Math.max(0, opts.max - current),
+        reset: now + (ttl > 0 ? ttl : opts.windowMs),
+      }
+    } catch (err) {
+      console.error("[security] Redis rate limiting failed, falling back:", err)
+    }
+  }
+
+  // 3. Fallback: In-memory sliding window (básico)
+  const existing = buckets.get(fullKey)
   if (!existing || now >= existing.resetAt) {
-    buckets.set(key, { count: 1, resetAt: now + opts.windowMs })
-    return { ok: true, retryAfterMs: 0 }
+    buckets.set(fullKey, { count: 1, resetAt: now + opts.windowMs })
+    return { ok: true, retryAfterMs: 0, limit: opts.max, remaining: opts.max - 1, reset: now + opts.windowMs }
   }
-  if (existing.count >= opts.max) {
-    return { ok: false, retryAfterMs: existing.resetAt - now }
+  
+  const isOk = existing.count < opts.max
+  if (isOk) existing.count += 1
+  
+  return {
+    ok: isOk,
+    retryAfterMs: isOk ? 0 : existing.resetAt - now,
+    limit: opts.max,
+    remaining: Math.max(0, opts.max - existing.count),
+    reset: existing.resetAt,
   }
-  existing.count += 1
-  return { ok: true, retryAfterMs: 0 }
 }
 
 /**
  * Prune stale buckets periodically to prevent unbounded memory growth.
- * Runs every 5 minutes.
  */
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, bucket] of buckets) {
-    if (now >= bucket.resetAt) buckets.delete(key)
-  }
-}, 5 * 60 * 1000)
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, bucket] of buckets) {
+      if (now >= bucket.resetAt) buckets.delete(key)
+    }
+  }, 5 * 60 * 1000)
+}
 
-/** Extracts a best-effort client IP from request headers. */
+/**
+ * Identifica o IP do cliente de forma segura.
+ * Considera headers da Vercel e proxies confiáveis.
+ */
 export function clientIpFrom(req: Request): string {
+  // Headers da Vercel são os mais confiáveis se estivermos lá
+  const vercelIp = req.headers.get("x-vercel-proxied-for") || req.headers.get("x-real-ip")
+  if (vercelIp) return vercelIp.split(",")[0].trim()
+
   const fwd = req.headers.get("x-forwarded-for")
-  if (fwd) return fwd.split(",")[0]!.trim()
-  return req.headers.get("x-real-ip") ?? "unknown"
+  if (fwd) return fwd.split(",")[0].trim()
+  
+  return "unknown"
+}
+
+/**
+ * Gera um hash do IP para privacidade em logs persistentes ou rate limiting.
+ * Usa um segredo do servidor para evitar rainbow tables.
+ */
+export function hashIp(ip: string): string {
+  const secret = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET || "internal-ip-salt"
+  return createHmac("sha256", secret).update(ip).digest("hex").slice(0, 16)
 }

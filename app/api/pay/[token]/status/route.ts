@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { orders } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { rateLimit, clientIpFrom } from "@/lib/security"
+import { rateLimit, clientIpFrom, hashIp } from "@/lib/security"
 
 /**
  * Public payment status endpoint, keyed by the order's unguessable publicToken.
@@ -22,9 +22,11 @@ export async function GET(
   // Throttle abusive polling/enumeration per token+IP. The page polls every few
   // seconds, so 60/min per token+IP is comfortably above legitimate usage.
   // Scoping to token prevents shared-IP false positives.
-  const limit = rateLimit(`paystatus:${token}:${clientIpFrom(req)}`, {
+  const ip = clientIpFrom(req)
+  const limit = await rateLimit(`paystatus:${token}:${hashIp(ip)}`, {
     max: 60,
     windowMs: 60_000,
+    namespace: "public",
   })
   if (!limit.ok) {
     return NextResponse.json({ error: "Too Many Requests" }, { status: 429 })

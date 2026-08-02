@@ -6,6 +6,7 @@ import { getFileUrl } from "@/lib/tg/file-url-cache"
 import { db } from "@/lib/db"
 import { telegramMedia } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
+import { decrypt } from "@/lib/crypto"
 
 export const runtime = "nodejs"
 
@@ -49,7 +50,8 @@ export async function GET(
 
   // Prefer the lightweight thumbnail when present (faster gallery loads).
   const targetFileId = row.thumbFileId ?? row.fileId
-  const url = await getFileUrl(client, targetFileId)
+  const decryptedFileId = decrypt(targetFileId) ?? targetFileId
+  const url = await getFileUrl(client, decryptedFileId)
   if (!url) {
     // Files over 20MB can't be fetched via getFile; that's expected.
     return new NextResponse("Pré-visualização indisponível", { status: 415 })
