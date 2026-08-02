@@ -174,6 +174,7 @@ export async function processQueue(
       }
 
       if (!cfg.client) {
+        console.error(`[Queue] Item ${item.id} failed: Bot not configured for store ${item.ownerId}`)
         await failItem(item.id, item.attempts, item.maxAttempts, "Bot não configurado")
         failed++
         continue
@@ -185,11 +186,13 @@ export async function processQueue(
         posts.set(item.postId, post)
       }
       if (!post) {
+        console.error(`[Queue] Item ${item.id} failed: Post ${item.postId} not found`)
         await failItem(item.id, item.attempts, item.maxAttempts, "Postagem não encontrada")
         failed++
         continue
       }
 
+      console.log(`[Queue] Sending post ${item.postId} to chat ${item.chatId} (Attempt ${item.attempts + 1})`)
       const res = await sendPost(
         cfg.client,
         item.chatId,
@@ -198,6 +201,7 @@ export async function processQueue(
       )
 
       if (res.ok) {
+        console.log(`[Queue] Item ${item.id} sent successfully. MessageId: ${res.messageId}`)
         await db
           .update(telegramQueue)
           .set({
@@ -208,6 +212,7 @@ export async function processQueue(
           .where(eq(telegramQueue.id, item.id))
         sent++
       } else {
+        console.error(`[Queue] Item ${item.id} failed to send to ${item.chatId}: ${res.error}`)
         await failItem(item.id, item.attempts, item.maxAttempts, res.error ?? "Erro")
         failed++
       }
