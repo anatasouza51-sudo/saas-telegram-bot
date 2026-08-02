@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/session"
 import type { ReactNode } from "react"
 import { TopNavBar } from "@/components/top-nav-bar"
+import { AppSidebar } from "@/components/app-sidebar"
 import { ErrorView } from "@/components/error-view"
 
 export const dynamic = "force-dynamic"
@@ -14,14 +15,13 @@ export default async function PanelLayout({
   try {
     user = await requireUser()
   } catch (e) {
-    // Re-throw redirects so Next.js can handle them
     if (e instanceof Error && (e.message === "NEXT_REDIRECT" || e.stack?.includes("redirect"))) {
       throw e
     }
     
     console.error("[PanelLayout] Auth failed:", e)
     return (
-      <div className="min-h-screen bg-[#05070a] text-zinc-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-dashboard-bg text-dashboard-text flex items-center justify-center p-6">
         <ErrorView 
           title="Painel Indisponível"
           message="Não foi possível validar sua sessão de acesso. O banco de dados pode estar temporariamente fora do ar."
@@ -32,14 +32,25 @@ export default async function PanelLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-zinc-100 flex flex-col">
-      {/* Barra de navegação superior fixa */}
-      <TopNavBar user={user} />
+    <div className="min-h-screen bg-dashboard-bg text-dashboard-text flex overflow-hidden">
+      {/* Sidebar Fixa Desktop */}
+      <AppSidebar 
+        userRole={user.role} 
+        className="hidden lg:flex w-[260px] shrink-0 sticky top-0 h-screen" 
+      />
 
-      {/* Conteúdo principal */}
-      <main className="flex-1 pt-20 sm:pt-[88px] md:pt-24 px-2 sm:px-4 md:px-8 pb-2 sm:pb-4 md:pb-8 overflow-x-hidden w-full">
-        {children}
-      </main>
+      {/* Área de Conteúdo */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+        {/* Topbar */}
+        <TopNavBar user={user} />
+
+        {/* Conteúdo Principal com Scroll */}
+        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-grain">
+          <div className="container mx-auto p-4 md:p-8 max-w-7xl animate-in fade-in duration-500">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

@@ -1,21 +1,50 @@
 "use client"
-import { memo } from "react"
-import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  ShoppingCart,
-  Users,
-  Package,
+
+import React, { memo, type ReactNode } from "react"
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  Users, 
+  Package, 
+  ShoppingCart, 
+  Clock, 
+  CheckCircle2, 
+  XCircle,
+  AlertCircle,
+  BarChart3,
   AlertTriangle,
   Zap,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  type LucideIcon,
+  ShoppingBag,
+  type LucideIcon
 } from "lucide-react"
+import * as Icons from "lucide-react"
+import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
+
+export type MetricColor = "blue" | "green" | "red" | "yellow" | "purple" | "pink" | "indigo"
+
+interface MetricCardProps {
+  title: string
+  value: string | number
+  iconName?: string
+  icon?: LucideIcon
+  trend?: "up" | "down" | "neutral"
+  trendValue?: string
+  color?: MetricColor
+  index?: number
+  className?: string
+}
+
+const colorMap: Record<MetricColor, { bg: string, text: string, border: string, glow: string }> = {
+  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", glow: "shadow-blue-500/5" },
+  green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", glow: "shadow-emerald-500/5" },
+  red: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/20", glow: "shadow-rose-500/5" },
+  yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", glow: "shadow-amber-500/5" },
+  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20", glow: "shadow-purple-500/5" },
+  pink: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20", glow: "shadow-pink-500/5" },
+  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-400", border: "border-indigo-500/20", glow: "shadow-indigo-500/5" },
+}
 
 const iconMap: Record<string, LucideIcon> = {
   dollar: DollarSign,
@@ -29,30 +58,8 @@ const iconMap: Record<string, LucideIcon> = {
   x: XCircle,
   trendingUp: TrendingUp,
   trendingDown: TrendingDown,
-}
-
-const colorMap = {
-  blue: "from-teal-500/10 to-teal-400/3 border-teal-400/15",
-  purple: "from-violet-600/10 to-violet-400/3 border-violet-500/15",
-  green: "from-emerald-600/10 to-emerald-400/3 border-emerald-500/15",
-  red: "from-rose-600/10 to-rose-400/3 border-rose-500/15",
-  yellow: "from-amber-500/10 to-amber-400/3 border-amber-500/15",
-}
-
-const iconBgMap = {
-  blue: "bg-teal-500/15 border-teal-400/25",
-  purple: "bg-violet-600/15 border-violet-500/25",
-  green: "bg-emerald-600/15 border-emerald-500/25",
-  red: "bg-rose-600/15 border-rose-500/25",
-  yellow: "bg-amber-500/15 border-amber-500/25",
-}
-
-const iconColorMap = {
-  blue: "text-teal-300",
-  purple: "text-violet-300",
-  green: "text-emerald-300",
-  red: "text-rose-300",
-  yellow: "text-amber-300",
+  bag: ShoppingBag,
+  chart: BarChart3
 }
 
 export const MetricCard = memo(({
@@ -64,78 +71,63 @@ export const MetricCard = memo(({
   trendValue,
   color = "blue",
   index = 0,
-}: {
-  title: string
-  value: string
-  iconName?: string
-  icon?: LucideIcon
-  trend?: "up" | "down"
-  trendValue?: string
-  color?: "blue" | "purple" | "green" | "red" | "yellow"
-  index?: number
-}) => {
-  const Icon = iconName ? iconMap[iconName] : icon || DollarSign
+  className
+}: MetricCardProps) => {
+  const IconComponent = iconName ? (iconMap[iconName] || (Icons as any)[iconName]) : icon || DollarSign
+  const styles = colorMap[color] || colorMap.blue
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.08 }}
-      whileHover={{ y: -4, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileHover={{ y: -2 }}
       className={cn(
-        "relative flex items-center justify-between overflow-hidden rounded-3xl border bg-gradient-to-br min-h-[160px] sm:min-h-[180px] md:min-h-[200px] px-6 sm:px-8 py-8 sm:py-10 shadow-md transition-shadow duration-300",
-        colorMap[color]
+        "group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-200 hover:border-dashboard-border-active hover:shadow-2xl",
+        styles.glow,
+        className
       )}
     >
-      <div className="relative z-10 flex flex-col gap-2 flex-1">
-        <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
-          {title}
-        </p>
-        
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: index * 0.08 + 0.08 }}
-          className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white tabular-nums"
-        >
-          {value}
-        </motion.p>
+      {/* Background Accent Glow */}
+      <div className={cn(
+        "absolute -right-8 -top-8 w-24 h-24 blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500",
+        styles.bg
+      )} />
 
-        {trend && trendValue && (
-          <div className="flex items-center gap-1.5 mt-2">
-            {trend === "up" ? (
-              <TrendingUp className="w-4 h-4 text-green-400 shrink-0" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-red-400 shrink-0" />
-            )}
-            <span className={cn(
-              "text-xs font-black uppercase tracking-wider",
-              trend === "up" ? "text-green-400" : "text-red-400"
-            )}>
-              {trendValue}
-            </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-dashboard-text-muted uppercase tracking-wider">
+            {title}
+          </span>
+          <div className={cn(
+            "w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-inner",
+            styles.bg,
+            styles.text
+          )}>
+            {IconComponent && <IconComponent className="w-4 h-4" />}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Ícone circular à direita */}
-      <motion.div 
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 300, 
-          damping: 25, 
-          delay: index * 0.08 + 0.15 
-        }}
-        className={cn(
-          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 shadow-sm flex-shrink-0 ml-4",
-          iconBgMap[color]
-        )}
-      >
-        {Icon && <Icon className={cn("h-10 w-10 sm:h-12 sm:w-12", iconColorMap[color])} />}
-      </motion.div>
+        <div className="flex items-end justify-between gap-2">
+          <div className="flex flex-col">
+            <h3 className="text-2xl font-black text-dashboard-text tracking-tight tabular-nums">
+              {value}
+            </h3>
+            
+            {trend && trendValue && (
+              <div className={cn(
+                "flex items-center gap-1 mt-1 text-[10px] font-bold uppercase tracking-wide",
+                trend === "up" ? "text-emerald-400" : trend === "down" ? "text-rose-400" : "text-dashboard-text-muted"
+              )}>
+                {trend === "up" ? <TrendingUp className="w-3 h-3" /> : trend === "down" ? <TrendingDown className="w-3 h-3" /> : null}
+                <span>{trendValue}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </motion.div>
   )
 })
+
 MetricCard.displayName = "MetricCard"

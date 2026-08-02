@@ -6,36 +6,18 @@ import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { authClient } from "@/lib/auth-client"
 import {
-  Search,
   Settings,
   Menu,
   X,
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Megaphone,
-  Send,
-  Wallet,
-  Users,
-  ScrollText,
   LogOut,
+  Bell
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ROLE_LABELS, type Role } from "@/lib/roles"
 import { NotificationsPopover } from "@/components/notifications-popover"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
-
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Produtos", href: "/products", icon: Package },
-  { label: "Vendas", href: "/orders", icon: ShoppingCart },
-  { label: "Divulgação", href: "/posts", icon: Megaphone },
-  { label: "Telegram", href: "/telegram", icon: Send },
-  { label: "Gateway", href: "/gateway", icon: Wallet },
-  { label: "Clientes", href: "/customers", icon: Users },
-  { label: "Logs", href: "/logs", icon: ScrollText },
-]
+import { AppSidebar } from "@/components/app-sidebar"
+import { cn } from "@/lib/utils"
 
 export const TopNavBar = memo(({
   user,
@@ -45,7 +27,6 @@ export const TopNavBar = memo(({
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
@@ -55,94 +36,112 @@ export const TopNavBar = memo(({
     router.push("/sign-in")
     router.refresh()
   }, [router])
-  const openSearch = useCallback(() => setSearchOpen(true), [])
-  const closeSearch = useCallback(() => setSearchOpen(false), [])
 
+  // Mobile scroll lock
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden"
     } else {
-      document.body.style.overflow = "unset"
+      document.body.style.overflow = ""
     }
     return () => {
-      document.body.style.overflow = "unset"
+      document.body.style.overflow = ""
     }
   }, [mobileMenuOpen])
 
+  // Get current page title from pathname
+  const getPageTitle = () => {
+    if (pathname === "/") return "Dashboard"
+    const segments = pathname.split("/").filter(Boolean)
+    if (segments.length === 0) return "Dashboard"
+    
+    // Simple mapping for common routes
+    const titles: Record<string, string> = {
+      products: "Produtos",
+      categories: "Categorias",
+      stock: "Estoque",
+      orders: "Pedidos",
+      customers: "Clientes",
+      payments: "Pagamentos",
+      deliveries: "Entregas",
+      posts: "Postagens",
+      channels: "Grupos & Canais",
+      automations: "Automações",
+      telegram: "Telegram Bot",
+      gateway: "Gateway (VeoPag)",
+      admins: "Administradores",
+      logs: "Logs"
+    }
+    
+    return titles[segments[0]] || segments[0].charAt(0).toUpperCase() + segments[0].slice(1)
+  }
+
   return (
     <>
-      {/* Top Navigation Bar — Aumentada para h-16 (64px) no mobile e h-20 no desktop */}
-      <nav className="fixed top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 md:top-4 md:left-4 md:right-4 z-[100] h-16 sm:h-18 md:h-20 backdrop-blur-md bg-slate-900/95 border border-blue-500/30 rounded-2xl px-4 sm:px-6 md:px-10 shadow-lg shadow-black/40 flex items-center">
-        <div className="flex items-center justify-between gap-4 w-full">
-          {/* Logo - Aumentado */}
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
-            <div className="relative w-10 h-10 flex items-center justify-center">
-              <Image
-                src="/ghostbot-final-logo.png"
-                alt="GHOST BOT"
-                width={40}
-                height={40}
-                className="object-contain transition-transform duration-300 group-hover:scale-110"
-              />
-            </div>
-            <span className="text-sm sm:text-base md:text-lg font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-wide">
-              GHOST BOT
-            </span>
-          </Link>
+      <header className="h-16 md:h-20 border-b border-dashboard-border/30 bg-dashboard-bg/80 backdrop-blur-xl sticky top-0 z-40 w-full px-4 md:px-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Mobile Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5"
+            onClick={toggleMobileMenu}
+            aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-sidebar"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-2">
-            {NAV_ITEMS.slice(0, 5).map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-colors duration-150 ${
-                    isActive
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/10"
-                      : "text-muted-foreground hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Right Section - Ícones maiores */}
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-            <NotificationsPopover />
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-white/5 h-10 w-10 sm:h-11 sm:w-11"
-              onClick={() => setProfileDialogOpen(true)}
-              aria-label="Configurações"
-            >
-              <Settings className="w-6 h-6 sm:w-5 sm:h-5" />
-            </Button>
-
-            {/* Mobile Menu Toggle - Ícone bem grande */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden hover:bg-white/5 h-10 w-10"
-              onClick={toggleMobileMenu}
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-7 h-7" />
-              ) : (
-                <Menu className="w-7 h-7" />
-              )}
-            </Button>
+          {/* Breadcrumb / Title */}
+          <div className="flex flex-col">
+            <h1 className="text-sm md:text-base font-bold text-dashboard-text tracking-tight">
+              {getPageTitle()}
+            </h1>
+            <p className="hidden md:block text-[10px] text-dashboard-text-muted font-medium uppercase tracking-widest">
+              {ROLE_LABELS[user.role]}
+            </p>
           </div>
         </div>
-      </nav>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-2 md:gap-4">
+          <NotificationsPopover />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5"
+            onClick={() => setProfileDialogOpen(true)}
+            aria-label="Configurações de perfil"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+
+          <div className="h-8 w-[1px] bg-dashboard-border/30 mx-1 hidden md:block" />
+
+          {/* User Profile */}
+          <div className="hidden md:flex items-center gap-3 pl-2">
+            <div className="flex flex-col items-end">
+              <span className="text-xs font-bold text-dashboard-text">{user.name}</span>
+              <button 
+                onClick={handleSignOut}
+                className="text-[10px] text-dashboard-accent hover:text-dashboard-accent/80 font-bold transition-colors"
+              >
+                Sair
+              </button>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-sm font-black shadow-lg shadow-dashboard-accent/20">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          
+          {/* Mobile User Avatar */}
+          <div className="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-xs font-black">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+        </div>
+      </header>
 
       {/* Profile Settings Dialog */}
       <ProfileSettingsDialog
@@ -151,66 +150,50 @@ export const TopNavBar = memo(({
         user={user}
       />
 
-      {/* Mobile Menu Backdrop */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-md lg:hidden"
+      {/* Mobile Sidebar Drawer */}
+      <div 
+        id="mobile-sidebar"
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden transition-all duration-300 ease-in-out",
+          mobileMenuOpen ? "visible" : "invisible"
+        )}
+      >
+        {/* Backdrop */}
+        <div 
+          className={cn(
+            "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+            mobileMenuOpen ? "opacity-100" : "opacity-0"
+          )}
           onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
         />
-      )}
-
-      {/* Mobile Menu — Começa abaixo da nova navbar flutuante */}
-      {mobileMenuOpen && (
-        <div className="fixed top-[72px] left-0 right-0 z-[95] bg-slate-950 border-b border-blue-500/10 max-h-[calc(100vh-72px)] overflow-y-auto lg:hidden animate-in slide-in-from-top duration-300 shadow-2xl">
-          <div className="px-4 py-4 space-y-2">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-4 rounded-xl text-base font-bold transition-colors duration-150 ${
-                    isActive
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                      : "text-muted-foreground hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <Icon className="w-6 h-6 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-
-            {/* Mobile User Info */}
-            <div className="mt-6 pt-6 border-t border-white/5">
-              <div className="flex items-center justify-between gap-4 px-4 py-2">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-lg shadow-blue-500/20">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-base font-bold text-white truncate">{user.name}</p>
-                    <p className="text-xs font-medium text-muted-foreground truncate uppercase tracking-widest">{ROLE_LABELS[user.role]}</p>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleSignOut}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-12 w-12"
-                >
-                  <LogOut className="w-6 h-6" />
-                </Button>
-              </div>
-            </div>
+        
+        {/* Sidebar Content */}
+        <div 
+          className={cn(
+            "absolute top-0 left-0 bottom-0 w-[280px] bg-dashboard-sidebar transition-transform duration-300 ease-in-out shadow-2xl",
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <AppSidebar 
+            userRole={user.role} 
+            onItemClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Mobile Logout at bottom of sidebar */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-dashboard-border/30 bg-dashboard-sidebar">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-bold">Encerrar Sessão</span>
+            </Button>
           </div>
         </div>
-      )}
+      </div>
     </>
   )
 })
+
 TopNavBar.displayName = "TopNavBar"

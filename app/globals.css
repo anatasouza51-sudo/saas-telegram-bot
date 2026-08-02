@@ -57,6 +57,19 @@
   --animate-glow-pulse: glow-pulse 2.5s ease-in-out infinite;
   --animate-slide-in-from-top: slide-in-from-top 0.3s ease-out forwards;
   --animate-scale-in: scale-in 0.2s ease-out forwards;
+
+  /* Dashboard specific tokens */
+  --color-dashboard-bg: var(--dashboard-bg);
+  --color-dashboard-sidebar: var(--dashboard-sidebar);
+  --color-dashboard-surface: var(--dashboard-surface);
+  --color-dashboard-surface-elevated: var(--dashboard-surface-elevated);
+  --color-dashboard-border: var(--dashboard-border);
+  --color-dashboard-border-active: var(--dashboard-border-active);
+  --color-dashboard-text: var(--dashboard-text);
+  --color-dashboard-text-muted: var(--dashboard-text-muted);
+  --color-dashboard-accent: var(--dashboard-accent);
+  --color-dashboard-accent-secondary: var(--dashboard-accent-secondary);
+  --color-dashboard-glow: var(--dashboard-glow);
 }
 
 @keyframes bounce-slow {
@@ -95,38 +108,55 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Identidade "Ghost" — teal espectral sobre grafite frio, violeta como acento raro */
 :root {
   color-scheme: dark;
-  --background: oklch(0.05 0.014 250);
-  --foreground: oklch(0.97 0.006 240);
-  --card: oklch(0.078 0.016 248);
-  --card-foreground: oklch(0.97 0.006 240);
-  --popover: oklch(0.082 0.017 248);
-  --popover-foreground: oklch(0.97 0.006 240);
-  --primary: oklch(0.8 0.135 192);
-  --primary-foreground: oklch(0.12 0.03 200);
-  --secondary: oklch(0.13 0.018 250);
-  --secondary-foreground: oklch(0.96 0.01 240);
-  --muted: oklch(0.09 0.015 250);
-  --muted-foreground: oklch(0.62 0.03 245);
-  --accent: oklch(0.66 0.17 300);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.62 0.22 22);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.76 0.17 155);
-  --success-foreground: oklch(0.1 0.04 155);
-  --warning: oklch(0.81 0.14 82);
-  --warning-foreground: oklch(0.1 0.04 82);
-  --border: oklch(1 0 0 / 7%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.8 0.135 192);
-  --radius: 0.85rem;
-  --chart-1: oklch(0.8 0.135 192);
-  --chart-2: oklch(0.66 0.17 300);
-  --chart-3: oklch(0.76 0.17 155);
-  --chart-4: oklch(0.81 0.14 82);
-  --chart-5: oklch(0.62 0.22 22);
+  
+  /* Palette aproximada */
+  --dashboard-bg: #07060B;
+  --dashboard-sidebar: #0C0911;
+  --dashboard-surface: #110D17;
+  --dashboard-surface-elevated: #15101D;
+  --dashboard-border: rgba(236, 72, 153, 0.1);
+  --dashboard-border-active: rgba(236, 72, 153, 0.3);
+  --dashboard-text: #F8F5FA;
+  --dashboard-text-muted: #A89EAE;
+  --dashboard-text-discreet: #746B7B;
+  --dashboard-accent: #EC4899; /* Magenta */
+  --dashboard-accent-secondary: #A855F7; /* Violeta */
+  --dashboard-glow: rgba(236, 72, 153, 0.15);
+
+  /* shadcn/ui Overrides for Premium Dark Theme */
+  --background: var(--dashboard-bg);
+  --foreground: var(--dashboard-text);
+  --card: var(--dashboard-surface);
+  --card-foreground: var(--dashboard-text);
+  --popover: var(--dashboard-surface-elevated);
+  --popover-foreground: var(--dashboard-text);
+  --primary: var(--dashboard-accent);
+  --primary-foreground: #ffffff;
+  --secondary: #1f1a29;
+  --secondary-foreground: var(--dashboard-text);
+  --muted: #16111d;
+  --muted-foreground: var(--dashboard-text-muted);
+  --accent: #251b30;
+  --accent-foreground: var(--dashboard-text);
+  --destructive: #FB7185;
+  --destructive-foreground: #ffffff;
+  --success: #34D399;
+  --success-foreground: #05150f;
+  --warning: #FBBF24;
+  --warning-foreground: #151005;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.04);
+  --ring: var(--dashboard-accent);
+  --radius: 0.75rem;
+
+  /* Chart Colors */
+  --chart-1: #EC4899;
+  --chart-2: #A855F7;
+  --chart-3: #34D399;
+  --chart-4: #FBBF24;
+  --chart-5: #FB7185;
 }
 
 :root {
@@ -136,70 +166,43 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { 
-    @apply bg-background text-foreground antialiased;
-    background-image:
-      radial-gradient(ellipse 900px 600px at 12% -10%, oklch(0.8 0.135 192 / 0.07), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 0%, oklch(0.66 0.17 300 / 0.05), transparent 55%);
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
+    background-image: 
+      radial-gradient(circle at 50% -20%, rgba(168, 85, 247, 0.08), transparent 70%),
+      radial-gradient(circle at 0% 0%, rgba(236, 72, 153, 0.05), transparent 50%);
     background-attachment: fixed;
   }
-  h1 { @apply text-2xl font-black sm:text-3xl md:text-4xl lg:text-5xl tracking-tight; }
-  h2 { @apply text-xl font-bold sm:text-2xl; }
-  /* Valores monetários e métricas ficam alinhados e mais fáceis de escanear */
-  .tabular-nums, [data-slot="card"] .text-2xl, [data-slot="card"] .text-3xl {
+  
+  /* Tabular numbers for metrics */
+  .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 }
 
-.bg-mesh {
-  background: linear-gradient(-45deg, #030304, #06131a, #170a2e, #030304);
-  background-size: 400% 400%;
-  animation: mesh 25s ease-in-out infinite;
-  will-change: background-position;
-  transform: translateZ(0);
-}
-
-/* Utilitário para esconder scrollbar mantendo funcionalidade */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Custom selection color */
-::selection {
-  background-color: oklch(0.8 0.135 192 / 0.3);
-  color: white;
-}
-
-/* Scrollbar fina e discreta, combinando com o tema */
+/* Scrollbar fina e discreta */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 10%);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 18%);
-  background-clip: padding-box;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Grão sutil para tirar a sensação "chapada" do fundo escuro */
+/* Grain Effect */
 .bg-grain::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.02;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

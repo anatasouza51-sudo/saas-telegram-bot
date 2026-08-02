@@ -1,7 +1,7 @@
 "use client"
 
-import { memo, useMemo } from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { memo, useMemo, useId } from "react"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import {
   ChartContainer,
   ChartTooltip,
@@ -13,7 +13,7 @@ import type { SalesPoint } from "@/lib/queries/dashboard"
 const chartConfig = {
   revenue: {
     label: "Receita",
-    color: "#8b5cf6",
+    color: "var(--dashboard-accent)",
   },
 } satisfies ChartConfig
 
@@ -31,6 +31,8 @@ const fullCurrency = new Intl.NumberFormat("pt-BR", {
 });
 
 export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
+  const gradientId = useId()
+  
   const formatted = useMemo(() => data.map((d) => ({
     ...d,
     label: new Date(d.date + "T00:00:00").toLocaleDateString("pt-BR", {
@@ -40,50 +42,56 @@ export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
   })), [data])
 
   return (
-    <ChartContainer config={chartConfig} className="h-[280px] w-full">
-      <AreaChart data={formatted} margin={{ left: 4, right: 12, top: 8 }}>
-        <defs>
-          <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.5} />
-            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid vertical={false} strokeOpacity={0.1} />
-        <XAxis
-          dataKey="label"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          minTickGap={16}
-        />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          width={48}
-          tickFormatter={(v) => compactCurrency.format(v as number)}
-        />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              labelFormatter={(v) => `Dia ${v}`}
-              formatter={(value) => [
-                fullCurrency.format(value as number),
-                " Receita",
-              ]}
-            />
-          }
-        />
-        <Area
-          dataKey="revenue"
-          type="monotone"
-          fill="url(#fillRevenue)"
-          stroke="var(--color-revenue)"
-          strokeWidth={2}
-          isAnimationActive={true}
-          animationDuration={1500}
-          animationEasing="ease-in-out"
-        />
-      </AreaChart>
+    <ChartContainer config={chartConfig} className="h-[280px] sm:h-[340px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={formatted} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--dashboard-accent)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--dashboard-accent)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.03)" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={12}
+            minTickGap={16}
+            tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={48}
+            tickFormatter={(v) => compactCurrency.format(v as number)}
+            tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }}
+          />
+          <ChartTooltip
+            cursor={{ stroke: 'rgba(236, 72, 153, 0.2)', strokeWidth: 2 }}
+            content={
+              <ChartTooltipContent
+                className="bg-dashboard-surface-elevated border-dashboard-border shadow-2xl backdrop-blur-md"
+                labelFormatter={(v) => `Dia ${v}`}
+                formatter={(value) => [
+                  fullCurrency.format(value as number),
+                  " Receita",
+                ]}
+              />
+            }
+          />
+          <Area
+            dataKey="revenue"
+            type="monotone"
+            fill={`url(#${gradientId})`}
+            stroke="var(--dashboard-accent)"
+            strokeWidth={3}
+            isAnimationActive={true}
+            animationDuration={1500}
+            animationEasing="ease-in-out"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </ChartContainer>
   )
 })
