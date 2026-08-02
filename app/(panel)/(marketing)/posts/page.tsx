@@ -176,7 +176,7 @@ export default async function PostsPage() {
 
   // All 7 loaders run in parallel, each wrapped in safeLoad to guarantee
   // a fallback even if the DB pool is exhausted or a query times out.
-  const [channels, rawPosts, rawSchedules, stats, rawMedia, templates, rawReports] = await Promise.all([
+  const [rawChannels, rawPosts, rawSchedules, stats, rawMedia, rawTemplates, rawReports] = await Promise.all([
     safeLoad<Channel[]>("listChannels", () => listChannels() as Promise<Channel[]>, []),
     safeLoad<any[]>("listPosts", () => listPosts("all") as unknown as Promise<any[]>, []),
     safeLoad<any[]>("listSchedules", () => listSchedules() as Promise<any[]>, []),

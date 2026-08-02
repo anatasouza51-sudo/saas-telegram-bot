@@ -1,0 +1,51 @@
+$ next build
+▲ Next.js 16.2.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.1s
+  Skipping validation of types
+  Finished TypeScript config validation in 7ms ...
+  Collecting page data using 5 workers ...
+[db/migrate] DATABASE_URL não configurada. Pulando migração.
+  Generating static pages using 5 workers (0/7) ...
+  Generating static pages using 5 workers (1/7) 
+  Generating static pages using 5 workers (3/7) 
+  Generating static pages using 5 workers (5/7) 
+✓ Generating static pages using 5 workers (7/7) in 232ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /admins
+├ ƒ /api/auth/[...all]
+├ ƒ /api/dashboard
+├ ƒ /api/pay/[token]/status
+├ ƒ /api/telegram/webhook/[storeId]
+├ ƒ /api/tg/bot-avatar
+├ ƒ /api/tg/cron
+├ ƒ /api/tg/media/[id]
+├ ƒ /api/tg/upload
+├ ƒ /api/veopag/webhook/[storeId]/[secret]
+├ ƒ /automations
+├ ƒ /categories
+├ ƒ /channels
+├ ƒ /customers
+├ ƒ /deliveries
+├ ○ /forget-password
+├ ƒ /gateway
+├ ƒ /logs
+├ ƒ /orders
+├ ƒ /pay/[token]
+├ ƒ /payments
+├ ƒ /posts
+├ ƒ /products
+├ ○ /sign-in
+├ ƒ /sign-up
+├ ƒ /stock
+└ ƒ /telegram
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
