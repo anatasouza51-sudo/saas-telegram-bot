@@ -4,6 +4,9 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { can, type Role } from "@/lib/roles"
+import { db } from "@/lib/db"
+import { user as userTable } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 export type { Role } from "@/lib/roles"
 
 export type SessionUser = {
@@ -43,19 +46,34 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     const h = new Headers()
     h.set("cookie", cookieHeader)
 
-    const session = await auth.api.getSession({ headers: h })
+    // Desabilitar cache para garantir dados frescos após atualizações
+    const session = await auth.api.getSession({ 
+      headers: h,
+      useCache: false 
+    })
+    
     if (!session?.user) return null
 
     const u = session.user as typeof session.user & {
       role?: string
       ownerId?: string | null
+      image?: string | null
     }
+    
+    // Se por algum motivo o Better Auth ainda retornar o nome antigo da sessão,
+    // buscamos diretamente no banco de dados para garantir a verdade absoluta
+    const [dbUser] = await db
+      .select({ name: userTable.name, image: userTable.image })
+      .from(userTable)
+      .where(eq(userTable.id, u.id))
+      .limit(1)
+
     const ownerId = u.ownerId ?? null
     return {
       id: u.id,
-      name: u.name,
+      name: dbUser?.name || u.name,
       email: u.email,
-      image: u.image,
+      image: dbUser?.image || u.image,
       role: (u.role as Role) || "support",
       ownerId,
       storeId: ownerId ?? u.id,
