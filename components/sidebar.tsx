@@ -93,10 +93,10 @@ export function Sidebar() {
           {/* Rodapé: Perfil e Sair */}
           <div className="flex flex-col items-center gap-3 w-full px-2 pt-2 border-t border-zinc-800/60">
             <div 
-              title="rokie (Admin)"
+              title="Perfil"
               className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center text-white font-semibold justify-center text-sm shadow-inner cursor-pointer"
             >
-              R
+              U
             </div>
             <button 
               title="Sair"
