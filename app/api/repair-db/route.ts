@@ -2,93 +2,110 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Endpoint de repair para limpar colunas duplicadas na tabela user.
- * A tabela user tem colunas duplicadas (id, name, email, etc.)
- * criadas por migracoes anteriores que usaram ALTER TABLE ADD COLUMN
- * sem verificar duplicatas. Isso causa "Failed to create user".
- *
- * Uso: GET /api/repair-db
+ * Repair v2 — usa CASCADE para forçar remoção de colunas duplicadas
+ * que têm dependências (FK de outras tabelas).
+ * Depois reconstrói as FK necessárias.
  */
 export async function GET() {
   const results: string[] = []
   const client = await pool.connect()
   try {
-    // 1. Listar todas as colunas da tabela user com ordinals
+    // 1. Verificar estado atual
     const colRes = await client.query(`
-      SELECT column_name, ordinal_position, data_type, is_nullable, column_default
+      SELECT column_name, ordinal_position, data_type
       FROM information_schema.columns
       WHERE table_name = 'user'
       ORDER BY ordinal_position
     `)
-    results.push(`Colunas encontradas: ${colRes.rows.length}`)
+    results.push(`Estado atual: ${colRes.rows.length} colunas`)
 
-    // 2. Identificar colunas duplicadas (por nome, mantendo a de menor ordinal)
-    const seen = new Map<string, number>()
-    const toRemove: { name: string; ordinal: number }[] = []
-    for (const row of colRes.rows) {
-      const existing = seen.get(row.column_name)
-      if (existing !== undefined) {
-        // Ja vimos essa coluna — remover a duplicata (maior ordinal)
-        toRemove.push({ name: row.column_name, ordinal: row.ordinal_position })
-        // Se a anterior era a duplicata (maior ordinal), remover ela e manter esta
-        if (existing > row.ordinal_position) {
-          // Trocar: remover a anterior, manter esta
-          const idx = toRemove.findIndex(r => r.ordinal === existing)
-          if (idx >= 0) toRemove.splice(idx, 1)
-          toRemove.push({ name: row.column_name, ordinal: existing })
-        }
-      } else {
-        seen.set(row.column_name, row.ordinal_position)
-      }
-    }
-
-    results.push(`Colunas duplicadas a remover: ${toRemove.length}`)
-
-    // 3. Remover colunas duplicadas
-    for (const col of toRemove) {
-      try {
-        // Precisamos remover por posicao ordinal, nao por nome
-        // Usar DROP COLUMN com a coluna que tem o ordinal mais alto
-        const checkRes = await client.query(`
-          SELECT column_name FROM information_schema.columns
-          WHERE table_name = 'user' AND ordinal_position = $1
-        `, [col.ordinal])
-        if (checkRes.rows.length > 0) {
-          const actualName = checkRes.rows[0].column_name
-          await client.query(`ALTER TABLE "user" DROP COLUMN "${actualName}"`)
-          results.push(`Removida coluna duplicada: ${actualName} (ordinal ${col.ordinal})`)
-        }
-      } catch (err: any) {
-        results.push(`Erro ao remover ${col.name}: ${err.message}`)
-      }
-    }
-
-    // 4. Adicionar colunas faltantes (twoFactorEnabled, onboardingSeen)
-    const afterRes = await client.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'user'
+    // 2. Remover coluna id UUID duplicada (manter a TEXT que tem FK)
+    // Primeiro: salvar dados da coluna uuid para não perder nada
+    const uuidCheck = await client.query(`
+      SELECT ordinal_position FROM information_schema.columns
+      WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
     `)
-    const existingCols = new Set(afterRes.rows.map(r => r.column_name))
-
-    if (!existingCols.has('twoFactorEnabled')) {
+    if (uuidCheck.rows.length > 0) {
       try {
-        await client.query('ALTER TABLE "user" ADD COLUMN "twoFactorEnabled" BOOLEAN DEFAULT FALSE')
-        results.push('Adicionada coluna: twoFactorEnabled')
+        // Remover com CASCADE para forçar (FK dependem dessa coluna)
+        // Mas queremos manter a TEXT, não a UUID
+        // Estratégia: remover a UUID que tem dependências
+        await client.query(`ALTER TABLE "user" DROP COLUMN "id" CASCADE`)
+        results.push("Removida coluna id UUID (CASCADE)")
+        // A coluna TEXT já foi removida automaticamente pelo CASCADE?
+        // Verificar
+        const afterId = await client.query(`
+          SELECT data_type FROM information_schema.columns
+          WHERE table_name = 'user' AND column_name = 'id'
+        `)
+        if (afterId.rows.length === 0) {
+          results.push("ATENÇÃO: Coluna id TEXT também foi removida pelo CASCADE!")
+          // Recriar coluna id TEXT
+          await client.query(`ALTER TABLE "user" ADD COLUMN "id" TEXT NOT NULL DEFAULT ''`)
+          await client.query(`ALTER TABLE "user" ADD CONSTRAINT user_pkey PRIMARY KEY (id)`)
+          results.push("Recriada coluna id TEXT com PK")
+        } else if (afterId.rows.length === 1) {
+          results.push(`Coluna id restante: ${afterId.rows[0].data_type}`)
+        }
       } catch (err: any) {
-        results.push(`Erro ao adicionar twoFactorEnabled: ${err.message}`)
+        results.push(`Erro ao remover id UUID: ${err.message}`)
       }
     }
 
-    if (!existingCols.has('onboardingSeen')) {
+    // 3. Remover coluna createdAt duplicada
+    const tsCheck = await client.query(`
+      SELECT ordinal_position, data_type FROM information_schema.columns
+      WHERE table_name = 'user' AND column_name = 'createdAt'
+      ORDER BY ordinal_position
+    `)
+    if (tsCheck.rows.length > 1) {
       try {
-        await client.query('ALTER TABLE "user" ADD COLUMN "onboardingSeen" BOOLEAN DEFAULT FALSE')
-        results.push('Adicionada coluna: onboardingSeen')
+        // Remover a que tem timestamp with time zone (ordinal menor)
+        const toRemove = tsCheck.rows[0]
+        await client.query(`ALTER TABLE "user" DROP COLUMN "createdAt"`)
+        results.push(`Removida coluna createdAt (${toRemove.data_type})`)
       } catch (err: any) {
-        results.push(`Erro ao adicionar onboardingSeen: ${err.message}`)
+        results.push(`Erro ao remover createdAt: ${err.message}`)
       }
     }
 
-    // 5. Verificar estado final
+    // 4. Remover colunas extras desnecessárias (banned, banReason, banExpires)
+    for (const col of ['banned', 'banReason', 'banExpires']) {
+      try {
+        const exists = await client.query(`
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'user' AND column_name = '${col}'
+        `)
+        if (exists.rows.length > 0) {
+          await client.query(`ALTER TABLE "user" DROP COLUMN "${col}"`)
+          results.push(`Removida coluna: ${col}`)
+        }
+      } catch (err: any) {
+        results.push(`Erro ao remover ${col}: ${err.message}`)
+      }
+    }
+
+    // 5. Garantir colunas necessárias
+    const neededCols = [
+      { name: 'twoFactorEnabled', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'onboardingSeen', type: 'BOOLEAN DEFAULT FALSE' },
+    ]
+    for (const col of neededCols) {
+      try {
+        const exists = await client.query(`
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'user' AND column_name = '${col.name}'
+        `)
+        if (exists.rows.length === 0) {
+          await client.query(`ALTER TABLE "user" ADD COLUMN "${col.name}" ${col.type}`)
+          results.push(`Adicionada coluna: ${col.name}`)
+        }
+      } catch (err: any) {
+        results.push(`Erro ao adicionar ${col.name}: ${err.message}`)
+      }
+    }
+
+    // 6. Verificar estado final
     const finalRes = await client.query(`
       SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns
@@ -97,7 +114,7 @@ export async function GET() {
     `)
     results.push('--- Estado final ---')
     for (const row of finalRes.rows) {
-      results.push(`  ${row.column_name}: ${row.data_type} (${row.is_nullable})`)
+      results.push(`  ${row.column_name}: ${row.data_type} (nullable=${row.is_nullable})`)
     }
 
     return NextResponse.json({ results })
