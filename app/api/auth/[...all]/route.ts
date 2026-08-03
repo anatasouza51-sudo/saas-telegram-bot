@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { toNextJsHandler } from "better-auth/next-js"
 import { ensureDbStructure } from "@/lib/db/migrate"
+import { NextRequest, NextResponse } from "next/server"
 
 let dbReady = false
 
@@ -15,12 +16,22 @@ async function ensureDb() {
   }
 }
 
-export const { GET, POST } = toNextJsHandler(
-  new Proxy(auth.handler, {
-    apply(target, thisArg, args) {
-      return Promise.resolve(ensureDb()).then(() =>
-        target.apply(thisArg, args as any)
-      )
-    },
-  }) as typeof auth.handler
-)
+export async function GET(request: NextRequest) {
+  await ensureDb()
+  try {
+    return auth.handler(request) as any
+  } catch (err: any) {
+    console.error("[auth GET] Erro:", err?.message)
+    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  await ensureDb()
+  try {
+    return auth.handler(request) as any
+  } catch (err: any) {
+    console.error("[auth POST] Erro:", err?.message, err?.stack)
+    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 })
+  }
+}
