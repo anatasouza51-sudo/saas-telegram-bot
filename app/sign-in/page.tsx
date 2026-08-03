@@ -16,9 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCheckingSecure, setIsCheckingSecure] = useState(true);
-  const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  const [currentLine, setCurrentLine] = useState("");
   const [verificationDone, setVerificationDone] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
 
   const securityLines = [
     ">> Initializing secure environment...",
@@ -26,36 +25,25 @@ export default function LoginPage() {
     ">> Verifying connection integrity...",
     ">> Checking firewall rules...",
     ">> Validating session tokens...",
-    ">> Environment scan complete.",
   ];
 
   useEffect(() => {
     let lineIndex = 0;
     const interval = setInterval(() => {
       if (lineIndex < securityLines.length) {
-        setTerminalLines((prev) => [...prev, securityLines[lineIndex]]);
+        setCurrentLine(securityLines[lineIndex]);
         lineIndex++;
       } else {
         clearInterval(interval);
         setTimeout(() => {
           setIsCheckingSecure(false);
           setVerificationDone(true);
-        }, 400);
+        }, 500);
       }
-    }, 350);
+    }, 400);
 
     return () => clearInterval(interval);
   }, []);
-
-  const scrollToBottom = useCallback(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [terminalLines, scrollToBottom]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,40 +156,16 @@ export default function LoginPage() {
           )}
 
           {/* Terminal Hacker Verification */}
-          <div className="my-4">
-            <div
-              ref={terminalRef}
-              className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-3 h-[140px] overflow-y-auto scrollbar-hide font-mono text-[10px] leading-relaxed"
-            >
-              {isCheckingSecure && (
-                <>
-                  {terminalLines.map((line, i) => (
-                    <div key={i} className="text-emerald-400/80 animate-in fade-in slide-in-from-left-2 duration-200">
-                      {line}
-                    </div>
-                  ))}
-                  {verificationDone && (
-                    <div className="mt-2 pt-2 border-t border-emerald-900/30">
-                      <div className="text-emerald-400 font-bold tracking-wider text-[11px]">
-                        [✓] ACCESS VERIFIED
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-              {verificationDone && !isCheckingSecure && (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-emerald-400 font-bold tracking-widest text-xs mb-1 animate-in fade-in zoom-in-50 duration-500">
-                      [✓] ACCESS VERIFIED
-                    </div>
-                    <div className="text-emerald-400/50 text-[9px] font-mono">
-                      secure environment confirmed
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="my-4 h-[42px] relative">
+            {isCheckingSecure ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#0a0a0a] border border-gray-800 rounded-xl text-[11px] text-emerald-400/80 font-mono animate-in fade-in duration-200">
+                <span>{currentLine}</span>
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-[11px] text-emerald-400 font-mono transition-all duration-500">
+                <span className="font-bold tracking-wider">[✓] ACCESS VERIFIED</span>
+              </div>
+            )}
           </div>
 
           {/* Botão de Envio */}
