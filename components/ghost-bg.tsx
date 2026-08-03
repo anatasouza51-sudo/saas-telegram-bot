@@ -24,7 +24,7 @@ export function GhostBg() {
     const w = container?.clientWidth || window.innerWidth
     const h = container?.clientHeight || window.innerHeight
 
-    const generated: GhostData[] = Array.from({ length: 12 }, (_, i) => {
+    const generated: GhostData[] = Array.from({ length: 7 }, (_, i) => {
       const dir = Math.random() > 0.5 ? 1 : -1
       return {
         id: i,
