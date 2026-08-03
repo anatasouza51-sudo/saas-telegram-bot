@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -15,37 +15,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isCheckingSecure, setIsCheckingSecure] = useState(true);
-  const [currentLine, setCurrentLine] = useState("");
-  const [verificationDone, setVerificationDone] = useState(false);
 
-  const securityLines = [
-    ">> Initializing secure environment...",
-    ">> Scanning SSL/TLS certificates...",
-    ">> Verifying connection integrity...",
-    ">> Checking firewall rules...",
-    ">> Validating session tokens...",
-  ];
-
-  useEffect(() => {
-    let lineIndex = 0;
-    const interval = setInterval(() => {
-      if (lineIndex < securityLines.length) {
-        setCurrentLine(securityLines[lineIndex]);
-        lineIndex++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          setIsCheckingSecure(false);
-          setVerificationDone(true);
-        }, 500);
-      }
-    }, 400);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -73,7 +44,7 @@ export default function LoginPage() {
       setError("Ocorreu um erro ao fazer login. Tente novamente.");
       setLoading(false);
     }
-  };
+  }, [email, password, router]);
 
   return (
     <div className="min-h-screen w-full bg-[#050508] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -84,7 +55,6 @@ export default function LoginPage() {
       <div className="mb-8 z-10 text-center flex flex-col items-center justify-center">
         <Link href="/" className="flex flex-col items-center gap-3 group">
           <div className="relative w-20 h-20 flex items-center justify-center">
-            {/* Glow Effect matching the purple logo */}
             <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
             <Image
               src="/ghostbot-final-logo.png"
@@ -153,23 +123,10 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Terminal Hacker Verification */}
-          <div className="my-4 h-[42px] relative">
-            {isCheckingSecure ? (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#121319] border border-gray-800 rounded-xl text-xs text-emerald-400/80 font-mono animate-pulse">
-                <span className="font-mono">{currentLine}</span>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-xs text-emerald-400 transition-all duration-500">
-                <span className="font-bold tracking-wider">[✓] ACCESS VERIFIED</span>
-              </div>
-            )}
-          </div>
-
           {/* Botão de Envio */}
           <button 
             type="submit" 
-            disabled={loading || isCheckingSecure} 
+            disabled={loading} 
             className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98]"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
