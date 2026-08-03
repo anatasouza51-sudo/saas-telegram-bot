@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, Zap, Users, ShoppingCart, MessageSquare, Settings, BarChart3 } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface OnboardingStep {
   title: string;
   description: string;
   icon: any;
-  targetId?: string; // id do elemento na sidebar para destaque
+  targetId?: string;
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -62,26 +62,49 @@ export default function OnboardingTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    // Mostra apenas na primeira visita
-    const hasCompleted = localStorage.getItem("onboarding_completed");
-    if (!hasCompleted) {
-      setIsVisible(true);
+  // Marca o onboarding como visto no banco de dados (persistente por conta)
+  const markAsCompleted = useCallback(async () => {
+    try {
+      await fetch("/api/onboarding-complete", { method: "POST" });
+    } catch {
+      // Silencioso — não bloqueia o usuário
     }
   }, []);
 
-  const handleContinue = () => {
+  useEffect(() => {
+    // Verifica no servidor se o usuário já viu o onboarding
+    // Contas antigas: onboardingSeen = TRUE (coluna criada com DEFAULT TRUE)
+    // Contas novas: onboardingSeen = FALSE (criadas pelo hook do Better Auth)
+    const checkOnboarding = async () => {
+      try {
+        const res = await fetch("/api/onboarding-check");
+        if (res.ok) {
+          const data = await res.json();
+          // Se o servidor diz que ja viu, não mostra
+          if (data?.onboardingSeen) return;
+        }
+        // Se não viu, mostra o tutorial
+        setIsVisible(true);
+      } catch {
+        // Se falhar a verificação, não mostra (segurança — não forçar)
+        setIsVisible(false);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+  const handleContinue = async () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
       setIsVisible(false);
-      localStorage.setItem("onboarding_completed", "true");
+      await markAsCompleted();
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     setIsVisible(false);
-    localStorage.setItem("onboarding_completed", "true");
+    await markAsCompleted();
   };
 
   const step = ONBOARDING_STEPS[currentStep];
