@@ -46,7 +46,7 @@ export function SectionHeader({
     tabs[0]
 
   return (
-    <header className="sticky top-14 z-20 border-b border-white/5 bg-slate-950 lg:top-[73px]">
+    <header className="border-b border-white/5 bg-slate-950">
       <div className="flex flex-col gap-4 px-4 py-2 sm:px-6 lg:px-8">
         {/* Navegação secundária com scroll horizontal suave */}
         {tabs.length > 0 && (
