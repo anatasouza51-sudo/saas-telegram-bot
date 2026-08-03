@@ -4,6 +4,7 @@ import { TopNavBar } from "@/components/top-nav-bar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PageTransition } from "@/components/page-transition"
 import { ErrorView } from "@/components/error-view"
+import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 
 export const dynamic = "force-dynamic"
 
@@ -52,6 +53,9 @@ export default async function PanelLayout({
           </div>
         </main>
       </div>
+
+      {/* Tutorial de Onboarding */}
+      <OnboardingTutorial />
     </div>
   )
 }
