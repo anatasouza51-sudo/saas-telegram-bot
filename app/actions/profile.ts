@@ -9,7 +9,7 @@ import { db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
-export async function updateUserProfile(input: { name?: string; image?: string }) {
+export async function updateUserProfile(input: { name?: string; image?: string | null }) {
   // Outside the try: `requireUser` redirects by throwing, and that must not be
   // turned into a generic "Erro ao atualizar perfil".
   const sessionUser = await requireUser()
