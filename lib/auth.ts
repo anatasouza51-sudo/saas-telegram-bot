@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth"
+import { twoFactor } from "better-auth/plugins"
 import { pool } from "@/lib/db"
 
 function getBaseURL() {
@@ -33,12 +34,20 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "development_secret_key_placeholder_12345",
   baseURL: getBaseURL(),
   trustedOrigins,
+  appName: "SaaS Telegram Bot",
   emailAndPassword: {
     enabled: true,
     // Enforce a reasonable minimum; Better Auth hashes with scrypt by default.
     minPasswordLength: 8,
     maxPasswordLength: 128,
   },
+  plugins: [
+    twoFactor({
+      issuer: "SaaS Telegram Bot",
+      allowPasswordless: false,
+      skipVerificationOnEnable: false,
+    }),
+  ],
   // Sessions expire after 7 days and refresh at most once per day. Better Auth
   // stores sessions in the DB, so revocation/logout is immediate and complete.
   session: {
