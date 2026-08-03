@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { GhostBg } from "@/components/ghost-bg";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -90,11 +91,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#050508] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Efeito de Fundo Estrelado */}
-      <div 
-        className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{ backgroundImage: `radial-gradient(circle at center, #ffffff 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
-      />
+      {/* Ghost Background Animation */}
+      <GhostBg />
 
       {/* LOGO DO PROJETO */}
       <div className="mb-8 z-10 text-center flex flex-col items-center justify-center">
