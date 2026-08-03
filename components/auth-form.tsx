@@ -95,13 +95,11 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         return
       }
       
-      // Sucesso no login sem 2FA
+      // Sucesso no login sem 2FA — aguardar propagação do cookie de sessão
       router.refresh()
-      
-      // Redirecionamento forcado para a raiz
       setTimeout(() => {
-        window.location.href = "/"
-      }, 300)
+        window.location.replace("/")
+      }, 1000)
       
     } catch (err) {
       console.error("Auth error:", err)

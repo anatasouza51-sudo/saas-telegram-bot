@@ -62,13 +62,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Sucesso no login
+      // Sucesso no login — aguardar propagação do cookie de sessão antes de redirecionar
       router.refresh();
-      
-      // Redirecionamento forçado para a raiz
       setTimeout(() => {
-        window.location.href = "/";
-      }, 300);
+        window.location.replace("/");
+      }, 1000);
       
     } catch (err) {
       console.error("Login error:", err);
