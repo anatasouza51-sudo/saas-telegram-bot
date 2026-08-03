@@ -178,7 +178,7 @@ export const TopNavBar = memo(({
         {/* Sidebar Content */}
         <div 
           className={cn(
-            "absolute top-0 left-0 bottom-0 w-[280px] bg-dashboard-sidebar transition-transform duration-300 ease-in-out shadow-2xl",
+            "absolute top-0 left-0 bottom-0 w-[280px] bg-dashboard-sidebar transition-transform duration-300 ease-in-out shadow-2xl flex flex-col",
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -188,10 +188,10 @@ export const TopNavBar = memo(({
           />
           
           {/* Mobile Logout at bottom of sidebar */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-dashboard-border/30 bg-dashboard-sidebar">
+          <div className="mt-auto border-t border-dashboard-border/30 bg-dashboard-sidebar">
             <Button 
               variant="ghost" 
-              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 p-4"
               onClick={handleSignOut}
             >
               <LogOut className="w-4 h-4" />
