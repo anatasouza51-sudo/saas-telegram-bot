@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,12 +15,46 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCheckingSecure, setIsCheckingSecure] = useState(true);
+  const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  const [verificationDone, setVerificationDone] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
-  // Simula a verificação rápida de segurança do navegador ao carregar a página
+  const securityLines = [
+    ">> Initializing secure environment...",
+    ">> Scanning SSL/TLS certificates...",
+    ">> Verifying connection integrity...",
+    ">> Checking firewall rules...",
+    ">> Validating session tokens...",
+    ">> Environment scan complete.",
+  ];
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsCheckingSecure(false), 1500);
-    return () => clearTimeout(timer);
+    let lineIndex = 0;
+    const interval = setInterval(() => {
+      if (lineIndex < securityLines.length) {
+        setTerminalLines((prev) => [...prev, securityLines[lineIndex]]);
+        lineIndex++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsCheckingSecure(false);
+          setVerificationDone(true);
+        }, 400);
+      }
+    }, 350);
+
+    return () => clearInterval(interval);
   }, []);
+
+  const scrollToBottom = useCallback(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [terminalLines, scrollToBottom]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,19 +169,41 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Widget de Verificação de Navegador */}
-          <div className="my-4 h-[42px] relative">
-            {isCheckingSecure ? (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#121319] border border-gray-800 rounded-xl text-xs text-gray-400 animate-pulse">
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                <span>Analisando ambiente seguro...</span>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-xs text-emerald-500 transition-all duration-500">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Navegação segura confirmada</span>
-              </div>
-            )}
+          {/* Terminal Hacker Verification */}
+          <div className="my-4">
+            <div
+              ref={terminalRef}
+              className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-3 h-[140px] overflow-y-auto scrollbar-hide font-mono text-[10px] leading-relaxed"
+            >
+              {isCheckingSecure && (
+                <>
+                  {terminalLines.map((line, i) => (
+                    <div key={i} className="text-emerald-400/80 animate-in fade-in slide-in-from-left-2 duration-200">
+                      {line}
+                    </div>
+                  ))}
+                  {verificationDone && (
+                    <div className="mt-2 pt-2 border-t border-emerald-900/30">
+                      <div className="text-emerald-400 font-bold tracking-wider text-[11px]">
+                        [✓] ACCESS VERIFIED
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              {verificationDone && !isCheckingSecure && (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-emerald-400 font-bold tracking-widest text-xs mb-1 animate-in fade-in zoom-in-50 duration-500">
+                      [✓] ACCESS VERIFIED
+                    </div>
+                    <div className="text-emerald-400/50 text-[9px] font-mono">
+                      secure environment confirmed
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Botão de Envio */}
