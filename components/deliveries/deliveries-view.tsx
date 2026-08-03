@@ -4,8 +4,6 @@ import { useMemo, useState } from "react"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -37,16 +35,20 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
 
   return (
     <Card>
-      <CardHeader className="gap-4">
-        <CardTitle>Histórico de entregas ({filtered.length})</CardTitle>
-        <Input
-          placeholder="Buscar por produto, cliente, pedido..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:max-w-xs"
-        />
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
+        <div className="flex flex-col gap-4 mb-6 pb-4 border-b border-border">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm font-medium text-muted-foreground">
+              {filtered.length} entrega{filtered.length !== 1 ? 's' : ''}
+            </div>
+            <Input
+              placeholder="Buscar por produto, cliente, pedido..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="sm:max-w-xs"
+            />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

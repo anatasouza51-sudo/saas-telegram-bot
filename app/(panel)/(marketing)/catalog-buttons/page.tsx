@@ -30,13 +30,7 @@ export default async function CatalogButtonsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Botões do Catálogo</CardTitle>
-          <CardDescription>
-            Personalize os nomes e emojis dos botões de compra, cupom e voltar que aparecem no bot Telegram.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <CatalogButtonsForm
             initial={parseCatalogConfig(saved["catalog.config"])}
           />
