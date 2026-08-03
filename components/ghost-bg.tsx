@@ -11,6 +11,8 @@ interface GhostData {
   vy: number
   rotation: number
   rotationSpeed: number
+  opacity: number
+  opacityDir: number
 }
 
 export function GhostBg() {
@@ -25,16 +27,22 @@ export function GhostBg() {
     const h = container?.clientHeight || window.innerHeight
 
     const generated: GhostData[] = Array.from({ length: 7 }, (_, i) => {
-      const dir = Math.random() > 0.5 ? 1 : -1
+      // Velocidade horizontal: sempre movendo (positivo ou negativo)
+      const dirX = Math.random() > 0.5 ? 1 : -1
+      const speedX = Math.random() * 0.8 + 0.4
+      // Velocidade vertical: levemente flutuante
+      const speedY = (Math.random() - 0.5) * 0.4
       return {
         id: i,
         x: Math.random() * w,
         y: Math.random() * h,
-        size: Math.random() * 80 + 60,
-        vx: (Math.random() * 0.8 + 0.3) * dir * (Math.random() > 0.5 ? 1 : -1),
-        vy: Math.random() * -0.6 - 0.2,
+        size: Math.random() * 70 + 50,
+        vx: speedX * dirX,
+        vy: speedY,
         rotation: Math.random() * 20 - 10,
         rotationSpeed: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.15 + 0.15,
+        opacityDir: Math.random() > 0.5 ? 0.001 : -0.001,
       }
     })
     ghostsRef.current = generated
@@ -46,7 +54,7 @@ export function GhostBg() {
     let lastTime = performance.now()
 
     const animate = (time: number) => {
-      const dt = Math.min((time - lastTime) / 16, 3) // cap delta to 3 frames
+      const dt = Math.min((time - lastTime) / 16, 3)
       lastTime = time
 
       const container = containerRef.current
@@ -60,33 +68,51 @@ export function GhostBg() {
         let nvy = g.vy
         let nr = g.rotation + g.rotationSpeed * dt
 
-        // Bounce off edges and wrap
-        if (nx < -g.size) {
-          nx = w + g.size * 0.5
-          nvx = Math.abs(nvx)
-        } else if (nx > w + g.size * 0.5) {
-          nx = -g.size
-          nvx = -Math.abs(nvx)
-        }
-        if (ny < -g.size * 1.3) {
-          ny = h + g.size * 0.5
-          nvy = -Math.abs(nvy) * 0.5
-        } else if (ny > h + g.size * 0.5) {
-          ny = -g.size * 1.3
-          nvy = -Math.abs(nvy) * 0.5
+        // WRAP-AROUND: sai de um lado, reaparece do outro
+        const marginX = g.size + 20
+        const marginY = g.size * 1.3 + 20
+
+        if (nx < -marginX) {
+          nx = w + marginX
+        } else if (nx > w + marginX) {
+          nx = -marginX
         }
 
-        // Random gentle direction changes
-        if (Math.random() < 0.002) {
-          nvx += (Math.random() - 0.5) * 0.5
+        if (ny < -marginY) {
+          ny = h + marginY
+        } else if (ny > h + marginY) {
+          ny = -marginY
+        }
+
+        // Mudanças aleatórias suaves de direção
+        if (Math.random() < 0.003) {
+          nvx += (Math.random() - 0.5) * 0.3
         }
         if (Math.random() < 0.003) {
           nvy += (Math.random() - 0.5) * 0.2
         }
 
-        // Keep horizontal speed reasonable
-        nvx = Math.max(-1.5, Math.min(1.5, nvx))
-        nvy = Math.max(-1, Math.min(0.3, nvy))
+        // Manter velocidade razoável (sempre em movimento)
+        nvx = Math.max(-1.2, Math.min(1.2, nvx))
+        nvy = Math.max(-0.8, Math.min(0.8, nvy))
+
+        // Nunca parar: se muito lento, dar um empurrão
+        if (Math.abs(nvx) < 0.2) {
+          nvx = (nvx >= 0 ? 1 : -1) * 0.3
+        }
+        if (Math.abs(nvy) < 0.05) {
+          nvy = (nvy >= 0 ? 1 : -1) * 0.1
+        }
+
+        // Pulsar opacidade levemente
+        let nOpacity = g.opacity + g.opacityDir * dt
+        if (nOpacity > 0.3) {
+          nOpacity = 0.3
+          ghostsRef.current[g.id].opacityDir = -Math.abs(g.opacityDir)
+        } else if (nOpacity < 0.1) {
+          nOpacity = 0.1
+          ghostsRef.current[g.id].opacityDir = Math.abs(g.opacityDir)
+        }
 
         return {
           ...g,
@@ -95,6 +121,7 @@ export function GhostBg() {
           vx: nvx,
           vy: nvy,
           rotation: nr,
+          opacity: nOpacity,
         }
       })
 
@@ -142,20 +169,20 @@ export function GhostBg() {
             <path
               d="M50 5C26.5 5 8 22.5 8 45V105C8 112 13.5 117 20 117C23 117 26 115.5 28 113C30 110.5 33 109 36 109C39 109 42 110.5 44 113C46 115.5 48 117 51 117C54 117 56 115.5 58 113C60 110.5 63 109 66 109C69 109 72 110.5 74 113C76 115.5 78 117 82 117C87.5 117 92 112 92 105V45C92 22.5 73.5 5 50 5Z"
               fill={`url(#casperBody-${ghost.id})`}
-              opacity="0.25"
+              opacity={ghost.opacity}
             />
 
             {/* Eyes - big round Casper style */}
-            <ellipse cx="36" cy="48" rx="10" ry="12" fill="#ffffff" opacity="0.85" />
-            <ellipse cx="64" cy="48" rx="10" ry="12" fill="#ffffff" opacity="0.85" />
+            <ellipse cx="36" cy="48" rx="10" ry="12" fill="#ffffff" opacity={ghost.opacity * 3} />
+            <ellipse cx="64" cy="48" rx="10" ry="12" fill="#ffffff" opacity={ghost.opacity * 3} />
 
             {/* Pupils */}
-            <circle cx="38" cy="46" r="5" fill="#1a1a2e" />
-            <circle cx="66" cy="46" r="5" fill="#1a1a2e" />
+            <circle cx="38" cy="46" r="5" fill="#1a1a2e" opacity={ghost.opacity * 2.5} />
+            <circle cx="66" cy="46" r="5" fill="#1a1a2e" opacity={ghost.opacity * 2.5} />
 
             {/* Eye shine */}
-            <circle cx="36" cy="44" r="2" fill="#ffffff" opacity="0.7" />
-            <circle cx="64" cy="44" r="2" fill="#ffffff" opacity="0.7" />
+            <circle cx="36" cy="44" r="2" fill="#ffffff" opacity={ghost.opacity * 2} />
+            <circle cx="64" cy="44" r="2" fill="#ffffff" opacity={ghost.opacity * 2} />
 
             {/* Friendly smile */}
             <path
@@ -164,7 +191,7 @@ export function GhostBg() {
               strokeWidth="2.5"
               strokeLinecap="round"
               fill="none"
-              opacity="0.4"
+              opacity={ghost.opacity * 2}
             />
           </svg>
         </div>
