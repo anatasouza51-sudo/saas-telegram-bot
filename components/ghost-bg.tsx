@@ -1,111 +1,133 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
-interface Ghost {
+interface GhostData {
   id: number
-  x: number
-  y: number
+  startX: number
+  startY: number
   size: number
-  duration: number
-  delay: number
+  speed: number
+  amplitude: number
+  phase: number
 }
 
 export function GhostBg() {
-  const [ghosts, setGhosts] = useState<Ghost[]>([])
+  const [ghosts, setGhosts] = useState<GhostData[]>([])
+  const frameRef = useRef<number>(0)
+  const ghostsRef = useRef<GhostData[]>([])
 
   useEffect(() => {
-    const generated: Ghost[] = Array.from({ length: 12 }, (_, i) => ({
+    const generated: GhostData[] = Array.from({ length: 15 }, (_, i) => ({
       id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 80 + 80,
-      duration: Math.random() * 15 + 20,
-      delay: Math.random() * 15,
+      startX: Math.random() * 100,
+      startY: Math.random() * 100,
+      size: Math.random() * 60 + 50,
+      speed: Math.random() * 0.3 + 0.15,
+      amplitude: Math.random() * 4 + 2,
+      phase: Math.random() * Math.PI * 2,
     }))
     setGhosts(generated)
+    ghostsRef.current = generated
   }, [])
+
+  // Continuous animation loop using requestAnimationFrame
+  useEffect(() => {
+    if (ghosts.length === 0) return
+    let elapsed = 0
+    const animate = () => {
+      elapsed += 16 // ~60fps
+      ghostsRef.current = ghostsRef.current.map((g) => ({
+        ...g,
+      }))
+      frameRef.current = requestAnimationFrame(animate)
+    }
+    frameRef.current = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frameRef.current)
+  }, [ghosts.length])
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-950/30 via-transparent to-purple-950/20" />
+      {/* Subtle gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/3" />
 
       {ghosts.map((ghost) => (
         <div
           key={ghost.id}
-          className="absolute"
+          className="absolute will-change-transform"
           style={{
-            left: `${ghost.x}%`,
-            top: `${ghost.y}%`,
-            animation: `evilFloat ${ghost.duration}s ${ghost.delay}s ease-in-out infinite`,
+            left: `${ghost.startX}%`,
+            top: `${ghost.startY}%`,
           }}
         >
           <svg
             width={ghost.size}
-            height={ghost.size * 1.15}
-            viewBox="0 0 120 138"
+            height={ghost.size * 1.25}
+            viewBox="0 0 100 125"
             fill="none"
-            style={{ filter: "drop-shadow(0 0 20px rgba(168, 85, 247, 0.4))" }}
+            style={{
+              animation: `casperFloat ${12 + ghost.speed * 20}s ${ghost.phase}s ease-in-out infinite`,
+              filter: `drop-shadow(0 0 ${ghost.size * 0.15}px rgba(255,255,255,0.15))`,
+            }}
           >
             <defs>
-              <linearGradient id={`evilGrad-${ghost.id}`} x1="60" y1="0" x2="60" y2="138" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#7c3aed" />
-                <stop offset="1" stopColor="#4c1d95" />
+              <linearGradient id={`casperBody-${ghost.id}`} x1="50" y1="0" x2="50" y2="125" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#ffffff" />
+                <stop offset="1" stopColor="#d4d4d4" />
               </linearGradient>
-              <radialGradient id={`eyeGlow-${ghost.id}`} cx="0.5" cy="0.5" r="0.5">
-                <stop stopColor="#ef4444" />
-                <stop offset="1" stopColor="#991b1b" />
-              </radialGradient>
             </defs>
 
-            {/* Ghost body - menacing shape */}
+            {/* Ghost body - Casper style (rounded head, wavy bottom) */}
             <path
-              d="M60 5C30.18 5 5 30.18 5 60V125C5 132.73 11.27 139 19 139C24.5 139 29.5 137.27 33.5 134.27C37.5 131.27 42 129.5 47 129.5C52 129.5 56.5 131.27 60.5 134.27C64.5 137.27 69 139 74 139C79.5 139 84.5 137.27 88.5 134.27C92.5 131.27 97 129.5 102 129.5C107.23 129.5 111.95 132 115 135.5V60C115 30.18 89.82 5 60 5Z"
-              fill={`url(#evilGrad-${ghost.id})`}
-              opacity="0.35"
+              d="M50 5C26.5 5 8 22.5 8 45V105C8 112 13.5 117 20 117C23 117 26 115.5 28 113C30 110.5 33 109 36 109C39 109 42 110.5 44 113C46 115.5 48 117 51 117C54 117 56 115.5 58 113C60 110.5 63 109 66 109C69 109 72 110.5 74 113C76 115.5 78 117 82 117C87.5 117 92 112 92 105V45C92 22.5 73.5 5 50 5Z"
+              fill={`url(#casperBody-${ghost.id})`}
+              opacity="0.3"
             />
 
-            {/* Sinister mouth */}
+            {/* Eyes - big round Casper style */}
+            <ellipse cx="36" cy="48" rx="10" ry="12" fill="#ffffff" opacity="0.9" />
+            <ellipse cx="64" cy="48" rx="10" ry="12" fill="#ffffff" opacity="0.9" />
+
+            {/* Pupils - looking slightly different directions */}
+            <circle cx="38" cy="46" r="5" fill="#1a1a2e" />
+            <circle cx="66" cy="46" r="5" fill="#1a1a2e" />
+
+            {/* Eye shine */}
+            <circle cx="36" cy="44" r="2" fill="#ffffff" opacity="0.8" />
+            <circle cx="64" cy="44" r="2" fill="#ffffff" opacity="0.8" />
+
+            {/* Friendly smile */}
             <path
-              d="M42 85C48 92 54 95 60 95C66 95 72 92 78 85"
-              stroke="#7c3aed"
+              d="M42 68C46 74 50 76 54 76C58 76 62 74 66 68"
+              stroke="#d4d4d4"
               strokeWidth="2.5"
+              strokeLinecap="round"
               fill="none"
               opacity="0.5"
             />
-
-            {/* Glowing red eyes */}
-            <circle cx="42" cy="62" r="8" fill={`url(#eyeGlow-${ghost.id})`} />
-            <circle cx="78" cy="62" r="8" fill={`url(#eyeGlow-${ghost.id})`} />
-            {/* Eye pupils - narrow menacing */}
-            <ellipse cx="42" cy="62" rx="2.5" ry="5" fill="#0a0a0a" />
-            <ellipse cx="78" cy="62" rx="2.5" ry="5" fill="#0a0a0a" />
-
-            {/* Eye glow effect */}
-            <circle cx="42" cy="62" r="14" fill="#ef4444" opacity="0.08" />
-            <circle cx="78" cy="62" r="14" fill="#ef4444" opacity="0.08" />
           </svg>
         </div>
       ))}
 
       <style>{`
-        @keyframes evilFloat {
-          0%, 100% {
-            transform: translate(0, 0) rotate(0deg) scale(1);
-            opacity: 0.6;
+        @keyframes casperFloat {
+          0% {
+            transform: translate(0px, 0px) rotate(0deg) scale(1);
           }
-          25% {
-            transform: translate(-40px, -50px) rotate(-8deg) scale(1.05);
-            opacity: 0.8;
+          20% {
+            transform: translate(25px, -35px) rotate(4deg) scale(1.02);
           }
-          50% {
-            transform: translate(60px, -30px) rotate(5deg) scale(0.95);
-            opacity: 0.5;
+          40% {
+            transform: translate(-20px, -55px) rotate(-3deg) scale(0.97);
           }
-          75% {
-            transform: translate(-20px, -60px) rotate(-4deg) scale(1.02);
-            opacity: 0.7;
+          60% {
+            transform: translate(35px, -25px) rotate(5deg) scale(1.03);
+          }
+          80% {
+            transform: translate(-30px, -45px) rotate(-5deg) scale(0.98);
+          }
+          100% {
+            transform: translate(0px, 0px) rotate(0deg) scale(1);
           }
         }
       `}</style>
