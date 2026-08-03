@@ -47,24 +47,7 @@ export function SectionHeader({
 
   return (
     <header className="sticky top-14 z-20 border-b border-white/5 bg-slate-950 lg:top-[73px]">
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        {/* Seção e Título */}
-        <div className="flex flex-col gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">
-            {section}
-          </p>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              {active?.title}
-            </h1>
-            {active?.description && (
-              <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                {active.description}
-              </p>
-            )}
-          </div>
-        </div>
-
+      <div className="flex flex-col gap-4 px-4 py-2 sm:px-6 lg:px-8">
         {/* Navegação secundária com scroll horizontal suave */}
         {tabs.length > 0 && (
           <nav className="overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
