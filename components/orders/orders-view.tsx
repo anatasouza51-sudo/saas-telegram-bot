@@ -4,8 +4,6 @@ import { useMemo, useState } from "react"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -90,46 +88,50 @@ export function OrdersView({
 
   return (
     <Card>
-      <CardHeader className="gap-4">
-        <CardTitle>Pedidos ({filtered.length})</CardTitle>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Input
-            placeholder="Buscar por cliente, produto, ID..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            className="sm:max-w-xs"
-          />
-          <Select
-            items={{
-              all: "Todos status",
-              pending: "Pendente",
-              approved: "Aprovado",
-              refused: "Recusado",
-              cancelled: "Cancelado",
-            }}
-            value={status}
-            onValueChange={(v) => {
-              setStatus(v as string)
-              setPage(1)
-            }}
-          >
-            <SelectTrigger className="sm:w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos status</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="approved">Aprovado</SelectItem>
-              <SelectItem value="refused">Recusado</SelectItem>
-              <SelectItem value="cancelled">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
+      <CardContent className="pt-6">
+        <div className="flex flex-col gap-4 mb-6 pb-4 border-b border-border">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm font-medium text-muted-foreground">
+              {filtered.length} pedido{filtered.length !== 1 ? 's' : ''}
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Input
+                placeholder="Buscar por cliente, produto, ID..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setPage(1)
+                }}
+                className="sm:max-w-xs"
+              />
+              <Select
+                items={{
+                  all: "Todos status",
+                  pending: "Pendente",
+                  approved: "Aprovado",
+                  refused: "Recusado",
+                  cancelled: "Cancelado",
+                }}
+                value={status}
+                onValueChange={(v) => {
+                  setStatus(v as string)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="sm:w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos status</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="refused">Recusado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

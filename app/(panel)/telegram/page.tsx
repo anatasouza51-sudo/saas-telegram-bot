@@ -42,14 +42,7 @@ export default async function TelegramPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Configurações do bot</CardTitle>
-          <CardDescription>
-            Informe o token do seu bot (@BotFather), defina os administradores e
-            registre o webhook exclusivo da sua loja.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <TelegramForm
             initial={{
               hasBotToken: botConfigured,
@@ -62,14 +55,7 @@ export default async function TelegramPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Personalização da loja</CardTitle>
-          <CardDescription>
-            Edite a mensagem de &quot;bem-vindo à loja&quot; e adicione uma
-            imagem que o cliente vê ao iniciar o bot.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <StoreCustomizationForm
             initial={{
               welcomeMessage: saved["store.welcomeMessage"] ?? "",
@@ -80,13 +66,7 @@ export default async function TelegramPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Botões do Catálogo</CardTitle>
-          <CardDescription>
-            Personalize os nomes e emojis dos botões de compra, cupom e voltar que aparecem no bot.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <CatalogButtonsForm
             initial={parseCatalogConfig(saved["catalog.config"])}
           />
