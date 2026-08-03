@@ -62,41 +62,50 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     setError(null)
     
     if (isSignUp && password !== confirmPassword) {
-      setError("As senhas não coincidem")
+      setError("As senhas nao coincidem")
       return
     }
     
     setLoading(true)
     
     try {
+      let result: any
+      
       if (isSignUp) {
-        const result = await authClient.signUp.email({ email, password, name })
+        result = await authClient.signUp.email({ email, password, name })
         if (result.error) {
           setError(result.error.message || "Falha ao criar conta")
           setLoading(false)
           return
         }
-        await authClient.signIn.email({ email, password })
+        result = await authClient.signIn.email({ email, password })
       } else {
-        const result = await authClient.signIn.email({ email, password })
-        if (result.error) {
-          setError(result.error.message || "Credenciais inválidas")
-          setLoading(false)
-          return
-        }
+        result = await authClient.signIn.email({ email, password })
+      }
+
+      if (result.error) {
+        setError(result.error.message || "Credenciais invalidas")
+        setLoading(false)
+        return
+      }
+
+      // Verificar se 2FA eh necessario
+      if (result.data?.twoFactorRedirect) {
+        router.push("/two-factor")
+        return
       }
       
-      // Sucesso no login
-      router.refresh();
+      // Sucesso no login sem 2FA
+      router.refresh()
       
-      // Redirecionamento forçado para a raiz (onde agora o painel assumirá o controle)
+      // Redirecionamento forcado para a raiz
       setTimeout(() => {
-        window.location.href = "/";
-      }, 300);
+        window.location.href = "/"
+      }, 300)
       
     } catch (err) {
-      console.error("Auth error:", err);
-      setError("Erro de sistema. Tente novamente.");
+      console.error("Auth error:", err)
+      setError("Erro de sistema. Tente novamente.")
       setLoading(false)
     }
   }, [isSignUp, email, password, confirmPassword, name, router])
@@ -111,7 +120,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           GHOST BOT
         </h1>
         <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
-          {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operação."}
+          {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operacao."}
         </p>
       </div>
 
@@ -130,13 +139,13 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           type={showPassword ? "text" : "password"}
           value={password}
           onChange={setPassword}
-          placeholder="••••••••"
+          placeholder="........"
           minLength={8}
           required
           rightElement={!isSignUp && <Link href="/forget-password" className="text-[10px] font-bold text-primary uppercase tracking-wider">Recuperar</Link>}
         />
         {isSignUp && (
-          <FormInput id="confirmPassword" label="Confirmar Senha" icon={Lock} type={showPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" minLength={8} required />
+          <FormInput id="confirmPassword" label="Confirmar Senha" icon={Lock} type={showPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} placeholder="........" minLength={8} required />
         )}
 
         {error && <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-medium text-red-400">{error}</div>}
@@ -156,9 +165,9 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
         <div className="mt-2 text-center text-xs text-gray-400">
           {isSignUp ? (
-            <>Já tem conta? <Link href="/sign-in" className="text-white font-bold hover:underline">Entrar</Link></>
+            <>Ja tem conta? <Link href="/sign-in" className="text-white font-bold hover:underline">Entrar</Link></>
           ) : (
-            <>Não tem conta? <Link href="/sign-up" className="text-white font-bold hover:underline">Criar conta gratuita</Link></>
+            <>Nao tem conta? <Link href="/sign-up" className="text-white font-bold hover:underline">Criar conta gratuita</Link></>
           )}
         </div>
       </form>
