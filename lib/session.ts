@@ -17,6 +17,7 @@ export type SessionUser = {
   role: Role
   ownerId: string | null
   storeId: string
+  onboardingSeen: boolean
 }
 
 /**
@@ -60,12 +61,13 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       role?: string
       ownerId?: string | null
       image?: string | null
+      onboardingSeen?: boolean
     }
     
     // Se por algum motivo o Better Auth ainda retornar o nome antigo da sessão,
     // buscamos diretamente no banco de dados para garantir a verdade absoluta
     const [dbUser] = await db
-      .select({ name: userTable.name, image: userTable.image })
+      .select({ name: userTable.name, image: userTable.image, onboardingSeen: userTable.onboardingSeen })
       .from(userTable)
       .where(eq(userTable.id, u.id))
       .limit(1)
@@ -79,6 +81,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       role: (u.role as Role) || "support",
       ownerId,
       storeId: ownerId ?? u.id,
+      onboardingSeen: dbUser?.onboardingSeen ?? false,
     }
   } catch (error) {
     console.error("[getSessionUser] Session lookup failed:", error)

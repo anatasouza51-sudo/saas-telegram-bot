@@ -27,6 +27,8 @@ export const user = pgTable("user", {
   ownerId: text("ownerId"),
   // Better Auth twoFactor plugin
   twoFactorEnabled: boolean("twoFactorEnabled").default(false),
+  // Onboarding: TRUE para contas antigas (ja existiam antes), FALSE para contas novas
+  onboardingSeen: boolean("onboardingSeen").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })

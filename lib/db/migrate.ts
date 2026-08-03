@@ -89,7 +89,11 @@ export async function ensureDbStructure() {
     `)
 
     // 0.3 Coluna twoFactorEnabled na tabela user (plugin Better Auth)
-    await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
+        await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
+
+    // 0.4 Coluna onboardingSeen — contas existentes = TRUE (nao veem tutorial)
+    // contas novas = FALSE (veem tutorial na primeira vez)
+    await addColumnIfMissing(client, "user", "onboardingSeen", "BOOLEAN NOT NULL DEFAULT TRUE")
 
     // 1. Criar tabelas base se não existirem (já com UUID onde solicitado)
     await client.query(`

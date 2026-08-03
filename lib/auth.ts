@@ -84,6 +84,12 @@ export const auth = betterAuth({
         defaultValue: null,
         input: false,
       },
+      onboardingSeen: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
   databaseHooks: {
@@ -98,6 +104,7 @@ export const auth = betterAuth({
               ...userData,
               role: "admin",
               ownerId: null,
+              onboardingSeen: false,
             },
           }
         },
