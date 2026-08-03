@@ -14,8 +14,9 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ROLE_LABELS, type Role } from "@/lib/roles"
-import { NotificationsPopover } from "@/components/notifications-popover"
+import { NotificationsConnected } from "@/components/notifications-connected"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { AppSidebar } from "@/components/app-sidebar"
 import { cn } from "@/lib/utils"
 
@@ -106,7 +107,9 @@ export const TopNavBar = memo(({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 md:gap-4">
-          <NotificationsPopover />
+          <NotificationsConnected />
+
+          <ThemeToggle />
 
           <Button
             variant="ghost"

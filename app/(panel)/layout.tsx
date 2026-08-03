@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/session"
 import type { ReactNode } from "react"
 import { TopNavBar } from "@/components/top-nav-bar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { PageTransition } from "@/components/page-transition"
 import { ErrorView } from "@/components/error-view"
 
 export const dynamic = "force-dynamic"
@@ -46,8 +47,8 @@ export default async function PanelLayout({
 
         {/* Conteúdo Principal com Scroll */}
         <main className="flex-1 overflow-y-auto scroll-smooth relative bg-grain">
-          <div className="container mx-auto p-4 md:p-8 max-w-7xl animate-in fade-in duration-500">
-            {children}
+          <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>

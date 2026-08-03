@@ -6,20 +6,11 @@ import {
   RefreshCcw, 
   ArrowRight,
   ShoppingCart,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Package,
-  Users,
-  CreditCard,
-  Truck,
-  Zap,
-  Boxes,
-  TrendingUp,
-  LayoutDashboard
 } from "lucide-react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
+import { PaymentBreakdown } from "@/components/payment-breakdown"
+import { DashboardActivity } from "@/components/dashboard-activity"
 import { 
   PaymentStatusBadge, 
   DeliveryStatusBadge 
@@ -68,7 +59,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* Header Compacto */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-dashboard-text tracking-tight flex items-center gap-2">
@@ -89,7 +80,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* 1. Quatro métricas principais */}
+      {/* Métricas Principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Receita Aprovada"
@@ -123,70 +114,73 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* 2. Layout Desktop: Gráfico (2/3) + Métricas Secundárias (1/3) */}
+      {/* Gráfico + Métricas Secundárias */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico */}
+        {/* Gráfico de Receita */}
         <div className="lg:col-span-2">
           <SalesChart data={salesData} />
         </div>
 
-        {/* Métricas Secundárias Relevantes */}
+        {/* Métricas Secundárias */}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 h-full">
-            <MetricCard
-              title="Taxa de Conversão"
-              value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
-              iconName="chart"
-              color="purple"
-              className="h-full"
-              index={4}
-            />
-            <MetricCard
-              title="Clientes Ativos"
-              value={formatNumber(stats?.totalCustomers || 0)}
-              iconName="users"
-              color="blue"
-              className="h-full"
-              index={5}
-            />
-            <MetricCard
-              title="Estoque Baixo"
-              value={formatNumber(stats?.lowStockCount || 0)}
-              iconName="alert"
-              color={(stats?.lowStockCount || 0) > 0 ? "red" : "green"}
-              className="h-full"
-              index={6}
-            />
-          </div>
+          <MetricCard
+            title="Taxa de Conversão"
+            value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
+            iconName="chart"
+            color="purple"
+            className="h-full"
+            index={4}
+          />
+          <MetricCard
+            title="Clientes Ativos"
+            value={formatNumber(stats?.totalCustomers || 0)}
+            iconName="users"
+            color="blue"
+            className="h-full"
+            index={5}
+          />
         </div>
       </div>
 
-      {/* 3. Demais Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
-        <MetricCard
-          title="Total de Vendas"
-          value={formatNumber(stats?.totalSales || 0)}
-          iconName="shopping"
-          color="indigo"
-          index={7}
-        />
-        <MetricCard
-          title="Vendas Hoje"
-          value={formatNumber(stats?.salesToday || 0)}
-          iconName="zap"
-          color="yellow"
-          index={8}
-        />
-        <MetricCard
-          title="Produtos em Loja"
-          value={formatNumber(stats?.totalProducts || 0)}
-          iconName="package"
-          color="green"
-          index={9}
+      {/* Métricas Secundárias + Breakdown de Pagamentos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:col-span-2">
+          <MetricCard
+            title="Total de Vendas"
+            value={formatNumber(stats?.totalSales || 0)}
+            iconName="shopping"
+            color="indigo"
+            index={7}
+          />
+          <MetricCard
+            title="Vendas Hoje"
+            value={formatNumber(stats?.salesToday || 0)}
+            iconName="zap"
+            color="yellow"
+            index={8}
+          />
+          <MetricCard
+            title="Produtos em Loja"
+            value={formatNumber(stats?.totalProducts || 0)}
+            iconName="package"
+            color="green"
+            index={9}
+          />
+        </div>
+        <PaymentBreakdown
+          approved={stats?.approvedPayments || 0}
+          pending={stats?.pendingPayments || 0}
+          refused={stats?.refusedPayments || 0}
         />
       </div>
 
-      {/* 4. Pedidos Recentes */}
+      {/* Atividade Recente */}
+      <DashboardActivity
+        recentOrders={recentOrders || []}
+        stats={stats || {}}
+      />
+
+      {/* Pedidos Recentes */}
       <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between border-b border-dashboard-border/50 bg-white/[0.01] py-4">
           <div>
