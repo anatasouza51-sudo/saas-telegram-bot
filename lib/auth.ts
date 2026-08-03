@@ -41,7 +41,7 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
   },
-  plugins: [
+  plugins: process.env.DISABLE_TWOFACTOR === "1" ? [] : [
     twoFactor({
       issuer: "SaaS Telegram Bot",
       allowPasswordless: false,
