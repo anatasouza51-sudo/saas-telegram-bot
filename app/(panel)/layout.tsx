@@ -1,18 +1,10 @@
 import { requireUser } from "@/lib/session"
-import { ensureDbStructure } from "@/lib/db/migrate"
 import type { ReactNode } from "react"
 import { TopNavBar } from "@/components/top-nav-bar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { PageTransition } from "@/components/page-transition"
 import { ErrorView } from "@/components/error-view"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
-
-// Garantir que as tabelas do banco existem antes de qualquer acesso ao painel
-try {
-  await ensureDbStructure()
-} catch (err) {
-  console.error("[PanelLayout] Falha ao garantir estrutura do banco:", err)
-}
 
 export const dynamic = "force-dynamic"
 
