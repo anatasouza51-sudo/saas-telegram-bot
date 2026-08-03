@@ -18,29 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+
 import {
   listChannels,
   syncAllChannels,
@@ -48,18 +26,16 @@ import {
   restartTelegramIntegration,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
-import { PERMISSION_LABELS } from "@/lib/tg/permissions"
+
 import { PURPOSES } from "@/lib/tg/purposes"
 
 import { toast } from "sonner"
 import {
   Search,
-  MoreHorizontal,
   RefreshCw,
   RotateCcw,
   Megaphone,
   Users,
-  ShieldCheck,
   AlertTriangle,
   Radio,
 } from "lucide-react"
@@ -259,7 +235,6 @@ export function ChannelsView({
   }
 
   return (
-    <TooltipProvider>
     <div className="flex flex-col gap-4">
       {!botConfigured && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
@@ -355,23 +330,16 @@ export function ChannelsView({
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Chat ID</TableHead>
-              <TableHead>Username</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Admin</TableHead>
-              <TableHead>Permissões</TableHead>
               <TableHead>Membros</TableHead>
               <TableHead>Função</TableHead>
-
-              <TableHead>Última sinc.</TableHead>
-              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginated.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={5}
                   className="h-40 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -390,8 +358,6 @@ export function ChannelsView({
             )}
             {paginated.map((c) => {
               const st = deriveStatus(c)
-              const granted = parsePerms(c.grantedPermissions)
-              const missing = parsePerms(c.missingPermissions)
               return (
                 <TableRow key={c.id}>
                   <TableCell>
@@ -408,14 +374,6 @@ export function ChannelsView({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {c.chatId}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.username ? `@${c.username.replace(/^@/, "")}` : "—"}
-                  </TableCell>
-                  <TableCell>
                     <span
                       className={`inline-flex items-center gap-1.5 text-sm font-medium ${st.text}`}
                     >
@@ -425,69 +383,6 @@ export function ChannelsView({
                       />
                       {st.label}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    {c.botIsAdmin ? (
-                      <Badge
-                        variant="outline"
-                        className="border-success/30 bg-success/10 text-success"
-                      >
-                        <ShieldCheck className="mr-1 h-3 w-3" />
-                        Administrador
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="border-muted-foreground/30 bg-muted text-muted-foreground"
-                      >
-                        Membro
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {granted.length === 0 && missing.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : (
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <button
-                              type="button"
-                              className="text-left text-xs text-muted-foreground underline decoration-dotted underline-offset-2"
-                            >
-                              {granted.length} concedida(s)
-                              {missing.length > 0
-                                ? `, ${missing.length} faltando`
-                                : ""}
-                            </button>
-                          }
-                        />
-                        <TooltipContent className="max-w-xs">
-                          <div className="flex flex-col gap-1 text-xs">
-                            {granted.length > 0 && (
-                              <div>
-                                <span className="font-medium text-success">
-                                  Concedidas:
-                                </span>{" "}
-                                {granted
-                                  .map((p) => PERMISSION_LABELS[p] ?? p)
-                                  .join(", ")}
-                              </div>
-                            )}
-                            {missing.length > 0 && (
-                              <div>
-                                <span className="font-medium text-warning">
-                                  Faltando:
-                                </span>{" "}
-                                {missing
-                                  .map((p) => PERMISSION_LABELS[p] ?? p)
-                                  .join(", ")}
-                              </div>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {typeof c.memberCount === "number"
@@ -511,40 +406,6 @@ export function ChannelsView({
                         ))}
                       </SelectContent>
                     </Select>
-                  </TableCell>
-
-                  <TableCell className="text-xs text-muted-foreground">
-                    {c.lastSyncedAt
-                      ? new Date(c.lastSyncedAt).toLocaleString("pt-BR")
-                      : "Nunca"}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuGroup>
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            disabled={syncing}
-                            onClick={handleSync}
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Sincronizar agora
-                          </DropdownMenuItem>
-
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               )
@@ -581,6 +442,5 @@ export function ChannelsView({
         </div>
       )}
     </div>
-    </TooltipProvider>
   )
 }
