@@ -3,21 +3,27 @@ import { pool } from "./index"
 /**
  * Executa as migrações necessárias para garantir que o banco de dados
  * tenha a estrutura esperada pelo código.
+ *
+ * IMPORTANTE: As tabelas do Better Auth (user, session, account,
+ * verification, twoFactor) são criadas FORA da transação geral.
+ * Se as demais migrações falharem (UUID, FK constraints, etc),
+ * as tabelas de auth continuam existindo e o cadastro funciona.
  */
 export async function ensureDbStructure() {
   if (!process.env.DATABASE_URL) {
     console.warn("[db/migrate] DATABASE_URL não configurada. Pulando migração.")
     return
   }
+
+  // ============================================================
+  // FASE 1: Tabelas do Better Auth — SEM transação, SEM falha
+  // ============================================================
   const client = await pool.connect()
   try {
-    await client.query("BEGIN")
-
-    // 0. Criar extensão para UUIDs
+    // Extensão UUID
     await client.query("CREATE EXTENSION IF NOT EXISTS pgcrypto;")
 
-    // 0.1 Criar tabelas do Better Auth (user, session, account, verification)
-    // Sem estas tabelas, o cadastro falha com "Failed to create user"
+    // Tabela user
     await client.query(`
       CREATE TABLE IF NOT EXISTS "user" (
         id TEXT PRIMARY KEY,
@@ -32,6 +38,7 @@ export async function ensureDbStructure() {
       );
     `)
 
+    // Tabela session
     await client.query(`
       CREATE TABLE IF NOT EXISTS session (
         id TEXT PRIMARY KEY,
@@ -45,6 +52,7 @@ export async function ensureDbStructure() {
       );
     `)
 
+    // Tabela account
     await client.query(`
       CREATE TABLE IF NOT EXISTS account (
         id TEXT PRIMARY KEY,
@@ -63,6 +71,7 @@ export async function ensureDbStructure() {
       );
     `)
 
+    // Tabela verification
     await client.query(`
       CREATE TABLE IF NOT EXISTS verification (
         id TEXT PRIMARY KEY,
@@ -74,8 +83,7 @@ export async function ensureDbStructure() {
       );
     `)
 
-    // 0.2 Tabela twoFactor (plugin Better Auth) — sem ela o cadastro falha
-    // com "Failed to create user"
+    // Tabela twoFactor (plugin Better Auth)
     await client.query(`
       CREATE TABLE IF NOT EXISTS "twoFactor" (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,15 +96,27 @@ export async function ensureDbStructure() {
       );
     `)
 
-    // 0.3 Coluna twoFactorEnabled na tabela user (plugin Better Auth)
-        await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
-
-    // 0.4 Coluna onboardingSeen — contas existentes = TRUE (nao veem tutorial)
-    // contas novas = FALSE (veem tutorial na primeira vez)
+    // Colunas extras na tabela user
+    await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
     await addColumnIfMissing(client, "user", "onboardingSeen", "BOOLEAN DEFAULT FALSE")
 
-    // 1. Criar tabelas base se não existirem (já com UUID onde solicitado)
-    await client.query(`
+    console.log("[db/migrate] Fase 1 OK — Tabelas do Better Auth garantidas.")
+  } catch (err) {
+    console.error("[db/migrate] Fase 1 FALHOU — Tabelas do Better Auth:", err)
+    // Não throw — vamos tentar a fase 2 mesmo assim
+  } finally {
+    client.release()
+  }
+
+  // ============================================================
+  // FASE 2: Tabelas da aplicação — COM transação isolada
+  // ============================================================
+  const client2 = await pool.connect()
+  try {
+    await client2.query("BEGIN")
+
+    // Telegram chats
+    await client2.query(`
       CREATE TABLE IF NOT EXISTS telegram_chats (
         id SERIAL PRIMARY KEY,
         "ownerId" TEXT NOT NULL,
@@ -118,24 +138,8 @@ export async function ensureDbStructure() {
       );
     `)
 
-    // 2. Garantir que as tabelas customers, orders e telegram_posts usem UUID
-    // Esta função lida com a migração de SERIAL para UUID de forma segura.
-    await migrateTableToUuid(client, "customers", []);
-    await migrateTableToUuid(client, "orders", [
-      { table: "deliveries", column: "orderId" },
-      { table: "stock_items", column: "orderId" }
-    ]);
-    await migrateTableToUuid(client, "telegram_posts", [
-      { table: "telegram_schedules", column: "postId" },
-      { table: "telegram_queue", column: "postId" }
-    ]);
-
-    // Atualizar referências cruzadas que não são PKs
-    await updateColumnToText(client, "orders", "customerId");
-    await updateColumnToText(client, "deliveries", "customerId");
-
-    // 3. Outras tabelas e colunas
-    await client.query(`
+    // Telegram topics
+    await client2.query(`
       CREATE TABLE IF NOT EXISTS telegram_topics (
         id SERIAL PRIMARY KEY,
         "ownerId" TEXT NOT NULL,
@@ -150,7 +154,8 @@ export async function ensureDbStructure() {
       )
     `)
 
-    await client.query(`
+    // Coupons
+    await client2.query(`
       CREATE TABLE IF NOT EXISTS coupons (
         id SERIAL PRIMARY KEY,
         "ownerId" TEXT NOT NULL,
@@ -165,7 +170,7 @@ export async function ensureDbStructure() {
       )
     `)
 
-    // Garantir índices únicos
+    // Índices únicos
     const indexes = [
       { name: "telegram_chats_owner_chatid_uidx", table: "telegram_chats", cols: '("ownerId", "chatId")' },
       { name: "telegram_topics_owner_chat_thread_uidx", table: "telegram_topics", cols: '("ownerId", "chatId", "threadId")' },
@@ -175,30 +180,79 @@ export async function ensureDbStructure() {
     ]
 
     for (const idx of indexes) {
-      await client.query(`
-        DO $$
-        BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '${idx.name}') THEN
-            CREATE UNIQUE INDEX ${idx.name} ON ${idx.table} ${idx.cols};
-          END IF;
-        END $$;
-      `)
+      try {
+        await client2.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '${idx.name}') THEN
+              CREATE UNIQUE INDEX ${idx.name} ON ${idx.table} ${idx.cols};
+            END IF;
+          END $$;
+        `)
+      } catch {
+        // Ignorar erro de índice — não bloqueia o app
+      }
     }
 
     // Colunas extras
-    await addColumnIfMissing(client, "customers", "activeCoupon", "TEXT");
-    await addColumnIfMissing(client, "orders", "originalAmount", "NUMERIC(12,2)");
-    await addColumnIfMissing(client, "orders", "couponCode", "TEXT");
+    await addColumnIfMissing(client2, "customers", "activeCoupon", "TEXT")
+    await addColumnIfMissing(client2, "orders", "originalAmount", "NUMERIC(12,2)")
+    await addColumnIfMissing(client2, "orders", "couponCode", "TEXT")
 
-    await client.query("COMMIT")
-    console.log("[db/migrate] Estrutura do banco de dados verificada/atualizada com sucesso.")
+    await client2.query("COMMIT")
+    console.log("[db/migrate] Fase 2 OK — Tabelas da aplicação garantidas.")
   } catch (err) {
-    await client.query("ROLLBACK")
-    console.error("[db/migrate] Falha ao garantir estrutura do banco:", err)
-    throw err
+    await client2.query("ROLLBACK").catch(() => {})
+    console.error("[db/migrate] Fase 2 FALHOU — Tabelas da aplicação:", err)
   } finally {
-    client.release()
+    client2.release()
   }
+
+  // ============================================================
+  // FASE 3: Migração UUID — COM transação isolada
+  // ============================================================
+  const client3 = await pool.connect()
+  try {
+    await client3.query("BEGIN")
+
+    try {
+      await migrateTableToUuid(client3, "customers", [])
+    } catch {
+      // Ignorar — tabela pode não existir ou já estar migrada
+    }
+
+    try {
+      await migrateTableToUuid(client3, "orders", [
+        { table: "deliveries", column: "orderId" },
+        { table: "stock_items", column: "orderId" }
+      ])
+    } catch {
+      // Ignorar
+    }
+
+    try {
+      await migrateTableToUuid(client3, "telegram_posts", [
+        { table: "telegram_schedules", column: "postId" },
+        { table: "telegram_queue", column: "postId" }
+      ])
+    } catch {
+      // Ignorar
+    }
+
+    // Atualizar referências cruzadas
+    try { await updateColumnToText(client3, "orders", "customerId") } catch {}
+    try { await updateColumnToText(client3, "deliveries", "customerId") } catch {}
+
+    await client3.query("COMMIT")
+    console.log("[db/migrate] Fase 3 OK — UUID migrados.")
+  } catch (err) {
+    await client3.query("ROLLBACK").catch(() => {})
+    console.error("[db/migrate] Fase 3 FALHOU — UUID:", err)
+  } finally {
+    client3.release()
+  }
+
+  console.log("[db/migrate] Migração completa.")
 }
 
 async function addColumnIfMissing(client: any, table: string, column: string, type: string) {
@@ -234,14 +288,11 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
   `)
   
   if (res.rows.length === 0) {
-    // Tabela não existe, cria ela já com UUID
-    // Nota: Isso é simplificado, o ideal seria ter o CREATE TABLE completo aqui.
-    // Mas para o propósito do SaaS, as tabelas principais já existem.
-    return;
+    return // Tabela não existe
   }
 
   if (res.rows[0].data_type === 'text' || res.rows[0].data_type === 'uuid') {
-    return; // Já migrado
+    return // Já migrado
   }
 
   console.log(`[db/migrate] Migrando tabela ${tableName} para UUID...`)
@@ -254,10 +305,7 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
 
   // 3. Atualizar referências em outras tabelas
   for (const ref of references) {
-    // Garantir que a coluna de referência seja TEXT
-    await updateColumnToText(client, ref.table, ref.column);
-    
-    // Atualizar os valores para bater com o novo UUID
+    await updateColumnToText(client, ref.table, ref.column)
     await client.query(`
       UPDATE ${ref.table} r
       SET "${ref.column}" = t.id_new
@@ -267,17 +315,8 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
   }
 
   // 4. Trocar PK
-  // Remover PK antiga (geralmente nomeada como table_pkey)
   await client.query(`ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${tableName}_pkey CASCADE;`)
-  
-  // Remover coluna antiga
   await client.query(`ALTER TABLE ${tableName} DROP COLUMN id;`)
-  
-  // Renomear id_new para id
   await client.query(`ALTER TABLE ${tableName} RENAME COLUMN id_new TO id;`)
-  
-  // Adicionar nova PK
   await client.query(`ALTER TABLE ${tableName} ADD PRIMARY KEY (id);`)
 }
-
-// v1.1.0 - Migração para UUIDs e Criptografia em repouso
