@@ -1,11 +1,12 @@
 "use client"
 
-import React, { memo } from "react"
+import React, { memo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { 
   ChevronRight,
+  ChevronDown,
   LayoutDashboard,
   type LucideIcon
 } from "lucide-react"
@@ -13,6 +14,7 @@ import * as Icons from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MAIN_NAV, SYSTEM_NAV, isSection, type NavItem, type NavSection } from "@/lib/nav"
 import { canSee, type Role } from "@/lib/roles"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface SidebarProps {
   userRole: Role
@@ -22,10 +24,26 @@ interface SidebarProps {
 
 export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarProps) => {
   const pathname = usePathname()
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    // Default: expand sections that have the current page active
+    const initial: Record<string, boolean> = {}
+    MAIN_NAV.forEach((node) => {
+      if (isSection(node)) {
+        const visible = node.children.filter((c) => canSee(userRole, c.capability))
+        const isActive = visible.some((c) => pathname.startsWith(c.href))
+        initial[node.title] = isActive || visible.length > 0
+      }
+    })
+    return initial
+  })
 
   const isActive = (href: string) => {
     if (href === "/" && pathname !== "/") return false
     return pathname.startsWith(href)
+  }
+
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) => ({ ...prev, [title]: !prev[title] }))
   }
 
   const renderIcon = (iconName: string, active: boolean) => {
@@ -95,26 +113,50 @@ export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarPro
                 if (visibleChildren.length === 0) return null
                 
                 const sectionActive = visibleChildren.some(child => isActive(child.href))
+                const isExpanded = expandedSections[node.title] ?? true
 
                 return (
                   <div key={idx} className="space-y-1">
-                    <div className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm font-semibold text-dashboard-text-muted/80",
-                      sectionActive && "text-dashboard-text"
-                    )}>
-                      {renderIcon(node.icon, sectionActive)}
-                      <span>{node.title}</span>
-                    </div>
-                    <div className="space-y-1">
-                      {visibleChildren.map((child, cIdx) => (
-                        <NavLink 
-                          key={cIdx} 
-                          item={child} 
-                          active={isActive(child.href)} 
-                          isChild 
-                        />
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => toggleSection(node.title)}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm font-semibold transition-all duration-200 rounded-lg hover:bg-white/5",
+                        sectionActive ? "text-dashboard-text" : "text-dashboard-text-muted/80"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {renderIcon(node.icon, sectionActive)}
+                        <span>{node.title}</span>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronRight className="w-3.5 h-3.5 text-dashboard-text-muted/50" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-1 pt-1 pb-2">
+                            {visibleChildren.map((child, cIdx) => (
+                              <NavLink 
+                                key={cIdx} 
+                                item={child} 
+                                active={isActive(child.href)} 
+                                isChild 
+                              />
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )
               }
