@@ -25,6 +25,8 @@ export const user = pgTable("user", {
   // Store owner. NULL means this user IS the store owner (self-owned tenant).
   // Team members inherit their owner's id here.
   ownerId: text("ownerId"),
+  // Better Auth twoFactor plugin
+  twoFactorEnabled: boolean("twoFactorEnabled").default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
@@ -67,6 +69,16 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
+})
+
+export const twoFactor = pgTable("twoFactor", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  secret: text("secret").notNull(),
+  backupCodes: text("backupCodes").notNull(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  verified: boolean("verified").default(true),
+  failedVerificationCount: integer("failedVerificationCount").default(0),
+  lockedUntil: timestamp("lockedUntil"),
 })
 
 /* ---------------------------------------------------------------------------

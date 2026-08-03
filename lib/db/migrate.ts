@@ -74,6 +74,23 @@ export async function ensureDbStructure() {
       );
     `)
 
+    // 0.2 Tabela twoFactor (plugin Better Auth) — sem ela o cadastro falha
+    // com "Failed to create user"
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "twoFactor" (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+        secret TEXT NOT NULL,
+        "backupCodes" TEXT NOT NULL,
+        "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+        verified BOOLEAN DEFAULT TRUE,
+        "failedVerificationCount" INTEGER DEFAULT 0,
+        "lockedUntil" TIMESTAMP
+      );
+    `)
+
+    // 0.3 Coluna twoFactorEnabled na tabela user (plugin Better Auth)
+    await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
+
     // 1. Criar tabelas base se não existirem (já com UUID onde solicitado)
     await client.query(`
       CREATE TABLE IF NOT EXISTS telegram_chats (
