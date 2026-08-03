@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,6 +28,7 @@ export function ProfileSettingsDialog({
   onOpenChange: (open: boolean) => void
   user: { id: string; name: string; email: string; image?: string | null }
 }) {
+  const router = useRouter()
   const [name, setName] = useState(user.name)
   const [image, setImage] = useState<string | null>(user.image || null)
   const [pending, startTransition] = useTransition()
@@ -76,9 +78,9 @@ export function ProfileSettingsDialog({
         }
 
         toast.success("Perfil atualizado com sucesso")
-        // Forçar um refresh da página para garantir que todos os componentes (inclusive o Dashboard)
-        // recebam os novos dados da sessão/banco
-        window.location.reload()
+        // router.refresh() atualiza os dados do servidor (RSC) sem recarregar a página inteira
+        router.refresh()
+        onOpenChange(false)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao atualizar perfil")
       }
