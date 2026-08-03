@@ -49,7 +49,9 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     // Desabilitar cache para garantir dados frescos após atualizações
     const session = await auth.api.getSession({ 
       headers: h,
-      useCache: false 
+      query: {
+        disableCookieCache: true
+      }
     })
     
     if (!session?.user) return null
