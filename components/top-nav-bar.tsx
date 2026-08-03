@@ -182,13 +182,16 @@ export const TopNavBar = memo(({
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <AppSidebar 
-            userRole={user.role} 
-            onItemClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <AppSidebar 
+              userRole={user.role} 
+              onItemClick={() => setMobileMenuOpen(false)}
+              className="border-r-0"
+            />
+          </div>
           
           {/* Mobile Logout at bottom of sidebar */}
-          <div className="mt-auto border-t border-dashboard-border/30 bg-dashboard-sidebar">
+          <div className="shrink-0 border-t border-dashboard-border/30 bg-dashboard-sidebar">
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 p-4"

@@ -62,7 +62,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarPro
   )
 
   return (
-    <aside className={cn("flex flex-col bg-dashboard-sidebar border-r border-dashboard-border/50", className)}>
+    <aside className={cn("flex flex-col h-full bg-dashboard-sidebar border-r border-dashboard-border/50", className)}>
       {/* Logo Section */}
       <div className="p-6 mb-2">
         <Link href="/" className="flex items-center gap-3 group">
