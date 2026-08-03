@@ -158,11 +158,11 @@ export default function LoginPage() {
           {/* Terminal Hacker Verification */}
           <div className="my-4 h-[42px] relative">
             {isCheckingSecure ? (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#0a0a0a] border border-gray-800 rounded-xl text-xs text-emerald-400/80 font-mono animate-in fade-in duration-200">
-                <span>{currentLine}</span>
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-[#121319] border border-gray-800 rounded-xl text-xs text-emerald-400/80 font-mono animate-pulse">
+                <span className="font-mono">{currentLine}</span>
               </div>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-xs text-emerald-400 font-mono transition-all duration-500">
+              <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl text-xs text-emerald-400 transition-all duration-500">
                 <span className="font-bold tracking-wider">[✓] ACCESS VERIFIED</span>
               </div>
             )}
