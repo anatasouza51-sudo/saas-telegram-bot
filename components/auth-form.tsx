@@ -116,8 +116,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <div className="w-full max-w-[420px] px-4 py-6">
       <div className="mb-8 flex flex-col items-center text-center">
         <GhostLogo className="w-14 h-14 mb-5" />
-        <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
-          GHOST BOT
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          GHOST <span className="text-dashboard-accent">BOT</span>
         </h1>
         <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
           {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operacao."}

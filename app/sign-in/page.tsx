@@ -77,8 +77,8 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <span className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
-            GHOST BOT
+          <span className="text-2xl font-black tracking-tight text-white">
+            GHOST <span className="text-dashboard-accent">BOT</span>
           </span>
         </Link>
       </div>
