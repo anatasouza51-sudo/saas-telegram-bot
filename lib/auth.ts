@@ -104,7 +104,6 @@ export const auth = betterAuth({
               ...userData,
               role: "admin",
               ownerId: null,
-              onboardingSeen: false,
             },
           }
         },

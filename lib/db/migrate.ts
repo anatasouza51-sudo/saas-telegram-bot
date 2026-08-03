@@ -93,7 +93,7 @@ export async function ensureDbStructure() {
 
     // 0.4 Coluna onboardingSeen — contas existentes = TRUE (nao veem tutorial)
     // contas novas = FALSE (veem tutorial na primeira vez)
-    await addColumnIfMissing(client, "user", "onboardingSeen", "BOOLEAN NOT NULL DEFAULT TRUE")
+    await addColumnIfMissing(client, "user", "onboardingSeen", "BOOLEAN DEFAULT FALSE")
 
     // 1. Criar tabelas base se não existirem (já com UUID onde solicitado)
     await client.query(`
