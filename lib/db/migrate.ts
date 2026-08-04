@@ -42,18 +42,32 @@ export async function ensureDbStructure() {
     // para o Better Auth funcionar.
     await client.query(`
       DO $$
+      DECLARE
+          pk_name TEXT;
       BEGIN
-        IF EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
-        ) THEN
-          -- Remove PK e FKs temporariamente
-          ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;
-          -- Converte tipo
-          ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;
-          -- Restaura PK
-          ALTER TABLE "user" ADD PRIMARY KEY (id);
-        END IF;
+          IF EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
+          ) THEN
+              -- 1. Identificar o nome da Primary Key atual
+              SELECT constraint_name INTO pk_name
+              FROM information_schema.table_constraints
+              WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY';
+
+              -- 2. Remover PK se existir
+              IF pk_name IS NOT NULL THEN
+                  EXECUTE 'ALTER TABLE "user" DROP CONSTRAINT ' || quote_ident(pk_name) || ' CASCADE';
+              END IF;
+
+              -- 3. Converte tipo da coluna ID
+              ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;
+              
+              -- 4. Remover o DEFAULT gen_random_uuid() que conflita com TEXT
+              ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;
+
+              -- 5. Recriar PK
+              ALTER TABLE "user" ADD PRIMARY KEY (id);
+          END IF;
       END $$;
     `)
 
