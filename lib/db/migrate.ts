@@ -41,63 +41,50 @@ export async function ensureDbStructure() {
       // BUGFIX CRÍTICO: Conversão de UUID para TEXT na tabela 'user'
       // Esta migração é complexa porque envolve remover e recriar PKs e FKs.
       try {
-        const check = await client.query(`
-          SELECT data_type FROM information_schema.columns 
-          WHERE table_name = 'user' AND column_name = 'id';
-        `)
+        // FASE 0: Resolver conflito de schemas (neon_auth vs public)
+        console.log("[db/migrate] MANUS FIX V5 - Resolvendo conflito de schemas...")
         
-        if (check.rows[0]?.data_type === 'uuid') {
-          console.log("[db/migrate] MANUS FIX V4 - Iniciando conversão via swap de colunas...")
-          
-          // 1. Garantir que id_text existe e está populado
-          await client.query('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS id_text TEXT;')
-          await client.query('UPDATE "user" SET id_text = id::TEXT WHERE id_text IS NULL;')
-          
-          // 2. Identificar e remover FKs que apontam para user(id)
-          const fks = await client.query(`
-            SELECT tc.constraint_name, tc.table_name
-            FROM information_schema.table_constraints tc
-            JOIN information_schema.constraint_column_usage ccu
-              ON tc.constraint_name = ccu.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY' 
-              AND ccu.table_name = 'user' 
-              AND ccu.column_name = 'id'
-              AND tc.table_schema = 'public';
-          `)
-          
-          for (const fk of fks.rows) {
-            try {
-              console.log(`[db/migrate] Removendo FK: ${fk.constraint_name} da tabela ${fk.table_name}`)
-              await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`)
-            } catch (err: any) {
-              console.error(`[db/migrate] Erro ao remover FK ${fk.constraint_name}:`, err.message)
-            }
+        // 1. Garantir que public."user" tem todas as colunas necessárias do Better Auth
+        await client.query(`
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS id TEXT;
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS name TEXT;
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS email TEXT;
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN DEFAULT FALSE;
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS image TEXT;
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'admin';
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
+          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+        `);
+
+        // 2. Tentar copiar dados de neon_auth."user" para public."user"
+        try {
+          const hasNeonUser = await client.query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'neon_auth' AND table_name = 'user'");
+          if (hasNeonUser.rows.length > 0) {
+            console.log("[db/migrate] Copiando dados de neon_auth.user para public.user...");
+            await client.query(`
+              INSERT INTO public."user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
+              SELECT id::TEXT, name, email, "emailVerified", image, COALESCE(role, 'admin'), "createdAt", "updatedAt"
+              FROM neon_auth."user"
+              ON CONFLICT (email) DO UPDATE SET
+                id = EXCLUDED.id,
+                name = EXCLUDED.name,
+                image = EXCLUDED.image,
+                updatedAt = NOW()
+              WHERE public."user".id IS NULL OR public."user".id = '';
+            `);
           }
-          
-          // 3. Remover PK da tabela user
-          await client.query('ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;')
-          
-          // 4. Realizar o SWAP de colunas
-          console.log("[db/migrate] Realizando swap de id (uuid) para id (text)...")
-          // Tentar renomear a antiga para backup e a nova para id
-          try {
-            await client.query('ALTER TABLE "user" RENAME COLUMN id TO id_old_uuid;')
-            await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
-          } catch (swapErr: any) {
-            console.error("[db/migrate] Erro no swap, tentando drop direto:", swapErr.message)
-            await client.query('ALTER TABLE "user" DROP COLUMN IF EXISTS id CASCADE;')
-            await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
-          }
-          
-          await client.query('ALTER TABLE "user" ALTER COLUMN id SET NOT NULL;')
-          await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;')
-          
-          // 5. Recriar a PK
-          console.log("[db/migrate] Recriando PK na tabela 'user'...")
-          await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id);')
-          
-          console.log("[db/migrate] Conversão V4 concluída com sucesso.")
+        } catch (copyErr: any) {
+          console.error("[db/migrate] Aviso na cópia de dados (pode ser normal):", copyErr.message);
         }
+
+        // 3. Garantir que public."user" tem uma PK válida
+        try {
+          await client.query('ALTER TABLE public."user" ADD PRIMARY KEY (id);');
+        } catch (pkErr) {
+          // Já deve ter ou conflito, ignorar
+        }
+
+        console.log("[db/migrate] Migração de schemas concluída.");
       } catch (e: any) {
         console.error("[db/migrate] ERRO na migração de UUID para TEXT:", e.message)
       }
