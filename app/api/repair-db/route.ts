@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v6 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Repair v7 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
@@ -59,10 +59,30 @@ export async function GET() {
       if (idTextCheck.rows.length === 0) {
         await client.query('ALTER TABLE "user" ADD COLUMN id_text TEXT')
         results.push("Criada coluna id_text")
+      } else {
+        results.push("Coluna id_text já existe, pulando criação")
       }
-      await client.query('UPDATE "user" SET id_text = id::text')
-      await client.query('ALTER TABLE "user" DROP COLUMN id')
-      await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
+      
+      const idColumnCheck = await client.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'id'
+      `)
+      if (idColumnCheck.rows.length > 0) {
+        await client.query('UPDATE "user" SET id_text = id::text')
+        await client.query('ALTER TABLE "user" DROP COLUMN id')
+        results.push("Dropada coluna id antiga")
+      } else {
+        results.push("Coluna id já foi dropada anteriormente")
+      }
+      
+      const idRenameCheck = await client.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'id_text'
+      `)
+      if (idRenameCheck.rows.length > 0) {
+        await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
+        results.push("Renomeada coluna id_text para id")
+      }
       results.push("Convertido id de uuid para text via drop+rename")
 
       // Remover default gen_random_uuid()
