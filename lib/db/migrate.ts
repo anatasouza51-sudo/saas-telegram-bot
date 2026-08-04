@@ -38,32 +38,21 @@ export async function ensureDbStructure() {
       );
     `)
 
-    // BUGFIX: Se a tabela já existia com ID como UUID (legado), precisamos converter para TEXT
-    // para o Better Auth funcionar. Usando comandos diretos para evitar problemas de escopo em blocos DO.
-    try {
-      // 1. Criar coluna temporária se não existir
-      await client.query('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS id_text TEXT;')
-      // 2. Copiar dados se a coluna original for UUID
-      await client.query(`
-        UPDATE "user" 
-        SET id_text = id::TEXT 
-        WHERE id::TEXT IS NOT NULL 
-        AND (SELECT data_type FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'id') = 'uuid';
-      `)
-      // 3. Se id_text foi populado e id ainda é uuid, fazer a troca
-      const check = await client.query(`
-        SELECT data_type FROM information_schema.columns 
-        WHERE table_name = 'user' AND column_name = 'id';
-      `)
-      if (check.rows[0]?.data_type === 'uuid') {
-        await client.query('ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;')
-        await client.query('ALTER TABLE "user" DROP COLUMN id CASCADE;')
-        await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
-        await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id);')
+      // BUGFIX: Se a tabela já existia com ID como UUID (legado), precisamos converter para TEXT
+      // para o Better Auth funcionar. Usando ALTER COLUMN TYPE diretamente.
+      try {
+        const check = await client.query(`
+          SELECT data_type FROM information_schema.columns 
+          WHERE table_name = 'user' AND column_name = 'id';
+        `)
+        if (check.rows[0]?.data_type === 'uuid') {
+          console.log("[db/migrate] Convertendo coluna 'id' da tabela 'user' de UUID para TEXT...")
+          await client.query('ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;')
+          console.log("[db/migrate] Coluna 'id' da tabela 'user' convertida para TEXT.")
+        }
+      } catch (e) {
+        console.error("[db/migrate] Falha na migração crítica de UUID para TEXT na tabela 'user':", e)
       }
-    } catch (e) {
-      console.error("[db/migrate] Falha na migração crítica de UUID:", e)
-    }
 
     // Tabela session
     await client.query(`
@@ -99,9 +88,12 @@ export async function ensureDbStructure() {
     `)
 
     // Garantir que userId seja TEXT caso as tabelas já existam com INTEGER
+    // Garantir que userId seja TEXT caso as tabelas já existam com INTEGER ou UUID
     await updateColumnToText(client, "session", "userId")
     await updateColumnToText(client, "account", "userId")
     await updateColumnToText(client, "twoFactor", "userId")
+    // Garantir que ownerId em user também seja TEXT
+    await updateColumnToText(client, "user", "ownerId")
 
     // Tabela verification
     await client.query(`
@@ -316,9 +308,9 @@ async function updateColumnToText(client: any, table: string, column: string) {
     BEGIN
       IF EXISTS (
         SELECT 1 FROM information_schema.columns 
-        WHERE table_name='${table}' AND column_name='${column}' AND data_type='integer'
+        WHERE table_name='${table}' AND column_name='${column}' AND (data_type='integer' OR data_type='uuid')
       ) THEN
-        ALTER TABLE ${table} ALTER COLUMN "${column}" TYPE TEXT USING "${column}"::TEXT;
+        ALTER TABLE ${table} ALTER COLUMN "${column}" TYPE TEXT USING "${column}"::TEXT; -- Adicionado USING para garantir conversão explícita
       END IF;
     END $$;
   `)
