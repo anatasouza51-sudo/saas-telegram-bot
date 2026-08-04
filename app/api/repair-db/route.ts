@@ -5,7 +5,17 @@ import { pool } from "@/lib/db"
  * Repair v14 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const token = searchParams.get("token")
+  
+  // PROTEÇÃO DE SEGURANÇA: Este endpoint é extremamente perigoso e deve ser protegido.
+  // Exige um token definido no ambiente ou bloqueia o acesso.
+  const expectedToken = process.env.REPAIR_TOKEN || "disable_repair_unless_token_is_set"
+  if (!token || token !== expectedToken) {
+    return new Response("Unauthorized: Missing or invalid REPAIR_TOKEN", { status: 401 })
+  }
+
   const results: string[] = []
   const client = await pool.connect()
   try {

@@ -14,6 +14,8 @@ import {
   validateProductStatus,
   validateDeliveryType,
   validatePositiveNumber,
+  validateCategoryName,
+  validateCategoryDescription,
   VALID_PRODUCT_STATUS,
   VALID_DELIVERY_TYPE,
 } from "@/lib/validation"
@@ -266,7 +268,12 @@ export async function listCategories() {
 
 export async function createCategory(name: string, description?: string) {
   const user = await requireCapability("products.manage")
-  const slug = name
+  
+  // Sanitização e validação para evitar injeção e payloads excessivos
+  const validatedName = validateCategoryName(name)
+  const validatedDescription = validateCategoryDescription(description)
+
+  const slug = validatedName
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -274,7 +281,7 @@ export async function createCategory(name: string, description?: string) {
     .replace(/(^-|-$)/g, "")
   const [row] = await db
     .insert(categories)
-    .values({ ownerId: user.storeId, name, slug, description: description ?? null })
+    .values({ ownerId: user.storeId, name: validatedName, slug, description: validatedDescription })
     .returning()
   await logActivity({
     storeId: user.storeId,
