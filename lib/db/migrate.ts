@@ -69,7 +69,7 @@ export async function ensureDbStructure() {
                 id = EXCLUDED.id,
                 name = EXCLUDED.name,
                 image = EXCLUDED.image,
-                updatedAt = NOW()
+                "updatedAt" = NOW()
               WHERE public."user".id IS NULL OR public."user".id = '';
             `);
           }
