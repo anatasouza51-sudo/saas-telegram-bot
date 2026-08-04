@@ -139,9 +139,29 @@ type UpsertInput = {
   isForum?: boolean
 }
 
+/**
+ * Telegram migrates basic groups to supergroups, changing the chat ID from
+ * `-123456789` to `-100123456789` (adds the `-100` prefix). Both IDs refer to
+ * the same physical group, so we must detect this migration and merge the
+ * rows to avoid duplicates in the panel.
+ */
+function resolveSupergroupMigration(chatId: string): string {
+  // If it starts with -100, it's already the supergroup-style ID — return as-is.
+  if (chatId.startsWith("-100")) return chatId
+  // Negative basic-group ID → the supergroup version is -100 + abs(id).
+  const asNumber = Number(chatId)
+  if (asNumber < 0 && !chatId.startsWith("-100")) {
+    return `-100${Math.abs(asNumber)}`
+  }
+  // Positive IDs (channels, etc.) — keep as-is.
+  return chatId
+}
+
 // Inserts or updates a chat row from freshly resolved Telegram data. The
 // (ownerId, chatId) unique index guarantees we never create duplicates, so the
 // same chat re-detected simply refreshes its data.
+// Additionally handles the Telegram group→supergroup migration where the same
+// physical group gets two different IDs (-123 vs -100123).
 async function upsertChat(input: UpsertInput) {
   // Hard guard: never persist private chats, users, or the bot itself. This is
   // the definitive fix for the bot appearing in the groups list.
@@ -159,10 +179,15 @@ async function upsertChat(input: UpsertInput) {
   const forumPatch =
     input.isForum === undefined ? {} : { isForum: input.isForum }
 
+  // Normalize the chatId to always use the supergroup-style form (-100 prefix).
+  // This prevents the same physical group from appearing twice when Telegram
+  // migrates it from a basic group to a supergroup.
+  const canonicalChatId = resolveSupergroupMigration(input.chatId)
+
   const values = {
     ownerId: input.storeId,
     title: input.title,
-    chatId: input.chatId,
+    chatId: canonicalChatId,
     username: input.username,
     type: input.type,
     status: present ? ("active" as const) : ("inactive" as const),
@@ -194,6 +219,20 @@ async function upsertChat(input: UpsertInput) {
         ...forumPatch,
       },
     })
+
+  // If the incoming chatId was NOT the canonical form (i.e. basic group ID
+  // that was migrated to supergroup), delete the old-style row so we don't
+  // end up with duplicates.
+  if (canonicalChatId !== input.chatId) {
+    await db
+      .delete(telegramChats)
+      .where(
+        and(
+          eq(telegramChats.ownerId, input.storeId),
+          eq(telegramChats.chatId, input.chatId),
+        ),
+      )
+  }
 }
 
 // Handles a my_chat_member update: the bot was added, removed, promoted, or
@@ -417,6 +456,44 @@ export async function syncKnownChats(
     } catch (err) {
       console.error(`[tg/discovery] could not sync chat ${row.chatId}:`, err)
       result.errors += 1
+    }
+  }
+
+  // Second pass: merge duplicate rows caused by Telegram's group→supergroup
+  // migration. If we find both `-123456789` and `-100123456789` for the same
+  // store, keep the canonical one and delete the old-style row.
+  const allRows = await db
+    .select()
+    .from(telegramChats)
+    .where(eq(telegramChats.ownerId, storeId))
+  const byBaseId = new Map<number, typeof allRows[0]>()
+  for (const r of allRows) {
+    const cid = r.chatId
+    let baseId = 0
+    if (cid.startsWith("-100")) {
+      baseId = Number(cid.slice(4))
+    } else {
+      baseId = Math.abs(Number(cid))
+    }
+    if (baseId <= 0) continue
+    const existing = byBaseId.get(baseId)
+    if (existing) {
+      // Keep the supergroup-style (-100 prefix) row, delete the other.
+      const keep = cid.startsWith("-100") ? r : existing
+      const remove = cid.startsWith("-100") ? existing : r
+      if (keep.id !== remove.id) {
+        // Transfer the purpose if the row being deleted had one.
+        if (remove.purpose && !keep.purpose) {
+          await db
+            .update(telegramChats)
+            .set({ purpose: remove.purpose })
+            .where(eq(telegramChats.id, keep.id))
+        }
+        await db.delete(telegramChats).where(eq(telegramChats.id, remove.id))
+        result.purged += 1
+      }
+    } else {
+      byBaseId.set(baseId, r)
     }
   }
 
