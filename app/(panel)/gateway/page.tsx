@@ -40,6 +40,8 @@ export default async function GatewayPage() {
   )
   
   const webhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}/${webhookSecret}`
+  // Ocultamos parte do segredo para exibição no frontend para evitar vazamento visual/log
+  const maskedWebhookUrl = `${getAppBaseUrl()}/api/veopag/webhook/${user.storeId}/••••••••`
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl mx-auto">
@@ -58,6 +60,7 @@ export default async function GatewayPage() {
               hasSecretKey,
             }}
             webhookUrl={webhookUrl}
+            maskedWebhookUrl={maskedWebhookUrl}
           />
         </CardContent>
       </Card>
