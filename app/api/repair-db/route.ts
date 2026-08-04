@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v5 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Repair v6 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
@@ -52,7 +52,14 @@ export async function GET() {
       }
 
       // Converter id de uuid para text usando drop + rename
-      await client.query('ALTER TABLE "user" ADD COLUMN id_text TEXT')
+      const idTextCheck = await client.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'id_text'
+      `)
+      if (idTextCheck.rows.length === 0) {
+        await client.query('ALTER TABLE "user" ADD COLUMN id_text TEXT')
+        results.push("Criada coluna id_text")
+      }
       await client.query('UPDATE "user" SET id_text = id::text')
       await client.query('ALTER TABLE "user" DROP COLUMN id')
       await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
