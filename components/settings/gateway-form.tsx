@@ -11,14 +11,17 @@ import { Copy, Check } from "lucide-react"
 export function GatewayForm({
   initial,
   webhookUrl,
+  maskedWebhookUrl,
 }: {
   initial: { publicKey: string; hasSecretKey: boolean }
   webhookUrl: string
+  maskedWebhookUrl: string
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
   const [pending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
+  const [showRealUrl, setShowRealUrl] = useState(false)
 
   function submit() {
     startTransition(async () => {
@@ -79,7 +82,13 @@ export function GatewayForm({
       <div className="grid gap-2">
         <Label>Webhook URL da sua loja</Label>
         <div className="flex items-center gap-2">
-          <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+          <Input 
+            readOnly 
+            value={showRealUrl ? webhookUrl : maskedWebhookUrl} 
+            className="font-mono text-xs" 
+            onFocus={() => setShowRealUrl(true)}
+            onBlur={() => setShowRealUrl(false)}
+          />
           <Button
             type="button"
             variant="outline"
@@ -95,6 +104,7 @@ export function GatewayForm({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
+          {showRealUrl ? "URL real exibida. " : "Clique no campo para ver a URL real. "}
           Configure esta URL exclusiva no painel da VeoPag para receber
           confirmações automáticas de pagamento desta loja.
         </p>
