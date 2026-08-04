@@ -398,3 +398,4 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
   await client.query(`ALTER TABLE "${tableName}" RENAME COLUMN id_new TO id;`)
   await client.query(`ALTER TABLE "${tableName}" ADD PRIMARY KEY (id);`)
 }
+// Force rebuild 2026-08-04 14:18
