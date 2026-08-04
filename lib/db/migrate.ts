@@ -42,47 +42,54 @@ export async function ensureDbStructure() {
       // Esta migração é complexa porque envolve remover e recriar PKs e FKs.
       try {
         // FASE 0: Resolver conflito de schemas (neon_auth vs public)
-        console.log("[db/migrate] MANUS FIX V5 - Resolvendo conflito de schemas...")
+        console.log("[db/migrate] MANUS FIX V7 - Garantindo integridade e dados...")
         
-        // 1. Garantir que public."user" tem todas as colunas necessárias do Better Auth
+        // 1. Garantir colunas e tipos
         await client.query(`
           ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS id TEXT;
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS name TEXT;
           ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS email TEXT;
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN DEFAULT FALSE;
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS image TEXT;
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'admin';
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT NOW();
-          ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT NOW();
+          -- Garantir que email é UNIQUE para o ON CONFLICT funcionar
+          DO $$ 
+          BEGIN 
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_email_unique') THEN
+              ALTER TABLE public."user" ADD CONSTRAINT user_email_unique UNIQUE (email);
+            END IF;
+          END $$;
         `);
 
-        // 2. Tentar copiar dados de neon_auth."user" para public."user"
+        // 2. Limpar registros fantasmas (sem email ou id)
+        await client.query(`DELETE FROM public."user" WHERE email IS NULL OR id IS NULL;`);
+
+        // 3. Copiar dados de neon_auth
         try {
           const hasNeonUser = await client.query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'neon_auth' AND table_name = 'user'");
           if (hasNeonUser.rows.length > 0) {
-            console.log("[db/migrate] Copiando dados de neon_auth.user para public.user...");
+            console.log("[db/migrate] Sincronizando neon_auth.user -> public.user...");
             await client.query(`
               INSERT INTO public."user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
               SELECT id::TEXT, name, email, "emailVerified", image, COALESCE(role, 'admin'), "createdAt", "updatedAt"
               FROM neon_auth."user"
+              WHERE email IS NOT NULL
               ON CONFLICT (email) DO UPDATE SET
                 id = EXCLUDED.id,
                 name = EXCLUDED.name,
                 image = EXCLUDED.image,
-                "updatedAt" = NOW()
-              WHERE public."user".id IS NULL OR public."user".id = '';
+                "updatedAt" = EXCLUDED."updatedAt";
             `);
           }
         } catch (copyErr: any) {
-          console.error("[db/migrate] Aviso na cópia de dados (pode ser normal):", copyErr.message);
+          console.error("[db/migrate] Erro na sincronização:", copyErr.message);
         }
 
-        // 3. Garantir que public."user" tem uma PK válida
-        try {
-          await client.query('ALTER TABLE public."user" ADD PRIMARY KEY (id);');
-        } catch (pkErr) {
-          // Já deve ter ou conflito, ignorar
-        }
+        // 4. Garantir Primary Key
+        await client.query(`
+          DO $$ 
+          BEGIN 
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_pkey') THEN
+              ALTER TABLE public."user" ADD PRIMARY KEY (id);
+            END IF;
+          END $$;
+        `);
 
         console.log("[db/migrate] Migração de schemas concluída.");
       } catch (e: any) {
