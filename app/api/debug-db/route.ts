@@ -23,10 +23,10 @@ export async function GET() {
     const client = await pool.connect()
     try {
       const res = await client.query(`
-        SELECT column_name, data_type, is_nullable, column_default
+        SELECT table_schema, column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
         WHERE table_name = 'user'
-        ORDER BY ordinal_position
+        ORDER BY table_schema, ordinal_position
       `)
       return NextResponse.json({
         columns: res.rows,
