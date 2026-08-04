@@ -88,18 +88,31 @@ export async function autoDetectTelegramGroups(): Promise<{
     // Preparar resposta com detalhes dos grupos
     const groupDetails = await Promise.all(
       groups.map(async (group) => {
-        const memberRes = await client.getChatMember(group.chatId, botId)
+        // Normalize chatId to always use the canonical form (-100 prefix)
+        // so the Telegram API returns the correct type and permissions.
+        const canonicalChatId = String(group.chatId).startsWith("-100")
+          ? group.chatId
+          : String(group.chatId).startsWith("-")
+            ? `-100${Math.abs(Number(group.chatId))}`
+            : group.chatId
+
+        const memberRes = await client.getChatMember(canonicalChatId, botId)
         const member = memberRes.result
-        
+
+        // Use the type returned by the API (not the stored type) so that
+        // permission checks are correct for the actual chat type.
+        const chatRes = await client.getChat(canonicalChatId)
+        const actualType = chatRes.result?.type ?? group.type
+
         return {
           id: group.id,
           title: group.title,
-          chatId: group.chatId,
-          type: group.type,
+          chatId: canonicalChatId,
+          type: actualType,
           memberCount: group.memberCount,
           isAdmin: member?.status === "administrator" || member?.status === "creator",
-          missingPermissions: member 
-            ? missingPermissions(member, group.type)
+          missingPermissions: member
+            ? missingPermissions(member, actualType)
             : [],
         }
       })
