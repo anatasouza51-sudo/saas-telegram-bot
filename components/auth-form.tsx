@@ -114,8 +114,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <div className="w-full max-w-[420px] px-4 py-6">
       <div className="mb-8 flex flex-col items-center text-center">
         <GhostLogo className="w-14 h-14 mb-5" />
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-          GHOST <span className="text-dashboard-accent">BOT</span>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]">
+          GHOST <span className="text-dashboard-accent drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">BOT</span>
         </h1>
         <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
           {isSignUp ? "Crie sua infraestrutura digital hoje e comece a escalar." : "Acesse seu centro de comando e gerencie sua operacao."}
@@ -151,7 +151,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         <button 
           type="submit" 
           disabled={loading} 
-          className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98]"
+          className="w-full bg-white hover:bg-white/90 text-black font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98] shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_-2px_rgba(255,255,255,0.4)]"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
             <span className="flex items-center gap-2">
