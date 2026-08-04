@@ -23,13 +23,19 @@ export async function GET() {
     const client = await pool.connect()
     try {
       const res = await client.query(`
-        SELECT table_schema, column_name, data_type, is_nullable, column_default
+        SELECT table_schema, table_name, column_name, data_type
         FROM information_schema.columns
-        WHERE table_name = 'user'
-        ORDER BY table_schema, ordinal_position
+        WHERE table_name IN ('user', 'session', 'account')
+        ORDER BY table_schema, table_name, ordinal_position
+      `)
+      const tables = await client.query(`
+        SELECT table_schema, table_name 
+        FROM information_schema.tables 
+        WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
       `)
       return NextResponse.json({
         columns: res.rows,
+        tables: tables.rows,
         migrationLogs: logs,
         timestamp: new Date().toISOString()
       })
