@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v9 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Repair v10 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
@@ -14,10 +14,11 @@ export async function GET() {
       SELECT data_type FROM information_schema.columns
       WHERE table_name = 'user' AND column_name = 'id'
     `)
-    results.push(`Tipo atual do id: ${idCheck.rows[0]?.data_type || 'NAO EXISTE'}`)
+    const currentType = idCheck.rows[0]?.data_type || 'NAO EXISTE'
+    results.push(`Tipo atual do id: ${currentType}`)
 
     // 2. Se id é uuid, converter para text
-    if (idCheck.rows[0]?.data_type === 'uuid') {
+    if (currentType === 'uuid') {
       // Contar registros existentes
       const countRes = await client.query('SELECT COUNT(*) FROM "user"')
       const userCount = parseInt(countRes.rows[0].count)
@@ -117,6 +118,51 @@ export async function GET() {
         } catch (err: any) {
           results.push(`Erro ao recriar FK ${refTable}: ${err.message}`)
         }
+      }
+    } else if (currentType === 'NAO EXISTE') {
+      // 2. Se id não existe, renomear id_text para id
+      results.push("Coluna id não existe, tentando renomear id_text para id...")
+      const idTextCheck = await client.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'id_text'
+      `)
+      if (idTextCheck.rows.length > 0) {
+        await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
+        results.push("Renomeada coluna id_text para id")
+        
+        // Remover default gen_random_uuid()
+        try {
+          await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
+          results.push("Removido default gen_random_uuid()")
+        } catch (err: any) {
+          results.push(`Erro ao remover default: ${err.message}`)
+        }
+
+        // Recriar PK
+        await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id)')
+        results.push("Recriada PK")
+
+        // Recriar FKs (session.userId, account.userId, twoFactor.userId)
+        for (const refTable of ['session', 'account', 'twoFactor']) {
+          try {
+            const exists = await client.query(`
+              SELECT 1 FROM information_schema.tables
+              WHERE table_name = '${refTable}'
+            `)
+            if (exists.rows.length > 0) {
+              await client.query(`
+                ALTER TABLE "${refTable}"
+                ADD CONSTRAINT "${refTable}_userid_fkey"
+                FOREIGN KEY ("userId") REFERENCES "user"(id) ON DELETE CASCADE
+              `)
+              results.push(`Recriada FK: ${refTable}.userId → user.id`)
+            }
+          } catch (err: any) {
+            results.push(`Erro ao recriar FK ${refTable}: ${err.message}`)
+          }
+        }
+      } else {
+        results.push("Coluna id_text também não existe, nada a fazer")
       }
     }
 
