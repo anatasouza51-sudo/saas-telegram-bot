@@ -38,23 +38,29 @@ export async function GET() {
           AND tc.constraint_schema = ccu.constraint_schema
         WHERE tc.constraint_type = 'FOREIGN KEY'
           AND ccu.table_name = 'user'
-          AND ccu.column_name = 'id'
+          AND (ccu.column_name = 'id' OR ccu.column_name = 'id_text')
       `)
       for (const fk of fkRes.rows) {
         try {
-          await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT "${fk.constraint_name}"`)
+          await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}"`)
           results.push(`Removida FK: ${fk.constraint_name} de ${fk.table_name}`)
         } catch (err: any) {
           results.push(`Erro ao remover FK ${fk.constraint_name}: ${err.message}`)
         }
       }
 
-      // Remover PK atual
-      try {
-        await client.query('ALTER TABLE "user" DROP CONSTRAINT user_pkey')
-        results.push("Removida PK user_pkey")
-      } catch (err: any) {
-        results.push(`Erro ao remover PK: ${err.message}`)
+      // Remover PK atual (tentar nomes comuns)
+      const pkRes = await client.query(`
+        SELECT constraint_name FROM information_schema.table_constraints
+        WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY'
+      `)
+      for (const pk of pkRes.rows) {
+        try {
+          await client.query(`ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "${pk.constraint_name}" CASCADE`)
+          results.push(`Removida PK: ${pk.constraint_name}`)
+        } catch (err: any) {
+          results.push(`Erro ao remover PK ${pk.constraint_name}: ${err.message}`)
+        }
       }
 
       // Converter id de uuid para text usando drop + rename
@@ -70,15 +76,19 @@ export async function GET() {
       }
       
       const idColumnCheck = await client.query(`
-        SELECT column_name FROM information_schema.columns
+        SELECT column_name, data_type FROM information_schema.columns
         WHERE table_name = 'user' AND column_name = 'id'
       `)
       if (idColumnCheck.rows.length > 0) {
-        await client.query('UPDATE "user" SET id_text = id::text')
-        await client.query('ALTER TABLE "user" DROP COLUMN id')
-        results.push("Dropada coluna id antiga")
+        if (idColumnCheck.rows[0].data_type === 'uuid') {
+          await client.query('UPDATE "user" SET id_text = id::text')
+          await client.query('ALTER TABLE "user" DROP COLUMN id CASCADE')
+          results.push("Dropada coluna id (uuid) antiga")
+        } else {
+          results.push("Coluna id já é text, pulando drop")
+        }
       } else {
-        results.push("Coluna id já foi dropada anteriormente")
+        results.push("Coluna id não encontrada para drop")
       }
       
       const idRenameCheck = await client.query(`
