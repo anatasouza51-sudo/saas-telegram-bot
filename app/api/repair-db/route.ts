@@ -25,7 +25,7 @@ export async function GET() {
 
       // Remover FK constraints que dependem de user.id
       const fkRes = await client.query(`
-        SELECT constraint_name, table_name
+        SELECT tc.constraint_name, tc.table_name
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage kcu
           ON tc.constraint_name = kcu.constraint_name
