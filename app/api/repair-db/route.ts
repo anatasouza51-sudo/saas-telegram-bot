@@ -27,12 +27,12 @@ export async function GET() {
       const fkRes = await client.query(`
         SELECT tc.constraint_name, tc.table_name
         FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu
-          ON tc.constraint_name = kcu.constraint_name
-          AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON tc.constraint_name = ccu.constraint_name
+          AND tc.constraint_schema = ccu.constraint_schema
         WHERE tc.constraint_type = 'FOREIGN KEY'
-          AND kcu.referenced_table_name = 'user'
-          AND kcu.referenced_column_name = 'id'
+          AND ccu.table_name = 'user'
+          AND ccu.column_name = 'id'
       `)
       for (const fk of fkRes.rows) {
         try {
