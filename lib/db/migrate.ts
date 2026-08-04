@@ -47,7 +47,7 @@ export async function ensureDbStructure() {
         `)
         
         if (check.rows[0]?.data_type === 'uuid') {
-          console.log("[db/migrate] Detectada coluna 'id' como UUID. Iniciando conversão para TEXT...")
+          console.log("[db/migrate] MANUS FIX V3 - Detectada coluna 'id' como UUID. Iniciando conversão para TEXT...")
           
           // 1. Identificar e remover FKs que apontam para user(id)
           const fks = await client.query(`
