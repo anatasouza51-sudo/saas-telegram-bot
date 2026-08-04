@@ -46,36 +46,33 @@ export async function ensureDbStructure() {
           pk_name TEXT;
           col_type TEXT;
       BEGIN
-          -- 1. Verificar tipo da coluna de forma mais direta (contornando views de schema)
+          -- 1. Verificar tipo da coluna de forma mais direta
           SELECT format_type(atttypid, atttypmod) INTO col_type
           FROM pg_attribute
-          WHERE attrelid = '"user"'::regclass
+          WHERE attrelid = 'public.user'::regclass
           AND attname = 'id';
 
           IF col_type = 'uuid' THEN
               -- 2. Identificar o nome da Primary Key atual
               SELECT conname INTO pk_name
               FROM pg_constraint
-              WHERE conrelid = '"user"'::regclass
+              WHERE conrelid = 'public.user'::regclass
               AND contype = 'p';
 
               -- 3. Remover PK se existir
               IF pk_name IS NOT NULL THEN
-                  EXECUTE 'ALTER TABLE "user" DROP CONSTRAINT ' || quote_ident(pk_name) || ' CASCADE';
+                  EXECUTE 'ALTER TABLE public.user DROP CONSTRAINT ' || quote_ident(pk_name) || ' CASCADE';
               END IF;
 
               -- 4. Converte tipo da coluna ID
-              ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;
+              ALTER TABLE public.user ALTER COLUMN id TYPE TEXT USING id::TEXT;
               
               -- 5. Remover o DEFAULT gen_random_uuid() que conflita com TEXT
-              ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;
+              ALTER TABLE public.user ALTER COLUMN id DROP DEFAULT;
 
               -- 6. Recriar PK
-              ALTER TABLE "user" ADD PRIMARY KEY (id);
+              ALTER TABLE public.user ADD PRIMARY KEY (id);
           END IF;
-      EXCEPTION WHEN OTHERS THEN
-          -- Silencia erros caso a tabela não exista ou algo falhe
-          NULL;
       END $$;
     `)
 
