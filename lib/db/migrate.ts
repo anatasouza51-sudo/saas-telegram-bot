@@ -248,6 +248,222 @@ export async function ensureDbStructure() {
       )
     `)
 
+    // Settings — Tabela essencial para configurações da loja (bot token, gateway, etc.)
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Categories
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        description TEXT,
+        emoji TEXT,
+        "imageUrl" TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active',
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Products
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        "categoryId" INTEGER,
+        "imageUrl" TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        price NUMERIC(12,2) NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active',
+        "deliveryType" TEXT NOT NULL DEFAULT 'stock',
+        "lowStockThreshold" INTEGER NOT NULL DEFAULT 5,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Stock Items
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS stock_items (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "productId" INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'available',
+        "orderId" TEXT,
+        "soldAt" TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Customers
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "ownerId" TEXT NOT NULL,
+        "telegramId" TEXT NOT NULL,
+        username TEXT,
+        name TEXT,
+        "totalSpent" NUMERIC(12,2) NOT NULL DEFAULT 0,
+        "purchaseCount" INTEGER NOT NULL DEFAULT 0,
+        "lastPurchaseAt" TIMESTAMP,
+        status TEXT NOT NULL DEFAULT 'active',
+        "activeCoupon" TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Orders
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "ownerId" TEXT NOT NULL,
+        "customerId" TEXT,
+        "productId" INTEGER,
+        "productName" TEXT,
+        amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+        "originalAmount" NUMERIC(12,2),
+        "couponCode" TEXT,
+        "paymentStatus" TEXT NOT NULL DEFAULT 'pending',
+        "deliveryStatus" TEXT NOT NULL DEFAULT 'pending',
+        gateway TEXT NOT NULL DEFAULT 'veopag',
+        "paymentId" TEXT,
+        "pixCode" TEXT,
+        "publicToken" TEXT,
+        "expiresAt" TIMESTAMP,
+        "pixChatId" TEXT,
+        "pixMessageId" INTEGER,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Deliveries
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS deliveries (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "orderId" TEXT NOT NULL,
+        "productId" INTEGER,
+        "customerId" TEXT,
+        "stockItemId" INTEGER,
+        "deliveredContent" TEXT,
+        status TEXT NOT NULL DEFAULT 'delivered',
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Activity Logs
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "actorId" TEXT,
+        "actorName" TEXT,
+        action TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'system',
+        details TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Telegram Media Folders
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_media_folders (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        name TEXT NOT NULL,
+        "parentId" INTEGER,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Telegram Media
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_media (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "folderId" INTEGER,
+        "fileId" TEXT NOT NULL,
+        "fileUniqueId" TEXT,
+        type TEXT NOT NULL DEFAULT 'photo',
+        "fileName" TEXT,
+        "mimeType" TEXT,
+        "fileSize" INTEGER,
+        width INTEGER,
+        height INTEGER,
+        duration INTEGER,
+        "thumbFileId" TEXT,
+        caption TEXT,
+        "uploadedBy" TEXT,
+        "uploadedByName" TEXT,
+        "usageCount" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Telegram Templates
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_templates (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'geral',
+        text TEXT,
+        "parseMode" TEXT NOT NULL DEFAULT 'HTML',
+        "mediaIds" TEXT,
+        buttons TEXT,
+        "defaultTargets" TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Telegram Posts
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_posts (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "ownerId" TEXT NOT NULL,
+        title TEXT,
+        text TEXT,
+        "parseMode" TEXT NOT NULL DEFAULT 'HTML',
+        "mediaIds" TEXT,
+        buttons TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        "createdBy" TEXT,
+        "createdByName" TEXT,
+        "sentAt" TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Telegram Schedules
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_schedules (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "postId" TEXT NOT NULL,
+        "scheduledAt" TIMESTAMP NOT NULL,
+        status TEXT NOT NULL DEFAULT 'scheduled',
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
     // Índices únicos
     const indexes = [
       { name: "telegram_chats_owner_chatid_uidx", table: "telegram_chats", cols: '("ownerId", "chatId")' },
