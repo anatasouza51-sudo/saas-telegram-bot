@@ -39,42 +39,31 @@ export async function ensureDbStructure() {
     `)
 
     // BUGFIX: Se a tabela já existia com ID como UUID (legado), precisamos converter para TEXT
-    // para o Better Auth funcionar.
-    await client.query(`
-      DO $$
-      DECLARE
-          pk_name TEXT;
-          col_type TEXT;
-      BEGIN
-          -- 1. Verificar tipo da coluna de forma mais direta
-          SELECT format_type(atttypid, atttypmod) INTO col_type
-          FROM pg_attribute
-          WHERE attrelid = 'public.user'::regclass
-          AND attname = 'id';
-
-          IF col_type = 'uuid' THEN
-              -- 2. Identificar o nome da Primary Key atual
-              SELECT conname INTO pk_name
-              FROM pg_constraint
-              WHERE conrelid = 'public.user'::regclass
-              AND contype = 'p';
-
-              -- 3. Remover PK se existir
-              IF pk_name IS NOT NULL THEN
-                  EXECUTE 'ALTER TABLE public.user DROP CONSTRAINT ' || quote_ident(pk_name) || ' CASCADE';
-              END IF;
-
-              -- 4. Converte tipo da coluna ID
-              ALTER TABLE public.user ALTER COLUMN id TYPE TEXT USING id::TEXT;
-              
-              -- 5. Remover o DEFAULT gen_random_uuid() que conflita com TEXT
-              ALTER TABLE public.user ALTER COLUMN id DROP DEFAULT;
-
-              -- 6. Recriar PK
-              ALTER TABLE public.user ADD PRIMARY KEY (id);
-          END IF;
-      END $$;
-    `)
+    // para o Better Auth funcionar. Usando comandos diretos para evitar problemas de escopo em blocos DO.
+    try {
+      // 1. Criar coluna temporária se não existir
+      await client.query('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS id_text TEXT;')
+      // 2. Copiar dados se a coluna original for UUID
+      await client.query(`
+        UPDATE "user" 
+        SET id_text = id::TEXT 
+        WHERE id::TEXT IS NOT NULL 
+        AND (SELECT data_type FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'id') = 'uuid';
+      `)
+      // 3. Se id_text foi populado e id ainda é uuid, fazer a troca
+      const check = await client.query(`
+        SELECT data_type FROM information_schema.columns 
+        WHERE table_name = 'user' AND column_name = 'id';
+      `)
+      if (check.rows[0]?.data_type === 'uuid') {
+        await client.query('ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;')
+        await client.query('ALTER TABLE "user" DROP COLUMN id CASCADE;')
+        await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
+        await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id);')
+      }
+    } catch (e) {
+      console.error("[db/migrate] Falha na migração crítica de UUID:", e)
+    }
 
     // Tabela session
     await client.query(`
