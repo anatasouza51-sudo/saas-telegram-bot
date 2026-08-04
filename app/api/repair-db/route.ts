@@ -2,110 +2,95 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v2 — usa CASCADE para forçar remoção de colunas duplicadas
- * que têm dependências (FK de outras tabelas).
- * Depois reconstrói as FK necessárias.
+ * Repair v3 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * e garantir que role tem DEFAULT.
  */
 export async function GET() {
   const results: string[] = []
   const client = await pool.connect()
   try {
-    // 1. Verificar estado atual
-    const colRes = await client.query(`
-      SELECT column_name, ordinal_position, data_type
-      FROM information_schema.columns
-      WHERE table_name = 'user'
-      ORDER BY ordinal_position
+    // 1. Verificar tipo atual do id
+    const idCheck = await client.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name = 'user' AND column_name = 'id'
     `)
-    results.push(`Estado atual: ${colRes.rows.length} colunas`)
+    results.push(`Tipo atual do id: ${idCheck.rows[0]?.data_type || 'NAO EXISTE'}`)
 
-    // 2. Remover coluna id UUID duplicada (manter a TEXT que tem FK)
-    // Primeiro: salvar dados da coluna uuid para não perder nada
-    const uuidCheck = await client.query(`
-      SELECT ordinal_position FROM information_schema.columns
-      WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
+    // 2. Se id é uuid, converter para text
+    if (idCheck.rows[0]?.data_type === 'uuid') {
+      // Contar registros existentes
+      const countRes = await client.query('SELECT COUNT(*) FROM "user"')
+      const userCount = parseInt(countRes.rows[0].count)
+      results.push(`Registros existentes: ${userCount}`)
+
+      // Remover FK constraints que dependem de user.id
+      const fkRes = await client.query(`
+        SELECT constraint_name, table_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND kcu.referenced_table_name = 'user'
+          AND kcu.referenced_column_name = 'id'
+      `)
+      for (const fk of fkRes.rows) {
+        try {
+          await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT "${fk.constraint_name}"`)
+          results.push(`Removida FK: ${fk.constraint_name} de ${fk.table_name}`)
+        } catch (err: any) {
+          results.push(`Erro ao remover FK ${fk.constraint_name}: ${err.message}`)
+        }
+      }
+
+      // Remover PK atual
+      await client.query('ALTER TABLE "user" DROP CONSTRAINT user_pkey')
+      results.push("Removida PK user_pkey")
+
+      // Converter id de uuid para text
+      await client.query('ALTER TABLE "user" ALTER COLUMN id TYPE text USING id::text')
+      results.push("Convertido id de uuid para text")
+
+      // Remover default gen_random_uuid()
+      await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
+      results.push("Removido default gen_random_uuid()")
+
+      // Recriar PK
+      await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id)')
+      results.push("Recriada PK")
+
+      // Recriar FKs (session.userId, account.userId, twoFactor.userId)
+      for (const refTable of ['session', 'account', 'twoFactor']) {
+        try {
+          const exists = await client.query(`
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = '${refTable}'
+          `)
+          if (exists.rows.length > 0) {
+            await client.query(`
+              ALTER TABLE "${refTable}"
+              ADD CONSTRAINT "${refTable}_userid_fkey"
+              FOREIGN KEY ("userId") REFERENCES "user"(id) ON DELETE CASCADE
+            `)
+            results.push(`Recriada FK: ${refTable}.userId → user.id`)
+          }
+        } catch (err: any) {
+          results.push(`Erro ao recriar FK ${refTable}: ${err.message}`)
+        }
+      }
+    }
+
+    // 3. Garantir role tem DEFAULT
+    const roleCheck = await client.query(`
+      SELECT column_default FROM information_schema.columns
+      WHERE table_name = 'user' AND column_name = 'role'
     `)
-    if (uuidCheck.rows.length > 0) {
-      try {
-        // Remover com CASCADE para forçar (FK dependem dessa coluna)
-        // Mas queremos manter a TEXT, não a UUID
-        // Estratégia: remover a UUID que tem dependências
-        await client.query(`ALTER TABLE "user" DROP COLUMN "id" CASCADE`)
-        results.push("Removida coluna id UUID (CASCADE)")
-        // A coluna TEXT já foi removida automaticamente pelo CASCADE?
-        // Verificar
-        const afterId = await client.query(`
-          SELECT data_type FROM information_schema.columns
-          WHERE table_name = 'user' AND column_name = 'id'
-        `)
-        if (afterId.rows.length === 0) {
-          results.push("ATENÇÃO: Coluna id TEXT também foi removida pelo CASCADE!")
-          // Recriar coluna id TEXT
-          await client.query(`ALTER TABLE "user" ADD COLUMN "id" TEXT NOT NULL DEFAULT ''`)
-          await client.query(`ALTER TABLE "user" ADD CONSTRAINT user_pkey PRIMARY KEY (id)`)
-          results.push("Recriada coluna id TEXT com PK")
-        } else if (afterId.rows.length === 1) {
-          results.push(`Coluna id restante: ${afterId.rows[0].data_type}`)
-        }
-      } catch (err: any) {
-        results.push(`Erro ao remover id UUID: ${err.message}`)
-      }
+    if (roleCheck.rows[0]?.column_default === null) {
+      await client.query("ALTER TABLE \"user\" ALTER COLUMN \"role\" SET DEFAULT 'admin'")
+      results.push("Adicionado DEFAULT 'admin' na coluna role")
     }
 
-    // 3. Remover coluna createdAt duplicada
-    const tsCheck = await client.query(`
-      SELECT ordinal_position, data_type FROM information_schema.columns
-      WHERE table_name = 'user' AND column_name = 'createdAt'
-      ORDER BY ordinal_position
-    `)
-    if (tsCheck.rows.length > 1) {
-      try {
-        // Remover a que tem timestamp with time zone (ordinal menor)
-        const toRemove = tsCheck.rows[0]
-        await client.query(`ALTER TABLE "user" DROP COLUMN "createdAt"`)
-        results.push(`Removida coluna createdAt (${toRemove.data_type})`)
-      } catch (err: any) {
-        results.push(`Erro ao remover createdAt: ${err.message}`)
-      }
-    }
-
-    // 4. Remover colunas extras desnecessárias (banned, banReason, banExpires)
-    for (const col of ['banned', 'banReason', 'banExpires']) {
-      try {
-        const exists = await client.query(`
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'user' AND column_name = '${col}'
-        `)
-        if (exists.rows.length > 0) {
-          await client.query(`ALTER TABLE "user" DROP COLUMN "${col}"`)
-          results.push(`Removida coluna: ${col}`)
-        }
-      } catch (err: any) {
-        results.push(`Erro ao remover ${col}: ${err.message}`)
-      }
-    }
-
-    // 5. Garantir colunas necessárias
-    const neededCols = [
-      { name: 'twoFactorEnabled', type: 'BOOLEAN DEFAULT FALSE' },
-      { name: 'onboardingSeen', type: 'BOOLEAN DEFAULT FALSE' },
-    ]
-    for (const col of neededCols) {
-      try {
-        const exists = await client.query(`
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'user' AND column_name = '${col.name}'
-        `)
-        if (exists.rows.length === 0) {
-          await client.query(`ALTER TABLE "user" ADD COLUMN "${col.name}" ${col.type}`)
-          results.push(`Adicionada coluna: ${col.name}`)
-        }
-      } catch (err: any) {
-        results.push(`Erro ao adicionar ${col.name}: ${err.message}`)
-      }
-    }
-
-    // 6. Verificar estado final
+    // 4. Verificar estado final
     const finalRes = await client.query(`
       SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns
@@ -114,7 +99,7 @@ export async function GET() {
     `)
     results.push('--- Estado final ---')
     for (const row of finalRes.rows) {
-      results.push(`  ${row.column_name}: ${row.data_type} (nullable=${row.is_nullable})`)
+      results.push(`  ${row.column_name}: ${row.data_type} (nullable=${row.is_nullable}, default=${row.column_default})`)
     }
 
     return NextResponse.json({ results })
