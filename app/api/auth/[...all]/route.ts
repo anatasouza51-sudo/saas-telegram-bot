@@ -29,9 +29,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   await ensureDb()
   try {
-    return auth.handler(request) as any
+    const response = await auth.handler(request)
+    // Se for uma resposta de erro JSON, logar o corpo
+    if (response instanceof Response && !response.ok && response.headers.get("content-type")?.includes("application/json")) {
+      const clone = response.clone()
+      const body = await clone.json()
+      console.error("[auth POST] Better Auth Error Response:", JSON.stringify(body))
+    }
+    return response as any
   } catch (err: any) {
-    console.error("[auth POST] Erro:", err?.message, err?.stack)
+    console.error("[auth POST] Critical Exception:", err?.message, err?.stack)
     return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 })
   }
 }
