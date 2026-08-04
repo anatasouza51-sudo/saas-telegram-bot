@@ -6,6 +6,13 @@ import { and, desc, eq } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import type { ButtonRows } from "@/lib/tg/buttons"
 import { revalidatePath } from "next/cache"
+import {
+  validateTitle,
+  validateTelegramText,
+  validateButtonRows,
+  validateSerializedJson,
+  validateTargets,
+} from "@/lib/validation"
 
 export type TemplateInput = {
   id?: number
@@ -37,17 +44,22 @@ export async function listTemplates() {
 
 export async function saveTemplate(input: TemplateInput): Promise<number> {
   const user = await requireCapability("posts.manage")
-  const name = input.name?.trim()
-  if (!name) throw new Error("Informe um nome para o template.")
+  // Validation: enforce size limits on every persisted field.
+  const name = validateTitle(input.name, "Nome do template")
+  const category = input.category?.trim()?.slice(0, 128) || "geral"
+  const text = validateTelegramText(input.text)
+  const mediaIds = validateSerializedJson(input.mediaIds ?? [], "IDs de mídia")
+  const buttons = input.buttons ? validateButtonRows(input.buttons, "Botões") : "[]"
+  const defaultTargets = validateTargets(input.defaultTargets ?? [])
   const values = {
     ownerId: user.storeId,
     name,
-    category: input.category?.trim() || "geral",
-    text: input.text ?? null,
+    category,
+    text,
     parseMode: input.parseMode ?? "HTML",
-    mediaIds: JSON.stringify(input.mediaIds ?? []),
-    buttons: JSON.stringify(input.buttons ?? []),
-    defaultTargets: JSON.stringify(input.defaultTargets ?? []),
+    mediaIds,
+    buttons,
+    defaultTargets: JSON.stringify(defaultTargets),
     updatedAt: new Date(),
   }
   if (input.id) {

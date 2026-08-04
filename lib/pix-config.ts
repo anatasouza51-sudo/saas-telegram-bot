@@ -41,6 +41,13 @@ export const DEFAULT_PIX_CONFIG: PixConfig = {
 }
 
 /** Safely parses the stored JSON blob, always returning a complete config. */
+const MAX_PIX_TEXT_LENGTH = 500
+const MAX_PIX_BUTTON_TEXT_LENGTH = 64
+
+function clampText(text: string, max: number): string {
+  return text.trim().slice(0, max) || ""
+}
+
 export function parsePixConfig(raw: string | null | undefined): PixConfig {
   if (!raw) return { ...DEFAULT_PIX_CONFIG }
   try {
@@ -48,7 +55,7 @@ export function parsePixConfig(raw: string | null | undefined): PixConfig {
     return {
       aboveCodeText:
         typeof parsed.aboveCodeText === "string" && parsed.aboveCodeText.trim()
-          ? parsed.aboveCodeText
+          ? clampText(parsed.aboveCodeText, MAX_PIX_TEXT_LENGTH)
           : DEFAULT_PIX_CONFIG.aboveCodeText,
       copyButton: mergeButton(parsed.copyButton, DEFAULT_PIX_CONFIG.copyButton),
       verifyButton: mergeButton(
@@ -76,12 +83,12 @@ export function parsePixConfig(raw: string | null | undefined): PixConfig {
       approvedMessage:
         typeof parsed.approvedMessage === "string" &&
         parsed.approvedMessage.trim()
-          ? parsed.approvedMessage
+          ? clampText(parsed.approvedMessage, MAX_PIX_TEXT_LENGTH)
           : DEFAULT_PIX_CONFIG.approvedMessage,
       expiredMessage:
         typeof parsed.expiredMessage === "string" &&
         parsed.expiredMessage.trim()
-          ? parsed.expiredMessage
+          ? clampText(parsed.expiredMessage, MAX_PIX_TEXT_LENGTH)
           : DEFAULT_PIX_CONFIG.expiredMessage,
     }
   } catch {
@@ -105,7 +112,7 @@ function mergeButton(
 ): PixButton {
   if (!b || typeof b !== "object") return { ...fallback }
   return {
-    text: typeof b.text === "string" && b.text.trim() ? b.text : fallback.text,
+    text: typeof b.text === "string" && b.text.trim() ? clampText(b.text, MAX_PIX_BUTTON_TEXT_LENGTH) : fallback.text,
     enabled: typeof b.enabled === "boolean" ? b.enabled : fallback.enabled,
   }
 }

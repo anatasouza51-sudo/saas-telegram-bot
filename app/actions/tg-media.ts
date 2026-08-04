@@ -6,6 +6,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { revalidatePath } from "next/cache"
+import { validateTitle } from "@/lib/validation"
 
 export async function listFolders() {
   const user = await requireCapability("posts.manage")
@@ -49,8 +50,7 @@ export async function listMedia(opts?: {
 
 export async function createFolder(name: string, parentId?: number | null) {
   const user = await requireCapability("posts.manage")
-  const clean = name.trim()
-  if (!clean) throw new Error("Informe um nome para a pasta.")
+  const clean = validateTitle(name, "Nome da pasta")
   const [row] = await db
     .insert(telegramMediaFolders)
     .values({ ownerId: user.storeId, name: clean, parentId: parentId ?? null })
@@ -61,8 +61,7 @@ export async function createFolder(name: string, parentId?: number | null) {
 
 export async function renameFolder(id: number, name: string) {
   const user = await requireCapability("posts.manage")
-  const clean = name.trim()
-  if (!clean) throw new Error("Informe um nome para a pasta.")
+  const clean = validateTitle(name, "Nome da pasta")
   await db
     .update(telegramMediaFolders)
     .set({ name: clean })

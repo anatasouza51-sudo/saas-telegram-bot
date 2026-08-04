@@ -6,6 +6,12 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { and, desc, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import {
+  validateAutomationName,
+  validateAutomationCustomText,
+  validateTargets,
+  validateSerializedJson,
+} from "@/lib/validation"
 
 export type AutomationInput = {
   name: string
@@ -34,24 +40,26 @@ export async function listAutomations() {
 
 export async function saveAutomation(input: AutomationInput, id?: number) {
   const user = await requireCapability("posts.manage")
-  if (!input.name.trim()) throw new Error("Informe um nome")
+  const name = validateAutomationName(input.name)
   if (!VALID_TRIGGERS.includes(input.trigger)) {
     throw new Error("Gatilho inválido")
   }
-  if (!input.targets || input.targets.length === 0) {
+  const targets = validateTargets(input.targets)
+  if (targets.length === 0) {
     throw new Error("Selecione ao menos um destino")
   }
-  if (!input.templateId && !input.customText?.trim()) {
+  const customText = validateAutomationCustomText(input.customText)
+  if (!input.templateId && !customText) {
     throw new Error("Informe um texto ou selecione um template")
   }
 
   const values = {
     ownerId: user.storeId,
-    name: input.name.trim(),
+    name,
     trigger: input.trigger,
     templateId: input.templateId ?? null,
-    customText: input.customText?.trim() || null,
-    targets: JSON.stringify(input.targets),
+    customText,
+    targets: validateSerializedJson(targets, "Destinos"),
     active: input.active ?? true,
   }
 

@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache"
 import { getSetting, saveSetting } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
 import { serializeCatalogConfig, type CatalogConfig } from "@/lib/catalog-config"
-import { validateAdminIds, sanitizeTelegramHtml, validateImageUrl } from "@/lib/validation"
+import { validateAdminIds, sanitizeTelegramHtml, validateImageUrl, validateBotToken, validateGatewayKey, validateWelcomeMessage, validatePixText, validatePixButtonText } from "@/lib/validation"
 
 export async function saveTelegramSettings(input: {
   botToken?: string
@@ -18,7 +18,7 @@ export async function saveTelegramSettings(input: {
   const user = await requireCapability("telegram.manage")
   // Only overwrite the token when a new value is provided. The client never
   // receives the stored token, so an empty field means "keep current".
-  const token = input.botToken?.trim()
+  const token = input.botToken ? validateBotToken(input.botToken) : undefined
   let webhookRegistered = false
 
   if (token) {
@@ -85,10 +85,10 @@ export async function saveGatewaySettings(input: {
   secretKey?: string
 }) {
   const user = await requireCapability("gateway.manage")
-  await saveSetting(user.storeId, "veopag.publicKey", input.publicKey.trim())
+  await saveSetting(user.storeId, "veopag.publicKey", validateGatewayKey(input.publicKey, "Chave pública"))
   // Keep the stored secret when the field is left blank (never round-tripped
   // to the client).
-  const secret = input.secretKey?.trim()
+  const secret = input.secretKey ? validateGatewayKey(input.secretKey, "Chave secreta") : undefined
   if (secret) {
     await saveSetting(user.storeId, "veopag.secretKey", secret)
   }
@@ -135,7 +135,7 @@ export async function saveStoreCustomization(input: {
   const user = await requireCapability("telegram.manage")
   
   // Sanitization: prevent broken HTML in the bot and XSS in the panel.
-  const welcomeMessage = sanitizeTelegramHtml(input.welcomeMessage)
+  const welcomeMessage = sanitizeTelegramHtml(input.welcomeMessage).slice(0, 4000)
   const welcomeImageUrl = validateImageUrl(input.welcomeImageUrl)
 
   await saveSetting(user.storeId, "store.welcomeMessage", welcomeMessage)

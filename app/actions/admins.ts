@@ -5,6 +5,7 @@ import { user } from "@/lib/db/schema"
 import { auth } from "@/lib/auth"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
+import { validateProfileName, validateEmail } from "@/lib/validation"
 import { ROLES, type Role } from "@/lib/roles"
 import { and, eq, or } from "drizzle-orm"
 
@@ -43,14 +44,18 @@ export async function createAdmin(input: {
     return { ok: false, error: "Permissão inválida" }
   }
 
+  // Validate input size to prevent oversized payloads.
+  const name = validateProfileName(input.name)
+  const email = validateEmail(input.email)
+
   try {
     // Better Auth creates the user (with hashed password). The signup hook
     // defaults new accounts to an owner (role=admin, ownerId=null), so we
     // override afterwards to attach the member to THIS store.
     const created = await auth.api.signUpEmail({
       body: {
-        name: input.name,
-        email: input.email,
+        name,
+        email,
         password: input.password,
       },
     })

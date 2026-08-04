@@ -8,6 +8,7 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { revalidatePath } from "next/cache"
+import { validateTopicName, validateChatTitle } from "@/lib/validation"
 
 export type TopicRow = {
   id: number
@@ -63,8 +64,7 @@ export async function addTopic(input: {
     if (!Number.isInteger(threadId) || threadId < 0) {
       throw new Error("Informe o ID numérico do tópico (message_thread_id).")
     }
-    const name = input.name?.trim()
-    if (!name) throw new Error("Informe um nome para o tópico.")
+    const name = validateTopicName(input.name)
 
     const [chat] = await db
       .select({ id: telegramChats.id, type: telegramChats.type })
@@ -131,8 +131,7 @@ export async function addTopic(input: {
 
 export async function renameTopic(id: number, name: string) {
   const user = await requireCapability("posts.manage")
-  const trimmed = name?.trim()
-  if (!trimmed) throw new Error("Informe um nome para o tópico.")
+  const trimmed = validateTopicName(name)
   await db
     .update(telegramTopics)
     .set({ name: trimmed, updatedAt: new Date() })

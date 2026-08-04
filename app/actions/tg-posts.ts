@@ -11,9 +11,9 @@ import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { enqueuePost, processQueue, resolveTargets, type TargetSpec } from "@/lib/tg/queue"
 import { nextRun, parseRecurrence, type Recurrence } from "@/lib/tg/recurrence"
-import { resolveButtonUrl, type ButtonRows } from "@/lib/tg/buttons"
+import { type ButtonRows } from "@/lib/tg/buttons"
 import { revalidatePath } from "next/cache"
-import { sanitizeTelegramHtml, sanitizeDisplayName, validateSafeUrl } from "@/lib/validation"
+import { sanitizeTelegramHtml, validateTelegramText, validateButtonRows, validatePostTitle, validateSerializedJson, validateTargets, validateTimezone, validateRecurrence } from "@/lib/validation"
 
 export type PostInput = {
   id?: string
@@ -28,33 +28,21 @@ export type PostInput = {
 export async function savePost(input: PostInput, revalidate = true): Promise<string> {
   try {
     const user = await requireCapability("posts.manage")
-    // Validation: prevent XSS, HTML injection and protocol bypass.
-    const title = sanitizeDisplayName(input.title)
-    const text = input.parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : input.text
+    // Validation: prevent XSS, HTML injection, protocol bypass AND oversized payloads.
+    const title = validatePostTitle(input.title)
+    const rawText = input.parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : validateTelegramText(input.text)
+    const text = rawText ?? input.text  // fallback for Markdown mode (Telegram will reject oversized messages)
     
-    const validatedButtons = (input.buttons ?? []).map(row => 
-      row.map(btn => {
-        const resolved = resolveButtonUrl(btn)
-        if (resolved && !resolved.startsWith("http")) {
-          // If it's not a standard URL, it might be a callback or formatted link.
-          // We validate the resulting URL if it's meant to be one.
-          if (["url", "site", "deeplink"].includes(btn.type)) {
-            validateSafeUrl(resolved, `Botão "${btn.text}"`)
-          }
-        } else if (resolved) {
-          validateSafeUrl(resolved, `Botão "${btn.text}"`)
-        }
-        return btn
-      })
-    )
+    // Validate buttons: enforce max rows, buttons per row, text/value lengths, callback_data 64-byte cap.
+    const validatedButtons = input.buttons ? validateButtonRows(input.buttons, "Botões") : "[]"
 
     const values = {
       ownerId: user.storeId,
       title: title || null,
       text: text ?? null,
       parseMode: input.parseMode ?? "HTML",
-      mediaIds: JSON.stringify(input.mediaIds ?? []),
-      buttons: JSON.stringify(validatedButtons),
+      mediaIds: validateSerializedJson(input.mediaIds ?? [], "IDs de mídia"),
+      buttons: validatedButtons,
       updatedAt: new Date(),
     }
 
@@ -123,7 +111,8 @@ export async function publishNow(
 ): Promise<{ enqueued: number; sent: number; failed: number }> {
   try {
     const user = await requireCapability("posts.manage")
-    if (!targets || targets.length === 0) {
+    const validatedTargets = validateTargets(targets)
+    if (validatedTargets.length === 0) {
       throw new Error("Selecione ao menos um destino.")
     }
     const id = await savePost(input, false)
@@ -139,7 +128,7 @@ export async function publishNow(
     // Use a transaction to ensure atomic enqueueing and status update.
     const { enqueued, queueIds } = await db.transaction(async (tx) => {
       // Passamos o contexto da transação 'tx' para garantir atomicidade e evitar deadlock
-      const destinations = await resolveTargets(user.storeId, targets, tx)
+      const destinations = await resolveTargets(user.storeId, validatedTargets, tx)
       if (destinations.length === 0) return { enqueued: 0, queueIds: [] }
 
       const rows = await tx
@@ -237,7 +226,8 @@ export async function schedulePost(
   when: { runAt: string; timezone: string; recurrence: Recurrence },
 ): Promise<void> {
   const user = await requireCapability("posts.manage")
-  if (!targets || targets.length === 0) {
+  const validatedTargets = validateTargets(targets)
+  if (validatedTargets.length === 0) {
     throw new Error("Selecione ao menos um destino.")
   }
   const runAt = new Date(when.runAt)
@@ -245,6 +235,8 @@ export async function schedulePost(
   if (runAt.getTime() < Date.now() - 60_000) {
     throw new Error("Escolha uma data/hora no futuro.")
   }
+  const timezone = validateTimezone(when.timezone)
+  const recurrenceStr = validateRecurrence(when.recurrence)
 
   const id = await savePost(input, false)
   const [post] = await db
@@ -258,11 +250,11 @@ export async function schedulePost(
   await db.insert(telegramSchedules).values({
     ownerId: user.storeId,
     postId: id,
-    targets: JSON.stringify(targets),
+    targets: JSON.stringify(validatedTargets),
     scheduleType: isRecurring ? "recurring" : "once",
     runAt,
-    timezone: when.timezone,
-    recurrence: JSON.stringify(when.recurrence),
+    timezone,
+    recurrence: recurrenceStr,
     nextRunAt: runAt,
     active: true,
     createdBy: user.id,
@@ -335,12 +327,13 @@ export async function listSchedules() {
 
 export async function cancelSchedule(id: number | string) {
   const user = await requireCapability("posts.manage")
+  const scheduleId = typeof id === "string" ? Number(id) : id
   await db
     .update(telegramSchedules)
     .set({ active: false, nextRunAt: null })
     .where(
       and(
-        eq(telegramSchedules.id, id),
+        eq(telegramSchedules.id, scheduleId),
         eq(telegramSchedules.ownerId, user.storeId),
       ),
     )
@@ -450,7 +443,7 @@ export async function getPostReports(postIds?: string[]) {
       )
       .orderBy(asc(telegramQueue.scheduledFor))
 
-    const queueByPostId = new Map<number, typeof allQueueItems>()
+    const queueByPostId = new Map<string, typeof allQueueItems>()
     for (const item of allQueueItems) {
       const list = queueByPostId.get(item.postId)
       if (list) {

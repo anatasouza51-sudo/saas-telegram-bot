@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/log"
 import { runAutomations } from "@/lib/tg/automations"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import { validateStockInput } from "@/lib/validation"
 
 export async function listStockSummary() {
   const { storeId } = await requireCapability("stock.manage")
@@ -55,11 +56,8 @@ async function assertOwnsProduct(productId: number, storeId: string) {
 export async function addStockItems(productId: number, raw: string) {
   const user = await requireCapability("stock.manage")
   await assertOwnsProduct(productId, user.storeId)
-  const lines = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-
+  // Validate: enforce max line count and per-line length.
+  const lines = validateStockInput(raw)
   if (lines.length === 0) throw new Error("Nenhum item informado")
 
   // Snapshot availability before insert so we can detect a true "restock"

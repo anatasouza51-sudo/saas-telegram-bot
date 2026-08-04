@@ -15,6 +15,12 @@ export const DEFAULT_CATALOG_CONFIG: CatalogConfig = {
   backButton: { text: "⬅️ Voltar", enabled: true },
 }
 
+const MAX_BUTTON_TEXT_LENGTH = 64
+
+function clampText(text: string, max: number): string {
+  return typeof text === "string" ? text.trim().slice(0, max) : ""
+}
+
 export function parseCatalogConfig(json: string | null | undefined): CatalogConfig {
   if (!json) return DEFAULT_CATALOG_CONFIG
   try {
@@ -23,15 +29,15 @@ export function parseCatalogConfig(json: string | null | undefined): CatalogConf
 
     return {
       buyButton: {
-        text: typeof parsed.buyButton?.text === "string" ? parsed.buyButton.text : DEFAULT_CATALOG_CONFIG.buyButton.text,
+        text: typeof parsed.buyButton?.text === "string" ? clampText(parsed.buyButton.text, MAX_BUTTON_TEXT_LENGTH) : DEFAULT_CATALOG_CONFIG.buyButton.text,
         enabled: typeof parsed.buyButton?.enabled === "boolean" ? parsed.buyButton.enabled : DEFAULT_CATALOG_CONFIG.buyButton.enabled,
       },
       couponButton: {
-        text: typeof parsed.couponButton?.text === "string" ? parsed.couponButton.text : DEFAULT_CATALOG_CONFIG.couponButton.text,
+        text: typeof parsed.couponButton?.text === "string" ? clampText(parsed.couponButton.text, MAX_BUTTON_TEXT_LENGTH) : DEFAULT_CATALOG_CONFIG.couponButton.text,
         enabled: typeof parsed.couponButton?.enabled === "boolean" ? parsed.couponButton.enabled : DEFAULT_CATALOG_CONFIG.couponButton.enabled,
       },
       backButton: {
-        text: typeof parsed.backButton?.text === "string" ? parsed.backButton.text : DEFAULT_CATALOG_CONFIG.backButton.text,
+        text: typeof parsed.backButton?.text === "string" ? clampText(parsed.backButton.text, MAX_BUTTON_TEXT_LENGTH) : DEFAULT_CATALOG_CONFIG.backButton.text,
         enabled: typeof parsed.backButton?.enabled === "boolean" ? parsed.backButton.enabled : DEFAULT_CATALOG_CONFIG.backButton.enabled,
       },
     }
