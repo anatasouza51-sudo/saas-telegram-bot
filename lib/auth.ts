@@ -53,10 +53,6 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
-    },
   },
   // Built-in rate limiting throttles brute-force attempts. Auth endpoints get a
   // tighter window than the global default.
@@ -113,14 +109,10 @@ export const auth = betterAuth({
   // Cookie defaults are HttpOnly + Secure (set automatically by Better Auth
   // in production via the `baseURL` being HTTPS). SameSite is managed by the
   // framework's built-in handler, which emits Lax for the sign-in flow.
-  ...(process.env.NODE_ENV === "development"
-    ? {
-        advanced: {
-          defaultCookieAttributes: {
-            sameSite: "none" as const,
-            secure: true,
-          },
-        },
-      }
-    : {}),
+  advanced: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
 })
