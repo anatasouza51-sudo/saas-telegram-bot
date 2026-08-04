@@ -38,20 +38,59 @@ export async function ensureDbStructure() {
       );
     `)
 
-      // BUGFIX: Se a tabela já existia com ID como UUID (legado), precisamos converter para TEXT
-      // para o Better Auth funcionar. Usando ALTER COLUMN TYPE diretamente.
+      // BUGFIX CRÍTICO: Conversão de UUID para TEXT na tabela 'user'
+      // Esta migração é complexa porque envolve remover e recriar PKs e FKs.
       try {
         const check = await client.query(`
           SELECT data_type FROM information_schema.columns 
           WHERE table_name = 'user' AND column_name = 'id';
         `)
+        
         if (check.rows[0]?.data_type === 'uuid') {
-          console.log("[db/migrate] Convertendo coluna 'id' da tabela 'user' de UUID para TEXT...")
+          console.log("[db/migrate] Detectada coluna 'id' como UUID. Iniciando conversão para TEXT...")
+          
+          // 1. Identificar e remover FKs que apontam para user(id)
+          const fks = await client.query(`
+            SELECT tc.constraint_name, tc.table_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name
+            JOIN information_schema.constraint_column_usage ccu
+              ON tc.constraint_name = ccu.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY' 
+              AND ccu.table_name = 'user' 
+              AND ccu.column_name = 'id';
+          `)
+          
+          for (const fk of fks.rows) {
+            console.log(`[db/migrate] Removendo FK: ${fk.constraint_name} da tabela ${fk.table_name}`)
+            await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`)
+          }
+          
+          // 2. Remover PK da tabela user
+          const pks = await client.query(`
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY';
+          `)
+          for (const pk of pks.rows) {
+            console.log(`[db/migrate] Removendo PK: ${pk.constraint_name}`)
+            await client.query(`ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "${pk.constraint_name}" CASCADE;`)
+          }
+          
+          // 3. Converter a coluna id para TEXT
+          console.log("[db/migrate] Alterando tipo da coluna 'id' para TEXT...")
           await client.query('ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;')
-          console.log("[db/migrate] Coluna 'id' da tabela 'user' convertida para TEXT.")
+          await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;')
+          
+          // 4. Recriar a PK
+          console.log("[db/migrate] Recriando PK na tabela 'user'...")
+          await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id);')
+          
+          console.log("[db/migrate] Conversão de UUID para TEXT concluída com sucesso.")
         }
-      } catch (e) {
-        console.error("[db/migrate] Falha na migração crítica de UUID para TEXT na tabela 'user':", e)
+      } catch (e: any) {
+        console.error("[db/migrate] ERRO na migração de UUID para TEXT:", e.message)
       }
 
     // Tabela session
