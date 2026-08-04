@@ -35,7 +35,7 @@ async function handleRequest() {
       const res = await client.query(`
         SELECT table_schema, table_name, column_name, data_type
         FROM information_schema.columns
-        WHERE table_name IN ('user', 'session', 'account')
+        WHERE table_name IN ('user', 'session', 'account', 'users')
         ORDER BY table_schema, table_name, ordinal_position
       `)
       const tables = await client.query(`
