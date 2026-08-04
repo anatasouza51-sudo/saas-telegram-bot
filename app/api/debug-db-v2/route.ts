@@ -35,14 +35,18 @@ export async function GET() {
         FROM information_schema.tables 
         WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
       `)
-      const publicData = await client.query('SELECT * FROM public."user" LIMIT 5').catch(() => ({ rows: [] }))
-      const neonData = await client.query('SELECT * FROM neon_auth."user" LIMIT 5').catch(() => ({ rows: [] }))
+      const publicData = await client.query('SELECT id, email, name FROM public."user" LIMIT 10').catch(() => ({ rows: [] }))
+      const publicCount = await client.query('SELECT count(*) FROM public."user"').catch(() => ({ rows: [{count: 0}] }))
+      const neonData = await client.query('SELECT id, email, name FROM neon_auth."user" LIMIT 10').catch(() => ({ rows: [] }))
+      const neonCount = await client.query('SELECT count(*) FROM neon_auth."user"').catch(() => ({ rows: [{count: 0}] }))
       
       return NextResponse.json({
         columns: res.rows,
         tables: tables.rows,
         publicData: publicData.rows,
+        publicCount: publicCount.rows[0],
         neonData: neonData.rows,
+        neonCount: neonCount.rows[0],
         migrationLogs: logs,
         timestamp: new Date().toISOString()
       })
