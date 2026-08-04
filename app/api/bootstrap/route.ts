@@ -12,7 +12,16 @@ export const dynamic = "force-dynamic"
  * Isso garante que as tabelas do Better Auth (user, session, account, verification)
  * e todas as tabelas do app existem antes de qualquer operação.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const token = searchParams.get("token")
+  
+  // PROTEÇÃO DE SEGURANÇA: Evitar que o bootstrap seja disparado por terceiros.
+  const expectedToken = process.env.BOOTSTRAP_TOKEN || process.env.REPAIR_TOKEN
+  if (expectedToken && token !== expectedToken) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+
   try {
     await ensureDbStructure()
     return NextResponse.json({ 

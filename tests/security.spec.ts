@@ -1,0 +1,83 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * Security Test Suite - SaaS Telegram Bot
+ * Focused on OWASP Top 10 vulnerabilities.
+ */
+
+test.describe('Security & Vulnerability Tests', () => {
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+
+  // --- A01:2021-Broken Access Control ---
+
+  test('SEC-01: Unauthorized access to repair-db should be blocked', async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/repair-db`);
+    // Critical: This endpoint performs destructive DB operations.
+    // It should NOT be publicly accessible.
+    expect(response.status(), 'Public access to /api/repair-db should be forbidden').not.toBe(200);
+  });
+
+  test('SEC-02: Unauthorized access to bootstrap should be blocked', async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/bootstrap`);
+    // Critical: This endpoint can reset or modify DB structure.
+    expect(response.status(), 'Public access to /api/bootstrap should be forbidden').not.toBe(200);
+  });
+
+  test('SEC-03: Accessing dashboard without session should redirect to sign-in', async ({ page }) => {
+    await page.goto(`${baseURL}/api/dashboard`);
+    // Should not see sensitive data
+    const content = await page.content();
+    expect(content).not.toContain('sales');
+    expect(content).not.toContain('recentOrders');
+  });
+
+  // --- A03:2021-Injection ---
+
+  test('SEC-04: Verify if API handles potential XSS/Injection in product names', async ({ request }) => {
+    // This test assumes an authenticated session. In a real CI, we'd use a storageState.
+    // Here we just map the risk: if we can inject <script>, it's a vulnerability.
+    const payload = {
+      name: 'Product <script>alert(1)</script>',
+      price: 100,
+      status: 'active'
+    };
+    
+    // Attempt to create product (will fail without auth in this test, but maps the scenario)
+    const response = await request.post(`${baseURL}/api/products`, { data: payload });
+    if (response.status() === 200) {
+      const body = await response.text();
+      expect(body).not.toContain('<script>');
+    }
+  });
+
+  // --- A04:2021-Insecure Design (SSRF) ---
+
+  test('SEC-05: Verify bot-avatar SSRF protection', async ({ request }) => {
+    // Attempt to access internal metadata or local files via proxy
+    const maliciousUrls = [
+      'http://169.254.169.254/latest/meta-data/', // AWS Metadata
+      'file:///etc/passwd',
+      'http://localhost:3000/api/admin/backup'
+    ];
+
+    for (const url of maliciousUrls) {
+      const response = await request.get(`${baseURL}/api/tg/bot-avatar?url=${encodeURIComponent(url)}`);
+      // The application should reject URLs that don't match the allowed Telegram prefix.
+      expect(response.status(), `SSRF attempt with ${url} should be blocked`).not.toBe(200);
+    }
+  });
+
+  // --- A05:2021-Security Misconfiguration ---
+
+  test('SEC-06: Check for information disclosure in error responses', async ({ request }) => {
+    // Trigger an error on a route that might leak info
+    const response = await request.get(`${baseURL}/api/repair-db`);
+    const body = await response.text();
+    
+    // Error responses should not leak DB types, table names, or stack traces
+    const sensitiveTerms = ['PostgreSQL', 'ordinal_position', 'information_schema', 'uid', 'uuid'];
+    for (const term of sensitiveTerms) {
+      expect(body.toLowerCase()).not.toContain(term.toLowerCase());
+    }
+  });
+});
