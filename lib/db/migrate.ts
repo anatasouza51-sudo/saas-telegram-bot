@@ -490,7 +490,8 @@ export async function ensureDbStructure() {
       { name: "telegram_topics_owner_chat_thread_uidx", table: "telegram_topics", cols: '("ownerId", "chatId", "threadId")' },
       { name: "coupons_owner_code_uidx", table: "coupons", cols: '("ownerId", "code")' },
       { name: "customers_owner_telegramid_uidx", table: "customers", cols: '("ownerId", "telegramId")' },
-      { name: "settings_owner_key_uidx", table: "settings", cols: '("ownerId", "key")' }
+      { name: "settings_owner_key_uidx", table: "settings", cols: '("ownerId", "key")' },
+      { name: "telegram_media_owner_uniqueid_uidx", table: "telegram_media", cols: '("ownerId", "fileUniqueId")' }
     ]
 
     for (const idx of indexes) {
