@@ -47,9 +47,13 @@ export async function ensureDbStructure() {
         `)
         
         if (check.rows[0]?.data_type === 'uuid') {
-          console.log("[db/migrate] MANUS FIX V3 - Detectada coluna 'id' como UUID. Iniciando conversão para TEXT...")
+          console.log("[db/migrate] MANUS FIX V4 - Iniciando conversão via swap de colunas...")
           
-          // 1. Identificar e remover FKs que apontam para user(id)
+          // 1. Garantir que id_text existe e está populado
+          await client.query('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS id_text TEXT;')
+          await client.query('UPDATE "user" SET id_text = id::TEXT WHERE id_text IS NULL;')
+          
+          // 2. Identificar e remover FKs que apontam para user(id)
           const fks = await client.query(`
             SELECT tc.constraint_name, tc.table_name
             FROM information_schema.table_constraints tc
@@ -70,27 +74,29 @@ export async function ensureDbStructure() {
             }
           }
           
-          // 2. Remover PK da tabela user
-          const pks = await client.query(`
-            SELECT constraint_name 
-            FROM information_schema.table_constraints 
-            WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY';
-          `)
-          for (const pk of pks.rows) {
-            console.log(`[db/migrate] Removendo PK: ${pk.constraint_name}`)
-            await client.query(`ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "${pk.constraint_name}" CASCADE;`)
+          // 3. Remover PK da tabela user
+          await client.query('ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;')
+          
+          // 4. Realizar o SWAP de colunas
+          console.log("[db/migrate] Realizando swap de id (uuid) para id (text)...")
+          // Tentar renomear a antiga para backup e a nova para id
+          try {
+            await client.query('ALTER TABLE "user" RENAME COLUMN id TO id_old_uuid;')
+            await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
+          } catch (swapErr: any) {
+            console.error("[db/migrate] Erro no swap, tentando drop direto:", swapErr.message)
+            await client.query('ALTER TABLE "user" DROP COLUMN IF EXISTS id CASCADE;')
+            await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id;')
           }
           
-          // 3. Converter a coluna id para TEXT
-          console.log("[db/migrate] Alterando tipo da coluna 'id' para TEXT...")
-          await client.query('ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;')
+          await client.query('ALTER TABLE "user" ALTER COLUMN id SET NOT NULL;')
           await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;')
           
-          // 4. Recriar a PK
+          // 5. Recriar a PK
           console.log("[db/migrate] Recriando PK na tabela 'user'...")
           await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id);')
           
-          console.log("[db/migrate] Conversão de UUID para TEXT concluída com sucesso.")
+          console.log("[db/migrate] Conversão V4 concluída com sucesso.")
         }
       } catch (e: any) {
         console.error("[db/migrate] ERRO na migração de UUID para TEXT:", e.message)
