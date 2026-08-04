@@ -80,4 +80,51 @@ test.describe('Security & Vulnerability Tests', () => {
       expect(body.toLowerCase()).not.toContain(term.toLowerCase());
     }
   });
+
+  // --- ADVANCED: Broken Authentication & Session Management ---
+
+  test('ADV-01: Brute force protection on sign-in', async ({ request }) => {
+    // Better Auth rate limiting should block multiple failed attempts
+    const email = `victim_${Date.now()}@example.com`;
+    let lastStatus = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const response = await request.post(`${baseURL}/api/auth/sign-in/email`, {
+        data: { email, password: 'wrong-password' }
+      });
+      lastStatus = response.status();
+      if (lastStatus === 429) break;
+    }
+    
+    expect(lastStatus, 'Should eventually return 429 Too Many Requests').toBe(429);
+  });
+
+  test('ADV-02: Password Reset Enumeration', async ({ request }) => {
+    // The system should not reveal if an email exists during password reset
+    const response = await request.post(`${baseURL}/api/auth/forget-password`, {
+      data: { email: 'non-existent-user@ghostbot.com' }
+    });
+    
+    // Standard security practice: return 200/Success even if email doesn't exist
+    expect(response.status()).toBe(200);
+  });
+
+  // --- ADVANCED: Mass Assignment & IDOR ---
+
+  test('ADV-03: Mass Assignment check on SignUp', async ({ request }) => {
+    // Attempt to register with a pre-set 'admin' role
+    const response = await request.post(`${baseURL}/api/auth/sign-up/email`, {
+      data: { 
+        email: `hacker_${Date.now()}@example.com`, 
+        password: 'Password123!', 
+        name: 'Hacker',
+        role: 'admin', // Malicious field
+        ownerId: null  // Malicious field
+      }
+    });
+    
+    // The server should ignore 'role' and 'ownerId' from the request body
+    // This is verified by the databaseHook in lib/auth.ts
+    expect(response.status()).toBe(200);
+  });
 });

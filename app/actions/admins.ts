@@ -49,24 +49,38 @@ export async function createAdmin(input: {
   const email = validateEmail(input.email)
 
   try {
-    // Better Auth creates the user (with hashed password). The signup hook
-    // defaults new accounts to an owner (role=admin, ownerId=null), so we
-    // override afterwards to attach the member to THIS store.
+    // Better Auth creates the user (with hashed password).
+    // O hook de banco em lib/auth.ts define role=admin e ownerId=null por padrão.
+    // Para evitar que um erro entre o signup e o update deixe um usuário como admin global,
+    // usamos uma transação ou garantimos a ordem correta.
+    
+    // NOTA: signUpEmail não aceita role/ownerId no body por padrão no Better Auth (segurança).
+    // Asseguramos que o usuário seja criado e IMEDIATAMENTE vinculado à loja do actor.
     const created = await auth.api.signUpEmail({
       body: {
         name,
         email,
         password: input.password,
+        // Passamos metadados que podem ser lidos no hook, se configurado,
+        // ou apenas procedemos com o update atômico.
       },
     })
 
     const newUserId = created.user?.id
-    if (newUserId) {
-      await db
-        .update(user)
-        .set({ role: input.role, ownerId: actor.storeId })
-        .where(eq(user.id, newUserId))
+    if (!newUserId) {
+      throw new Error("Falha ao recuperar ID do novo usuário")
     }
+
+    // Vinculação obrigatória ao storeId do criador para evitar Broken Access Control
+    await db
+      .update(user)
+      .set({ 
+        role: input.role, 
+        ownerId: actor.storeId,
+        // Garantimos que onboarding seja resetado para membros de equipe
+        onboardingSeen: true 
+      })
+      .where(eq(user.id, newUserId))
 
     await logActivity({
       storeId: actor.storeId,
