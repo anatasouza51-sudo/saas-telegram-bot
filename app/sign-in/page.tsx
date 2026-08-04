@@ -5,144 +5,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { GhostBg } from "@/components/ghost-bg";
+import { AuthForm } from "@/components/auth-form";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    
-    try {
-      const result = await authClient.signIn.email({ 
-        email, 
-        password
-      });
-
-      if (result.error) {
-        setError(result.error.message || "Credenciais inválidas");
-        setLoading(false);
-        return;
-      }
-
-      // Sucesso no login — aguardar propagação do cookie de sessão antes de redirecionar
-      router.refresh();
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 1000);
-      
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Ocorreu um erro ao fazer login. Tente novamente.");
-      setLoading(false);
-    }
-  }, [email, password, router]);
-
   return (
-    <div className="min-h-screen w-full bg-[#050508] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+    <main className="min-h-screen w-full bg-[#020203] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Ghost Background Animation */}
       <GhostBg />
 
-      {/* LOGO DO PROJETO */}
-      <div className="mb-8 z-10 text-center flex flex-col items-center justify-center">
-        <Link href="/" className="flex flex-col items-center gap-3 group">
-          <div className="relative w-20 h-20 flex items-center justify-center">
-            <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
-            <Image
-              src="/ghostbot-final-logo.png"
-              alt="GHOST BOT"
-              width={80}
-              height={80}
-              className="relative object-contain transition-transform duration-300 group-hover:scale-110"
-              priority
-            />
-          </div>
-          <span className="text-2xl font-black tracking-tight text-white">
-            GHOST <span className="text-dashboard-accent">BOT</span>
-          </span>
-        </Link>
+      <div className="relative z-10 w-full flex justify-center">
+        <AuthForm mode="sign-in" />
       </div>
-
-      {/* Card do Formulário */}
-      <div className="w-full max-w-[420px] bg-[#0c0d12] border border-gray-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo de volta</h2>
-          <p className="text-xs sm:text-sm text-gray-400">Acesse seu centro de comando e gerencie sua operação.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Campo E-MAIL */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">E-MAIL</label>
-            <div className="relative flex items-center">
-              <Mail className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="voce@empresa.com" 
-                required 
-                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" 
-              />
-            </div>
-          </div>
-
-          {/* Campo SENHA */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">SENHA</label>
-              <Link href="/forget-password" className="text-xs text-gray-400 hover:text-white transition">Esqueceu Sua Senha?</Link>
-            </div>
-            <div className="relative flex items-center">
-              <Lock className="absolute left-3.5 h-4 w-4 text-gray-500 pointer-events-none" />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="••••••••" 
-                required 
-                className="w-full bg-[#121319] border border-gray-800 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-gray-600 focus:ring-1 focus:ring-gray-600 transition" 
-              />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 text-gray-500 hover:text-gray-300 transition">
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-medium text-red-400">
-              {error}
-            </div>
-          )}
-
-          {/* Botão de Envio */}
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2 active:scale-[0.98]"
-          >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-              <>
-                Acessar painel
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Rodapé do Card */}
-        <div className="mt-6 text-center text-xs text-gray-400">
-          Não tem conta? <Link href="/sign-up" className="text-white font-bold hover:underline">Criar conta gratuita</Link>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }

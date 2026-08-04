@@ -30,7 +30,7 @@ const FormInput = memo(({
     </div>
     <div className="relative">
       {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />}
-      <Input
+        <Input
         id={id}
         type={type}
         value={value}
@@ -38,7 +38,7 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-11 text-sm bg-[#121319] border-gray-800 focus:border-gray-600 focus:ring-gray-600 transition-all rounded-xl placeholder:text-gray-600 text-white`}
+        className={`${Icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : ''} h-11 text-sm bg-[#0a0b0c] border-white/5 focus:border-white/20 focus:ring-white/10 transition-all rounded-xl placeholder:text-gray-600 text-white`}
       />
     </div>
   </div>
@@ -124,7 +124,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-5 bg-[#0c0d12] border border-gray-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm"
+        className="flex flex-col gap-5 bg-[#08090a]/80 border border-white/5 rounded-2xl p-6 sm:p-8 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] z-10 backdrop-blur-md"
       >
         {isSignUp && (
           <FormInput id="name" label="Nome Completo" icon={User} value={name} onChange={setName} placeholder="Seu nome" required />
