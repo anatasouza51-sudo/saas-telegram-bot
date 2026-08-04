@@ -29,6 +29,11 @@ export async function getWebhookSecret(
   return row?.value ?? null
 }
 
+function isRelationNotFound(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes("does not exist") || msg.includes("42P01") || msg.includes("relation ")
+}
+
 /** Returns the existing secret or creates, stores and returns a new one. */
 export async function getOrCreateWebhookSecret(
   storeId: string,
@@ -37,10 +42,24 @@ export async function getOrCreateWebhookSecret(
   const existing = await getWebhookSecret(storeId, provider)
   if (existing) return existing
   const secret = generateSecret()
-  await db
-    .insert(settings)
-    .values({ ownerId: storeId, key: key(provider), value: secret })
-    .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
+  try {
+    await db
+      .insert(settings)
+      .values({ ownerId: storeId, key: key(provider), value: secret })
+      .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
+  } catch (err) {
+    if (isRelationNotFound(err)) {
+      console.warn("[webhook-secrets] Tabela 'settings' não encontrada, executando bootstrap...")
+      const { ensureDbStructure } = await import("@/lib/db/migrate")
+      await ensureDbStructure()
+      await db
+        .insert(settings)
+        .values({ ownerId: storeId, key: key(provider), value: secret })
+        .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
+    } else {
+      throw err
+    }
+  }
   // Re-read in case of a concurrent insert winning the race.
   return (await getWebhookSecret(storeId, provider)) ?? secret
 }

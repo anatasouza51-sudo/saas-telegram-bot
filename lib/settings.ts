@@ -58,6 +58,27 @@ export async function getSetting(
   return value
 }
 
+/**
+ * Detects Postgres "relation does not exist" errors (code 42P01).
+ */
+function isRelationNotFound(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return (
+    msg.includes("does not exist") ||
+    msg.includes("relation ") ||
+    msg.includes("42P01") ||
+    msg.includes("undefined table")
+  )
+}
+
+/**
+ * Runs ensureDbStructure lazily to avoid import-time circular deps.
+ */
+async function runBootstrap(): Promise<void> {
+  const { ensureDbStructure } = await import("@/lib/db/migrate")
+  await ensureDbStructure()
+}
+
 export async function saveSetting(storeId: string, key: string, value: string) {
   let valueToSave = value
   
@@ -66,11 +87,28 @@ export async function saveSetting(storeId: string, key: string, value: string) {
     valueToSave = encrypt(value)
   }
 
-  await db
-    .insert(settings)
-    .values({ ownerId: storeId, key, value: valueToSave })
-    .onConflictDoUpdate({
-      target: [settings.ownerId, settings.key],
-      set: { value: valueToSave, updatedAt: new Date() },
-    })
+  try {
+    await db
+      .insert(settings)
+      .values({ ownerId: storeId, key, value: valueToSave })
+      .onConflictDoUpdate({
+        target: [settings.ownerId, settings.key],
+        set: { value: valueToSave, updatedAt: new Date() },
+      })
+  } catch (err) {
+    if (isRelationNotFound(err)) {
+      console.warn("[settings] Tabela 'settings' não encontrada, executando bootstrap...")
+      await runBootstrap()
+      // Tenta novamente após bootstrap
+      await db
+        .insert(settings)
+        .values({ ownerId: storeId, key, value: valueToSave })
+        .onConflictDoUpdate({
+          target: [settings.ownerId, settings.key],
+          set: { value: valueToSave, updatedAt: new Date() },
+        })
+    } else {
+      throw err
+    }
+  }
 }
