@@ -44,30 +44,38 @@ export async function ensureDbStructure() {
       DO $$
       DECLARE
           pk_name TEXT;
+          col_type TEXT;
       BEGIN
-          IF EXISTS (
-              SELECT 1 FROM information_schema.columns 
-              WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
-          ) THEN
-              -- 1. Identificar o nome da Primary Key atual
-              SELECT constraint_name INTO pk_name
-              FROM information_schema.table_constraints
-              WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY';
+          -- 1. Verificar tipo da coluna de forma mais direta (contornando views de schema)
+          SELECT format_type(atttypid, atttypmod) INTO col_type
+          FROM pg_attribute
+          WHERE attrelid = '"user"'::regclass
+          AND attname = 'id';
 
-              -- 2. Remover PK se existir
+          IF col_type = 'uuid' THEN
+              -- 2. Identificar o nome da Primary Key atual
+              SELECT conname INTO pk_name
+              FROM pg_constraint
+              WHERE conrelid = '"user"'::regclass
+              AND contype = 'p';
+
+              -- 3. Remover PK se existir
               IF pk_name IS NOT NULL THEN
                   EXECUTE 'ALTER TABLE "user" DROP CONSTRAINT ' || quote_ident(pk_name) || ' CASCADE';
               END IF;
 
-              -- 3. Converte tipo da coluna ID
+              -- 4. Converte tipo da coluna ID
               ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;
               
-              -- 4. Remover o DEFAULT gen_random_uuid() que conflita com TEXT
+              -- 5. Remover o DEFAULT gen_random_uuid() que conflita com TEXT
               ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT;
 
-              -- 5. Recriar PK
+              -- 6. Recriar PK
               ALTER TABLE "user" ADD PRIMARY KEY (id);
           END IF;
+      EXCEPTION WHEN OTHERS THEN
+          -- Silencia erros caso a tabela não exista ou algo falhe
+          NULL;
       END $$;
     `)
 
