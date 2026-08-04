@@ -477,17 +477,51 @@ export function validateProfileName(name: unknown): string {
 /**
  * Validates a profile image URL.
  */
-export function validateProfileImage(url: unknown): string | null {
-  if (url === null || url === undefined) return null
-  if (typeof url !== "string") return null
-  const trimmed = url.trim()
+/**
+ * Valida uma imagem de perfil (pode ser URL ou Data URL de base64).
+ * Implementa restrições rigorosas de tamanho e tipo para evitar abusos.
+ */
+export function validateProfileImage(image: unknown): string | null {
+  if (image === null || image === undefined) return null
+  if (typeof image !== "string") return null
+  const trimmed = image.trim()
   if (trimmed.length === 0) return null
+
+  // 1. Se for Data URL (Base64 vindo do frontend)
+  if (trimmed.startsWith("data:image/")) {
+    // Limite de 1.5MB para a string base64 (aproximadamente 1MB de binário)
+    const MAX_BASE64_SIZE = 1.5 * 1024 * 1024
+    if (trimmed.length > MAX_BASE64_SIZE) {
+      throw new Error("A imagem de perfil é muito grande (máximo 1MB)")
+    }
+    
+    // Validar tipos permitidos no prefixo
+    if (!/^data:image\/(jpeg|png|webp|gif);base64,/i.test(trimmed)) {
+      throw new Error("Formato de imagem base64 não suportado. Use JPEG, PNG, WEBP ou GIF.")
+    }
+    
+    return trimmed
+  }
+
+  // 2. Se for URL externa
   if (trimmed.length > MAX_PROFILE_IMAGE_URL_LENGTH) {
     throw new Error("URL da imagem muito longa")
   }
   if (!/^https?:\/\//i.test(trimmed)) {
     throw new Error("URL da imagem deve começar com http:// ou https://")
   }
+  
+  // Bloquear URLs de metadados ou locais (SSRF Prevention)
+  try {
+    const url = new URL(trimmed)
+    const host = url.hostname.toLowerCase()
+    if (["localhost", "127.0.0.1", "169.254.169.254"].includes(host)) {
+      throw new Error("URL de imagem inválida")
+    }
+  } catch {
+    throw new Error("URL de imagem inválida")
+  }
+
   return trimmed
 }
 
