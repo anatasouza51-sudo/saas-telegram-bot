@@ -33,9 +33,14 @@ export async function GET() {
         FROM information_schema.tables 
         WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
       `)
+      const publicData = await client.query('SELECT * FROM public."user" LIMIT 5').catch(() => ({ rows: [] }))
+      const neonData = await client.query('SELECT * FROM neon_auth."user" LIMIT 5').catch(() => ({ rows: [] }))
+      
       return NextResponse.json({
         columns: res.rows,
         tables: tables.rows,
+        publicData: publicData.rows,
+        neonData: neonData.rows,
         migrationLogs: logs,
         timestamp: new Date().toISOString()
       })
