@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v3 — Converter coluna id de uuid para text (Better Auth usa string IDs)
- * e garantir que role tem DEFAULT.
+ * Repair v4 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
   const results: string[] = []
@@ -44,16 +44,27 @@ export async function GET() {
       }
 
       // Remover PK atual
-      await client.query('ALTER TABLE "user" DROP CONSTRAINT user_pkey')
-      results.push("Removida PK user_pkey")
+      try {
+        await client.query('ALTER TABLE "user" DROP CONSTRAINT user_pkey')
+        results.push("Removida PK user_pkey")
+      } catch (err: any) {
+        results.push(`Erro ao remover PK: ${err.message}`)
+      }
 
-      // Converter id de uuid para text
-      await client.query('ALTER TABLE "user" ALTER COLUMN id TYPE text USING id::text')
-      results.push("Convertido id de uuid para text")
+      // Converter id de uuid para text usando drop + rename
+      await client.query('ALTER TABLE "user" ADD COLUMN id_text TEXT')
+      await client.query('UPDATE "user" SET id_text = id::text')
+      await client.query('ALTER TABLE "user" DROP COLUMN id')
+      await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
+      results.push("Convertido id de uuid para text via drop+rename")
 
       // Remover default gen_random_uuid()
-      await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
-      results.push("Removido default gen_random_uuid()")
+      try {
+        await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
+        results.push("Removido default gen_random_uuid()")
+      } catch (err: any) {
+        results.push(`Erro ao remover default: ${err.message}`)
+      }
 
       // Recriar PK
       await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id)')
