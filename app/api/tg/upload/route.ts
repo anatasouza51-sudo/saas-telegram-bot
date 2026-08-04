@@ -62,6 +62,23 @@ function kindFor(mime: string, forceDocument: boolean): TelegramMediaKind {
 }
 
 export async function POST(req: Request) {
+  try {
+    return await handleUpload(req)
+  } catch (err: any) {
+    console.error("[upload] Unhandled error:", {
+      message: err?.message ?? "unknown",
+      stack: err?.stack?.split("\n").slice(0, 3).join("\n"),
+      name: err?.constructor?.name,
+    })
+    // Always return JSON so the client can parse it.
+    return NextResponse.json(
+      { error: err?.message ?? "Erro inesperado no servidor" },
+      { status: 500 },
+    )
+  }
+}
+
+async function handleUpload(req: Request) {
   // AuthN + AuthZ: only authenticated users with posts.manage may upload.
   const user = await getSessionUser()
   if (!user) {
@@ -70,7 +87,6 @@ export async function POST(req: Request) {
   if (!can(user.role, "posts.manage")) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 })
   }
-
   const { client, cdnChatId } = await getStoreTelegram(user.storeId)
   if (!client) {
     return NextResponse.json(
@@ -84,20 +100,17 @@ export async function POST(req: Request) {
       { status: 400 },
     )
   }
-
   let form: FormData
   try {
     form = await req.formData()
   } catch {
     return NextResponse.json({ error: "Requisição inválida" }, { status: 400 })
   }
-
   const file = form.get("file")
   const forceDocument = form.get("asDocument") === "true"
   const folderId = form.get("folderId")
     ? Number(form.get("folderId"))
     : null
-
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Arquivo ausente" }, { status: 400 })
   }
@@ -110,33 +123,28 @@ export async function POST(req: Request) {
       { status: 413 },
     )
   }
-
   // Validate MIME type against whitelist; block dangerous types.
   const declaredMime = (file.type || "").toLowerCase()
   const isBlocked = BLOCKED_MIME_PREFIXES.some((p) => declaredMime.startsWith(p))
   if (isBlocked) {
     return NextResponse.json({ error: "Tipo de arquivo não permitido" }, { status: 400 })
   }
-
+  console.log(`[upload] Receiving file: ${file.name} (${file.size} bytes, ${declaredMime})`)
   const buffer = Buffer.from(await file.arrayBuffer())
-
   // Magic-byte detection for images — verify the actual content matches the claim.
   const detected = detectMimeType(buffer)
   if (declaredMime.startsWith("image/") && detected && !detected.startsWith("image/")) {
     return NextResponse.json({ error: "Conteúdo não corresponde à extensão declarada" }, { status: 400 })
   }
-
   const finalMime = detected ?? declaredMime
   const kind = kindFor(finalMime, forceDocument)
-  
+  console.log(`[upload] Detected kind: ${kind}, MIME: ${finalMime}`)
   // Zero Trust: Re-processar imagens para remover metadados e garantir integridade
   let processedBuffer = buffer
   let finalFileName = sanitizeFileName(file.name)
-  
   // Gerar nome interno seguro e imprevisível
   const extension = finalFileName.split(".").pop() || "bin"
   const secureName = `${randomBytes(16).toString("hex")}.${extension}`
-
   if (finalMime.startsWith("image/") && !forceDocument && kind !== "animation") {
     try {
       // Sharp decodifica e re-encoda a imagem, removendo metadados EXIF
@@ -149,23 +157,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Arquivo de imagem corrompido ou inválido" }, { status: 400 })
     }
   }
-
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
+  console.log(`[upload] Uploading to Telegram CDN chat ${cdnChatId}...`)
   const result = await client.uploadMedia(cdnChatId, kind, {
     data: processedBuffer,
     filename: secureName,
     mimeType: finalMime,
   })
-
+  console.log(`[upload] Telegram response: ok=${result.ok}, hasMedia=${!!result.media}`)
   if (!result.ok || !result.media) {
     return NextResponse.json(
       { error: result.description ?? "Falha ao enviar para o Telegram" },
       { status: 502 },
     )
   }
-
   const m = result.media
-
   // Dedupe: never store the same physical file twice for a store.
   if (m.fileUniqueId) {
     const existing = await db
@@ -182,7 +188,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ media: existing[0], deduped: true })
     }
   }
-
+  console.log(`[upload] Inserting into DB: fileUniqueId=${m.fileUniqueId}, type=${m.type}`)
   const [row] = await db
     .insert(telegramMedia)
     .values({
@@ -210,5 +216,6 @@ export async function POST(req: Request) {
     category: "posts",
   })
 
+  console.log(`[upload] Success: media id=${row.id}, fileUniqueId=${m.fileUniqueId}`)
   return NextResponse.json({ media: row })
 }
