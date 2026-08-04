@@ -404,3 +404,51 @@ export async function getTelegramDiagnostics(): Promise<TelegramDiagnostics> {
 
   return diag
 }
+
+// Removes a chat from the managed list. Useful when duplicates appear after
+// Telegram's group→supergroup migration or when the admin wants to stop
+// managing a particular group/channel.
+export async function removeChat(id: number): Promise<{
+  ok: boolean
+  error?: string
+}> {
+  const user = await requireCapability("posts.manage")
+
+  const [chat] = await db
+    .select()
+    .from(telegramChats)
+    .where(
+      and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
+    )
+    .limit(1)
+
+  if (!chat) {
+    return { ok: false, error: "Grupo/canal não encontrado." }
+  }
+
+  // If this chat held an exclusive purpose (cdn, management, backups),
+  // clear the corresponding setting so stale references don't linger.
+  if (isExclusivePurpose(chat.purpose)) {
+    const keyMap: Record<string, string> = {
+      cdn: TG_KEYS.cdnChatId,
+      management: TG_KEYS.managementChatId,
+      backups: TG_KEYS.backupChatId,
+    }
+    const settingKey = keyMap[chat.purpose]
+    if (settingKey) {
+      await saveSetting(user.storeId, settingKey, "")
+    }
+  }
+
+  await db.delete(telegramChats).where(eq(telegramChats.id, id))
+
+  await logActivity({
+    storeId: user.storeId,
+    actor: user,
+    action: `Removeu "${chat.title}" da lista de grupos/canais`,
+    category: "settings",
+  })
+
+  revalidatePath("/channels")
+  return { ok: true }
+}

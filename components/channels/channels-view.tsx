@@ -24,6 +24,7 @@ import {
   syncAllChannels,
   setChatPurpose,
   restartTelegramIntegration,
+  removeChat,
   type TelegramDiagnostics,
 } from "@/app/actions/tg-channels"
 
@@ -38,6 +39,7 @@ import {
   Users,
   AlertTriangle,
   Radio,
+  Trash2,
 } from "lucide-react"
 
 export type ChannelRow = {
@@ -234,6 +236,25 @@ export function ChannelsView({
     })
   }
 
+  function handleRemove(id: number, title: string) {
+    if (!confirm(`Remover "${title}" da lista?\n\nO bot continuará no grupo/canal, mas ele não será mais gerenciado pelo painel.`)) {
+      return
+    }
+    startTransition(async () => {
+      try {
+        const res = await removeChat(id)
+        if (res.ok) {
+          toast.success(`"${title}" removido da lista.`)
+          await refresh()
+        } else {
+          toast.error(res.error ?? "Falha ao remover.")
+        }
+      } catch (err) {
+        toast.error((err as Error).message)
+      }
+    })
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {!botConfigured && (
@@ -333,13 +354,14 @@ export function ChannelsView({
               <TableHead>Status</TableHead>
               <TableHead>Membros</TableHead>
               <TableHead>Função</TableHead>
+              <TableHead className="w-[50px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginated.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-40 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -406,6 +428,20 @@ export function ChannelsView({
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRemove(c.id, c.title)
+                      }}
+                      disabled={pending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               )
