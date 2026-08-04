@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v4 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Repair v5 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
