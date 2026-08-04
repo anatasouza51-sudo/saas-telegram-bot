@@ -38,6 +38,25 @@ export async function ensureDbStructure() {
       );
     `)
 
+    // BUGFIX: Se a tabela já existia com ID como UUID (legado), precisamos converter para TEXT
+    // para o Better Auth funcionar.
+    await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'user' AND column_name = 'id' AND data_type = 'uuid'
+        ) THEN
+          -- Remove PK e FKs temporariamente
+          ALTER TABLE "user" DROP CONSTRAINT IF EXISTS user_pkey CASCADE;
+          -- Converte tipo
+          ALTER TABLE "user" ALTER COLUMN id TYPE TEXT USING id::TEXT;
+          -- Restaura PK
+          ALTER TABLE "user" ADD PRIMARY KEY (id);
+        END IF;
+      END $$;
+    `)
+
     // Tabela session
     await client.query(`
       CREATE TABLE IF NOT EXISTS session (
