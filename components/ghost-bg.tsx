@@ -27,8 +27,8 @@ export function GhostBg() {
     const w = container.clientWidth || window.innerWidth
     const h = container.clientHeight || window.innerHeight
 
-    // 5 fantasmas com o novo estilo baseado na referência
-    const ghosts: GhostData[] = Array.from({ length: 5 }, (_, i) => {
+    // 9 fantasmas com o novo estilo baseado na referência (mais 4 adicionados)
+    const ghosts: GhostData[] = Array.from({ length: 9 }, (_, i) => {
       const dirX = Math.random() > 0.5 ? 1 : -1
       return {
         id: i,
