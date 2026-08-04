@@ -5,6 +5,14 @@ import { ensureDbStructure } from "@/lib/db/migrate"
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  return handleRequest()
+}
+
+export async function POST() {
+  return handleRequest()
+}
+
+async function handleRequest() {
   const logs: string[] = []
   const originalLog = console.log
   const originalError = console.error
