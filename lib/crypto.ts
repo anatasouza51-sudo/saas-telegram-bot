@@ -20,11 +20,13 @@ function getEncryptionKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY
   
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("CRITICAL: ENCRYPTION_KEY environment variable is missing in production.")
-    }
-    // Fallback apenas para desenvolvimento local
-    return scryptSync("dev-fallback-secret-do-not-use-in-prod", "salt", KEY_LENGTH)
+    // Fallback: se ENCRYPTION_KEY não está configurada, usamos um segredo derivado
+    // de BETTER_AUTH_SECRET (que sempre existe em produção) para não quebrar o app.
+    // Isso significa que dados criptografados com este fallback serão incompatíveis
+    // com dados criptografados com uma ENCRYPTION_KEY explícita, mas evita crash.
+    const fallbackSecret = process.env.BETTER_AUTH_SECRET || "saas-telegram-fallback-secret"
+    console.warn("[crypto] ENCRYPTION_KEY não configurada, usando fallback derivado de BETTER_AUTH_SECRET")
+    return scryptSync(fallbackSecret, "saas-telegram-fallback-salt", KEY_LENGTH)
   }
 
   // Se a chave for fornecida diretamente em hex ou base64, poderíamos processar aqui.

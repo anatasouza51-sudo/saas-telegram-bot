@@ -21,11 +21,16 @@ export async function saveTelegramSettings(input: {
   const token = input.botToken ? validateBotToken(input.botToken) : undefined
   let webhookRegistered = false
 
-  if (token) {
-    await saveSetting(user.storeId, "telegram.botToken", token)
+  try {
+    if (token) {
+      await saveSetting(user.storeId, "telegram.botToken", token)
+    }
+    const adminIds = validateAdminIds(input.adminIds)
+    await saveSetting(user.storeId, "telegram.adminIds", adminIds.join(","))
+  } catch (err) {
+    console.error("[settings] Falha ao salvar configurações do Telegram:", err)
+    return { ok: false, webhookRegistered: false }
   }
-  const adminIds = validateAdminIds(input.adminIds)
-  await saveSetting(user.storeId, "telegram.adminIds", adminIds.join(","))
 
   // Auto-register the webhook whenever admin IDs change or a new token is saved.
   // This guarantees the bot always stays connected — no need for a separate
@@ -70,13 +75,24 @@ export async function saveTelegramSettings(input: {
     }
   }
 
-  await logActivity({
-    storeId: user.storeId,
-    action: "Configurações do Telegram atualizadas",
-    category: "settings",
-    actor: user,
-  })
-  revalidatePath("/telegram")
+  try {
+    await logActivity({
+      storeId: user.storeId,
+      action: "Configurações do Telegram atualizadas",
+      category: "settings",
+      actor: user,
+    })
+  } catch {
+    // Logging is non-critical — never fail the save because of it
+  }
+
+  try {
+    revalidatePath("/telegram")
+  } catch {
+    // revalidatePath can throw if the cache backend is unavailable; the settings
+    // were still saved, so the next full page load will pick them up anyway.
+  }
+
   return { ok: true, webhookRegistered }
 }
 

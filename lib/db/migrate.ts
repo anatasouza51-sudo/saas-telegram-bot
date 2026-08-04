@@ -464,13 +464,33 @@ export async function ensureDbStructure() {
       )
     `)
 
+    // Telegram Queue — fila de mensagens pendentes
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS telegram_queue (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "postId" TEXT NOT NULL,
+        "scheduleId" INTEGER,
+        "chatId" TEXT NOT NULL,
+        "messageThreadId" INTEGER,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        "maxAttempts" INTEGER NOT NULL DEFAULT 5,
+        "lastError" TEXT,
+        "scheduledFor" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "sentMessageId" INTEGER,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
     // Índices únicos
     const indexes = [
       { name: "telegram_chats_owner_chatid_uidx", table: "telegram_chats", cols: '("ownerId", "chatId")' },
       { name: "telegram_topics_owner_chat_thread_uidx", table: "telegram_topics", cols: '("ownerId", "chatId", "threadId")' },
-      { name: "coupons_owner_code_uidx", table: "coupons", cols: '("ownerId", code)' },
+      { name: "coupons_owner_code_uidx", table: "coupons", cols: '("ownerId", "code")' },
       { name: "customers_owner_telegramid_uidx", table: "customers", cols: '("ownerId", "telegramId")' },
-      { name: "settings_owner_key_uidx", table: "settings", cols: '("ownerId", key)' }
+      { name: "settings_owner_key_uidx", table: "settings", cols: '("ownerId", "key")' }
     ]
 
     for (const idx of indexes) {
