@@ -53,18 +53,21 @@ export async function ensureDbStructure() {
           const fks = await client.query(`
             SELECT tc.constraint_name, tc.table_name
             FROM information_schema.table_constraints tc
-            JOIN information_schema.key_column_usage kcu
-              ON tc.constraint_name = kcu.constraint_name
             JOIN information_schema.constraint_column_usage ccu
               ON tc.constraint_name = ccu.constraint_name
             WHERE tc.constraint_type = 'FOREIGN KEY' 
               AND ccu.table_name = 'user' 
-              AND ccu.column_name = 'id';
+              AND ccu.column_name = 'id'
+              AND tc.table_schema = 'public';
           `)
           
           for (const fk of fks.rows) {
-            console.log(`[db/migrate] Removendo FK: ${fk.constraint_name} da tabela ${fk.table_name}`)
-            await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`)
+            try {
+              console.log(`[db/migrate] Removendo FK: ${fk.constraint_name} da tabela ${fk.table_name}`)
+              await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}";`)
+            } catch (err: any) {
+              console.error(`[db/migrate] Erro ao remover FK ${fk.constraint_name}:`, err.message)
+            }
           }
           
           // 2. Remover PK da tabela user
@@ -335,7 +338,7 @@ async function addColumnIfMissing(client: any, table: string, column: string, ty
     DO $$ 
     BEGIN 
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='${column}') THEN
-        ALTER TABLE ${table} ADD COLUMN "${column}" ${type};
+        ALTER TABLE "${table}" ADD COLUMN "${column}" ${type};
       END IF;
     END $$;
   `)
@@ -349,7 +352,7 @@ async function updateColumnToText(client: any, table: string, column: string) {
         SELECT 1 FROM information_schema.columns 
         WHERE table_name='${table}' AND column_name='${column}' AND (data_type='integer' OR data_type='uuid')
       ) THEN
-        ALTER TABLE ${table} ALTER COLUMN "${column}" TYPE TEXT USING "${column}"::TEXT; -- Adicionado USING para garantir conversão explícita
+        ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE TEXT USING "${column}"::TEXT;
       END IF;
     END $$;
   `)
@@ -359,7 +362,7 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
   // Verifica se a coluna ID já é TEXT/UUID
   const res = await client.query(`
     SELECT data_type FROM information_schema.columns 
-    WHERE table_name = '${tableName}' AND column_name = 'id';
+    WHERE table_name = '${tableName}' AND column_name = 'id' AND table_schema = 'public';
   `)
   
   if (res.rows.length === 0) {
@@ -373,25 +376,25 @@ async function migrateTableToUuid(client: any, tableName: string, references: { 
   console.log(`[db/migrate] Migrando tabela ${tableName} para UUID...`)
 
   // 1. Adicionar nova coluna UUID
-  await client.query(`ALTER TABLE ${tableName} ADD COLUMN id_new TEXT DEFAULT gen_random_uuid();`)
+  await client.query(`ALTER TABLE "${tableName}" ADD COLUMN id_new TEXT DEFAULT gen_random_uuid();`)
   
   // 2. Popular id_new para registros existentes
-  await client.query(`UPDATE ${tableName} SET id_new = gen_random_uuid() WHERE id_new IS NULL;`)
+  await client.query(`UPDATE "${tableName}" SET id_new = gen_random_uuid() WHERE id_new IS NULL;`)
 
   // 3. Atualizar referências em outras tabelas
   for (const ref of references) {
     await updateColumnToText(client, ref.table, ref.column)
     await client.query(`
-      UPDATE ${ref.table} r
+      UPDATE "${ref.table}" r
       SET "${ref.column}" = t.id_new
-      FROM ${tableName} t
+      FROM "${tableName}" t
       WHERE r."${ref.column}" = t.id::TEXT;
     `)
   }
 
   // 4. Trocar PK
-  await client.query(`ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${tableName}_pkey CASCADE;`)
-  await client.query(`ALTER TABLE ${tableName} DROP COLUMN id;`)
-  await client.query(`ALTER TABLE ${tableName} RENAME COLUMN id_new TO id;`)
-  await client.query(`ALTER TABLE ${tableName} ADD PRIMARY KEY (id);`)
+  await client.query(`ALTER TABLE "${tableName}" DROP CONSTRAINT IF EXISTS "${tableName}_pkey" CASCADE;`)
+  await client.query(`ALTER TABLE "${tableName}" DROP COLUMN id;`)
+  await client.query(`ALTER TABLE "${tableName}" RENAME COLUMN id_new TO id;`)
+  await client.query(`ALTER TABLE "${tableName}" ADD PRIMARY KEY (id);`)
 }
