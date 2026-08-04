@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 import { ensureDbStructure } from "@/lib/db/migrate"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const logs: string[] = []
   const originalLog = console.log
