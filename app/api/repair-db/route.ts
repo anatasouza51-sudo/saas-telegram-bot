@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
 
 /**
- * Repair v10 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Repair v11 — Converter coluna id de uuid para text (Better Auth usa string IDs)
  * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
  */
 export async function GET() {
@@ -10,11 +10,16 @@ export async function GET() {
   const client = await pool.connect()
   try {
     // 1. Verificar tipo atual do id
-    const idCheck = await client.query(`
-      SELECT data_type FROM information_schema.columns
-      WHERE table_name = 'user' AND column_name = 'id'
-    `)
-    const currentType = idCheck.rows[0]?.data_type || 'NAO EXISTE'
+    let currentType = 'NAO EXISTE'
+    try {
+      const idCheck = await client.query(`
+        SELECT data_type FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'id'
+      `)
+      currentType = idCheck.rows[0]?.data_type || 'NAO EXISTE'
+    } catch (err: any) {
+      results.push(`Erro ao verificar tipo do id: ${err.message}`)
+    }
     results.push(`Tipo atual do id: ${currentType}`)
 
     // 2. Se id é uuid, converter para text
