@@ -9,9 +9,12 @@ import { revalidatePath } from "next/cache"
 import {
   validateSafeUrl,
   sanitizeTelegramHtml,
-  sanitizeDisplayName,
   validateImageUrl,
-  validateProductName,
+  validateCategoryName,
+  validateSupportLabel,
+  validateSupportMessage,
+  validateSupportHours,
+  validateSupportTelegramUsername,
 } from "@/lib/validation"
 
 export type CategoryInput = {
@@ -62,9 +65,8 @@ export async function createCategoryFull(input: CategoryInput) {
   const user = await requireCapability("products.manage")
   
   // Validation: prevent XSS and malformed content.
-  const name = sanitizeDisplayName(input.name)
-  if (!name) throw new Error("Nome da categoria inválido")
-  const description = input.description ? sanitizeTelegramHtml(input.description) : null
+  const name = validateCategoryName(input.name)
+  const description = input.description ? sanitizeTelegramHtml(input.description).slice(0, 1000) || null : null
   const imageUrl = validateImageUrl(input.imageUrl)
 
   // New categories go to the end of the list by default.
@@ -101,9 +103,8 @@ export async function createCategoryFull(input: CategoryInput) {
 export async function updateCategoryFull(id: number, input: CategoryInput) {
   const user = await requireCapability("products.manage")
   
-  const name = sanitizeDisplayName(input.name)
-  if (!name) throw new Error("Nome da categoria inválido")
-  const description = input.description ? sanitizeTelegramHtml(input.description) : null
+  const name = validateCategoryName(input.name)
+  const description = input.description ? sanitizeTelegramHtml(input.description).slice(0, 1000) || null : null
   const imageUrl = validateImageUrl(input.imageUrl)
 
   await db
@@ -235,19 +236,19 @@ export async function getSupportConfig(): Promise<SupportConfig> {
 export async function saveSupportConfig(input: SupportConfig) {
   const user = await requireCapability("products.manage")
   
-  // Validation: prevent HTML injection and protocol bypass.
-  const label = sanitizeDisplayName(input.label) || SUPPORT_DEFAULTS.label
-  const message = sanitizeTelegramHtml(input.message) || SUPPORT_DEFAULTS.message
+  // Validation: prevent HTML injection, protocol bypass AND oversized payloads.
+  const label = validateSupportLabel(input.label) || SUPPORT_DEFAULTS.label
+  const message = validateSupportMessage(input.message) || SUPPORT_DEFAULTS.message
   const whatsappUrl = validateSafeUrl(input.whatsappUrl, "URL do WhatsApp")
-  const buttonLabel = sanitizeDisplayName(input.buttonLabel) || SUPPORT_DEFAULTS.buttonLabel
+  const buttonLabel = validateSupportLabel(input.buttonLabel) || SUPPORT_DEFAULTS.buttonLabel
 
   const entries: Array<[string, string]> = [
     ["support.enabled", input.enabled ? "true" : "false"],
     ["support.label", label],
     ["support.message", message],
-    ["support.telegramUsername", input.telegramUsername.replace(/^@/, "").trim()],
+    ["support.telegramUsername", validateSupportTelegramUsername(input.telegramUsername)],
     ["support.whatsappUrl", whatsappUrl],
-    ["support.hours", input.hours.trim()],
+    ["support.hours", validateSupportHours(input.hours)],
     ["support.buttonLabel", buttonLabel],
   ]
   await db.transaction(async (tx) => {

@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { validateProfileName, validateProfileImage } from "@/lib/validation"
 
 export async function updateUserProfile(input: { name?: string; image?: string | null }) {
   // Outside the try: `requireUser` redirects by throwing, and that must not be
@@ -20,11 +21,11 @@ export async function updateUserProfile(input: { name?: string; image?: string |
     }
 
     if (input.name) {
-      updateData.name = input.name.trim()
+      updateData.name = validateProfileName(input.name)
     }
 
     if (input.image !== undefined) {
-      updateData.image = input.image
+      updateData.image = validateProfileImage(input.image)
     }
 
     // Update user profile directly in DB

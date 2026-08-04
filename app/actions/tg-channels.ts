@@ -23,6 +23,7 @@ import { saveSetting, getSettings } from "@/lib/settings"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
+import { validateChannelInput } from "@/lib/validation"
 
 // Keeps the CDN / management / backup setting keys in sync with the chats table
 // so the rest of the module (uploads, alerts, backups) can resolve them by key.
@@ -266,12 +267,14 @@ export async function addChannelManually(
   if (!client) {
     return { ok: false, error: "Configure o token do bot em Telegram Bot." }
   }
+  // Validate input size before making any API calls.
+  const cleanedInput = validateChannelInput(rawInput)
   const me = await client.getMe()
   if (!me.ok || !me.result) {
     return { ok: false, error: "Token inválido ou API indisponível." }
   }
 
-  const res = await addChatManually(user.storeId, me.result.id, client, rawInput)
+  const res = await addChatManually(user.storeId, me.result.id, client, cleanedInput)
   if (!res.ok) return { ok: false, error: res.error }
 
   await logActivity({
