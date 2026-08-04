@@ -55,7 +55,10 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       }
     })
     
-    if (!session?.user) return null
+    if (!session?.user) {
+      console.warn("[getSessionUser] Nenhuma sessao encontrada para os cookies fornecidos.")
+      return null
+    }
 
     const u = session.user as typeof session.user & {
       role?: string

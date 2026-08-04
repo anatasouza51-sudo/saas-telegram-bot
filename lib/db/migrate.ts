@@ -48,7 +48,7 @@ export async function ensureDbStructure() {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
         "ipAddress" TEXT,
         "userAgent" TEXT,
-        "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
+        "userId" TEXT NOT NULL
       );
     `)
 
@@ -58,7 +58,7 @@ export async function ensureDbStructure() {
         id TEXT PRIMARY KEY,
         "accountId" TEXT NOT NULL,
         "providerId" TEXT NOT NULL,
-        "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL,
         "accessToken" TEXT,
         "refreshToken" TEXT,
         "idToken" TEXT,
@@ -70,6 +70,11 @@ export async function ensureDbStructure() {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
       );
     `)
+
+    // Garantir que userId seja TEXT caso as tabelas já existam com INTEGER
+    await updateColumnToText(client, "session", "userId")
+    await updateColumnToText(client, "account", "userId")
+    await updateColumnToText(client, "twoFactor", "userId")
 
     // Tabela verification
     await client.query(`
@@ -99,6 +104,18 @@ export async function ensureDbStructure() {
     // Colunas extras na tabela user
     await addColumnIfMissing(client, "user", "twoFactorEnabled", "BOOLEAN DEFAULT FALSE")
     await addColumnIfMissing(client, "user", "onboardingSeen", "BOOLEAN DEFAULT FALSE")
+    await addColumnIfMissing(client, "user", "emailVerified", "BOOLEAN NOT NULL DEFAULT FALSE")
+    await addColumnIfMissing(client, "user", "image", "TEXT")
+    
+    // Garantir colunas na tabela account (Better Auth v1 vs v1.6)
+    await addColumnIfMissing(client, "account", "password", "TEXT")
+    await addColumnIfMissing(client, "account", "accountId", "TEXT")
+    await addColumnIfMissing(client, "account", "providerId", "TEXT")
+    
+    // Garantir colunas na tabela twoFactor
+    await addColumnIfMissing(client, "twoFactor", "secret", "TEXT")
+    await addColumnIfMissing(client, "twoFactor", "backupCodes", "TEXT")
+    await addColumnIfMissing(client, "twoFactor", "verified", "BOOLEAN DEFAULT TRUE")
 
     console.log("[db/migrate] Fase 1 OK — Tabelas do Better Auth garantidas.")
   } catch (err) {
