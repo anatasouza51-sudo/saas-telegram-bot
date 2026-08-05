@@ -34,11 +34,12 @@ export async function recordWebhookEvent(
 ): Promise<void> {
   try {
     const prev = Number((await getSetting(storeId, TG_KEYS.eventCount)) ?? "0")
-    const payload = JSON.stringify(update).slice(0, 4000)
+    // SEGURANÇA: Não armazenamos mais o payload bruto no banco de dados para evitar 
+    // vazamento de PII (Personally Identifiable Information) e dados sensíveis.
+    // O painel agora mostra apenas o tipo e o horário do último evento.
     await Promise.all([
       saveSetting(storeId, TG_KEYS.lastEventAt, new Date().toISOString()),
       saveSetting(storeId, TG_KEYS.lastEventType, updateType(update)),
-      saveSetting(storeId, TG_KEYS.lastPayload, payload),
       saveSetting(storeId, TG_KEYS.eventCount, String(prev + 1)),
     ])
   } catch (err) {

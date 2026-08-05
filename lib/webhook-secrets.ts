@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { settings } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import { generateSecret } from "@/lib/security"
+import { encrypt, decrypt, isEncrypted } from "./crypto"
 
 /**
  * Per-store webhook secrets. Each provider gets an unguessable secret stored
@@ -26,7 +27,12 @@ export async function getWebhookSecret(
     .from(settings)
     .where(and(eq(settings.ownerId, storeId), eq(settings.key, key(provider))))
     .limit(1)
-  return row?.value ?? null
+  
+  const val = row?.value ?? null
+  if (val && isEncrypted(val)) {
+    return decrypt(val)
+  }
+  return val
 }
 
 function isRelationNotFound(err: unknown): boolean {
@@ -42,10 +48,11 @@ export async function getOrCreateWebhookSecret(
   const existing = await getWebhookSecret(storeId, provider)
   if (existing) return existing
   const secret = generateSecret()
+  const encrypted = encrypt(secret)
   try {
     await db
       .insert(settings)
-      .values({ ownerId: storeId, key: key(provider), value: secret })
+      .values({ ownerId: storeId, key: key(provider), value: encrypted })
       .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
   } catch (err) {
     if (isRelationNotFound(err)) {

@@ -17,8 +17,10 @@ export async function GET(req: Request) {
   const token = searchParams.get("token")
   
   // PROTEÇÃO DE SEGURANÇA: Evitar que o bootstrap seja disparado por terceiros.
+  // Se nenhum token estiver configurado, bloqueamos por padrão (seguro por design).
   const expectedToken = process.env.BOOTSTRAP_TOKEN || process.env.REPAIR_TOKEN
-  if (expectedToken && token !== expectedToken) {
+  if (!expectedToken || token !== expectedToken) {
+    console.warn(`[bootstrap] Tentativa de acesso não autorizado bloqueada. IP: ${req.headers.get("x-real-ip") || "unknown"}`)
     return new Response("Unauthorized", { status: 401 })
   }
 
@@ -32,8 +34,8 @@ export async function GET(req: Request) {
     console.error("[bootstrap] Erro ao inicializar banco:", err)
     return NextResponse.json({ 
       success: false, 
-      message: "Falha ao inicializar banco de dados",
-      error: err.message 
+      message: "Falha ao inicializar banco de dados"
+      // Removido err.message para evitar Information Disclosure (CWE-209)
     }, { status: 500 })
   }
 }

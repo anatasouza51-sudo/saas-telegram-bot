@@ -16,9 +16,11 @@ const BLOCKED_HOSTNAMES = new Set([
   "169.254.170.2",   // ECS metadata
   "10.0.0.1",
   "metadata.google.internal",
+  "instance-data",
+  "metadata",
 ])
 
-const BLOCKED_DOMAIN_SUFFIXES = [".local", ".internal", ".lan"]
+const BLOCKED_DOMAIN_SUFFIXES = [".local", ".internal", ".lan", ".home.arpa", ".invalid", ".test"]
 
 /**
  * Parses and validates a URL, rejecting private/internal addresses.
