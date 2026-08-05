@@ -316,10 +316,12 @@ export function ProductsView({
               </SelectContent>
             </Select>
 
-            <Button variant="outline" render={<Link href="/categories" />}>
-              <FolderTree className="mr-2 h-4 w-4" />
-              Categorias
-            </Button>
+            <Link href="/categories">
+              <Button variant="outline">
+                <FolderTree className="mr-2 h-4 w-4" />
+                Categorias
+              </Button>
+            </Link>
             <Button onClick={() => setProductDialog({ open: true, product: null })}>
               <Plus className="mr-2 h-4 w-4" />
               Novo
