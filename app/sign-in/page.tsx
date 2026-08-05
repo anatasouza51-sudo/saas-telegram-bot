@@ -7,10 +7,14 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { GhostBg } from "@/components/ghost-bg";
 import { AuthForm } from "@/components/auth-form";
+import { StarryBackground } from "@/components/starry-background";
 
 export default function LoginPage() {
   return (
     <main className="min-h-screen w-full bg-[#020203] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Starry Background */}
+      <StarryBackground />
+      
       {/* Ghost Background Animation */}
       <GhostBg />
 
