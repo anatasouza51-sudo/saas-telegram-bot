@@ -415,14 +415,21 @@ export class TelegramClient {
       } finally {
         clearTimeout(timeout)
       }
+      const elapsed = Date.now() - startedAt
+      if (elapsed > 2_000) {
+        console.warn(`[tg/${method}] slow upload: ${elapsed}ms`)
+      }
+      // Telegram must return JSON; if it doesn't, it's a proxy/infra issue.
+      const contentType = res.headers.get("content-type") || ""
+      if (!contentType.includes("application/json")) {
+        const text = (await res.text()).slice(0, 200)
+        console.error(`[tg/${method}] Non-JSON response (status ${res.status}):`, text)
+        return { ok: false, description: `Telegram retornou resposta não-JSON (HTTP ${res.status}) — possível proxy ou rate limit.` }
+      }
       const json = (await res.json()) as {
         ok: boolean
         result?: TelegramMessage
         description?: string
-      }
-      const elapsed = Date.now() - startedAt
-      if (elapsed > 2_000) {
-        console.warn(`[tg/${method}] slow upload: ${elapsed}ms`)
       }
       if (!json.ok || !json.result) {
         return { ok: false, description: json.description ?? "Falha no upload" }

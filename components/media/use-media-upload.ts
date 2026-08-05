@@ -52,15 +52,49 @@ export function useMediaUpload(onUploaded: (m: MediaItem) => void) {
               update(id, { progress: 100, status: "done" })
               onUploaded(json.media as MediaItem)
             } else {
-              update(id, { status: "error", error: json.error ?? "Falha" })
+              // Server returned an error as JSON — show the real message.
+              update(id, {
+                status: "error",
+                error: json.error ?? `Erro do servidor (status ${xhr.status})`,
+              })
             }
-          } catch {
-            update(id, { status: "error", error: "Resposta inválida" })
+          } catch (parseErr) {
+            // The response is not valid JSON — likely an HTML error page.
+            // Extract useful info from status and responseText.
+            const status = xhr.status
+            let msg = "Falha na comunicação com o servidor"
+            if (status === 0) {
+              msg = "Erro de rede — verifique sua conexão"
+            } else if (status >= 500) {
+              // Try to extract a message from the response text (might be HTML or plain text).
+              const text = (xhr.responseText || "").trim()
+              const match = text.match(/<title>(.*?)<\/title>/)
+              if (match && match[1] && match[1] !== "500") {
+                msg = `Erro do servidor (${status}): ${match[1]}`
+              } else {
+                msg = `Erro interno do servidor (${status}) — o arquivo pode ser muito grande ou o Telegram está indisponível.`
+              }
+            } else if (status === 413) {
+              msg = "Arquivo muito grande — o limite é 50MB."
+            } else if (status === 401) {
+              msg = "Sessão expirada — faça login novamente."
+            } else if (status === 403) {
+              msg = "Sem permissão para enviar mídia."
+            } else if (status === 400) {
+              msg = text || "Requisição inválida — verifique o arquivo."
+            } else {
+              msg = `Erro inesperado (status ${status})`
+            }
+            console.error(
+              "[media-upload] Non-JSON response:",
+              { status, text: (xhr.responseText || "").slice(0, 200) },
+            )
+            update(id, { status: "error", error: msg })
           }
           resolve()
         }
         xhr.onerror = () => {
-          update(id, { status: "error", error: "Erro de rede" })
+          update(id, { status: "error", error: "Erro de rede — verifique sua conexão." })
           resolve()
         }
         xhr.send(form)
