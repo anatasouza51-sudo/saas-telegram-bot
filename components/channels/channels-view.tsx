@@ -271,6 +271,7 @@ export function ChannelsView({
   }
 
   return (
+    <>
     <div className="flex flex-col gap-4">
       {!botConfigured && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
@@ -520,5 +521,6 @@ export function ChannelsView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
