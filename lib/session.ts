@@ -22,21 +22,7 @@ export type SessionUser = {
 
 /**
  * Returns the current session user or null. Does not redirect.
- *
- * Works around Next.js 16.2.x compatibility issue where
- * auth.api.getSession({ headers: await headers() }) crashes in SSR
- * because Next.js HeadersReadonly is incompatible with new Headers()
- * inside better-auth's dispatch layer.
- *
- * Solution: build a plain Headers object from cookies() and pass it
- * directly, bypassing the problematic Next.js headers() helper.
  */
-// A página de Postagens (e outras) chama `requireCapability` uma vez por
-// server action carregada em paralelo — até 9 vezes na mesma requisição.
-// Sem cache, isso é 9 consultas de sessão ao banco por carregamento de
-// página, uma das maiores causas do esgotamento de conexões. `cache()` do
-// React deduplica chamadas com os mesmos argumentos dentro de uma única
-// requisição/render no servidor, então isso vira 1 consulta real.
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const cookieStore = await cookies()
@@ -68,12 +54,37 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     }
     
     // Se por algum motivo o Better Auth ainda retornar o nome antigo da sessão,
-    // buscamos diretamente no banco de dados para garantir a verdade absoluta
-    const [dbUser] = await db
-      .select({ name: userTable.name, image: userTable.image, onboardingSeen: userTable.onboardingSeen })
-      .from(userTable)
-      .where(eq(userTable.id, u.id))
-      .limit(1)
+    // buscamos diretamente no banco de dados para garantir a verdade absoluta.
+    // Usamos Promise.race para garantir timeout se o banco estiver lento.
+    let dbUser: { name: string; image: string | null; onboardingSeen: boolean | null } | undefined
+    try {
+      dbUser = await new Promise<typeof dbUser>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("[getSessionUser] DB query timeout after 8s"))
+        }, 8000)
+        
+        db
+          .select({ 
+            name: userTable.name, 
+            image: userTable.image, 
+            onboardingSeen: userTable.onboardingSeen 
+          })
+          .from(userTable)
+          .where(eq(userTable.id, u.id))
+          .limit(1)
+          .then((result) => {
+            clearTimeout(timeout)
+            resolve(result[0] || undefined)
+          })
+          .catch((err) => {
+            clearTimeout(timeout)
+            reject(err)
+          })
+      })
+    } catch (dbErr) {
+      // Se o banco falhar, usamos os dados da sessão como fallback
+      console.warn("[getSessionUser] DB query failed, using session data as fallback:", dbErr)
+    }
 
     const ownerId = u.ownerId ?? null
     return {
