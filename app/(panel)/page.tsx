@@ -6,11 +6,20 @@ import {
   RefreshCcw, 
   ArrowRight,
   ShoppingCart,
+  Users,
+  TrendingUp,
+  Package,
+  Zap,
 } from "lucide-react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { PaymentBreakdown } from "@/components/payment-breakdown"
 import { DashboardActivity } from "@/components/dashboard-activity"
+import { SprintOverview } from "@/components/sprint-overview"
+import { EpicsSection } from "@/components/epics-section"
+import { ProjectStatistics } from "@/components/project-statistics"
+import { BurndownChart } from "@/components/burndown-chart"
+import { TeamMembers } from "@/components/team-members"
 import { 
   PaymentStatusBadge, 
   DeliveryStatusBadge 
@@ -57,6 +66,121 @@ export default function DashboardPage() {
 
   const { stats, recentOrders, salesData, user } = data
 
+  // Dados para Sprint Overview
+  const sprintMetrics = [
+    {
+      label: "Velocidade da Equipe",
+      value: stats?.teamVelocity || 52,
+      icon: <TrendingUp className="w-4 h-4" />,
+      color: "pink" as const,
+      trend: "up" as const,
+    },
+    {
+      label: "Membros da Equipe",
+      value: stats?.teamMembers || 12,
+      icon: <Users className="w-4 h-4" />,
+      color: "green" as const,
+    },
+    {
+      label: "Tarefas Entregues",
+      value: stats?.tasksDelivered || 23,
+      icon: <Package className="w-4 h-4" />,
+      color: "yellow" as const,
+    },
+    {
+      label: "Picos Entregues",
+      value: stats?.spikesDelivered || 16,
+      icon: <Zap className="w-4 h-4" />,
+      color: "purple" as const,
+    },
+  ]
+
+  // Dados para Epics
+  const epics = [
+    {
+      id: "1",
+      title: "Mobile Onboarding",
+      type: "Design",
+      status: "design" as const,
+      icon: <ShoppingCart className="w-4 h-4" />,
+      color: "blue" as const,
+    },
+    {
+      id: "2",
+      title: "Adding Item",
+      type: "Development",
+      status: "development" as const,
+      icon: <Package className="w-4 h-4" />,
+      color: "pink" as const,
+    },
+    {
+      id: "3",
+      title: "Admin panel",
+      type: "Development",
+      status: "development" as const,
+      icon: <Users className="w-4 h-4" />,
+      color: "yellow" as const,
+    },
+    {
+      id: "4",
+      title: "Mobile MVP",
+      type: "Design & Development",
+      status: "review" as const,
+      icon: <TrendingUp className="w-4 h-4" />,
+      color: "purple" as const,
+    },
+    {
+      id: "5",
+      title: "QR Scann",
+      type: "Development",
+      status: "completed" as const,
+      icon: <Zap className="w-4 h-4" />,
+      color: "green" as const,
+    },
+  ]
+
+  // Dados para Project Statistics
+  const projectStats = [
+    {
+      label: "Project progress",
+      value: 75,
+      unit: "percent",
+      color: "pink" as const,
+    },
+    {
+      label: "Business goals",
+      value: 42,
+      unit: "delivered",
+      color: "purple" as const,
+    },
+    {
+      label: "Budget used",
+      value: 42,
+      unit: "percent",
+      color: "green" as const,
+    },
+  ]
+
+  // Dados para Burndown Chart
+  const burndownData = [
+    { day: "Seg", ideal: 100, actual: 95 },
+    { day: "Ter", ideal: 85, actual: 88 },
+    { day: "Qua", ideal: 70, actual: 72 },
+    { day: "Qui", ideal: 55, actual: 50 },
+    { day: "Sex", ideal: 40, actual: 35 },
+    { day: "Sab", ideal: 25, actual: 20 },
+    { day: "Dom", ideal: 10, actual: 5 },
+  ]
+
+  // Dados para Team Members
+  const teamMembers = [
+    { id: "1", name: "Arkadiusz", role: "Developer", storyPoints: 32 },
+    { id: "2", name: "Johnny", role: "Designer", storyPoints: 12 },
+    { id: "3", name: "Daniel", role: "Developer", storyPoints: 32 },
+    { id: "4", name: "Peter", role: "PM", storyPoints: 12 },
+    { id: "5", name: "Jessica", role: "QA", storyPoints: 37 },
+  ]
+
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
       {/* Header */}
@@ -80,39 +204,12 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Métricas Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Receita Aprovada"
-          value={formatCurrency(stats?.totalRevenue || 0)}
-          iconName="dollar"
-          color="pink"
-          trend="up"
-          trendValue="+12.5%"
-          index={0}
-        />
-        <MetricCard
-          title="Aprovados"
-          value={formatNumber(stats?.approvedPayments || 0)}
-          iconName="check"
-          color="green"
-          index={1}
-        />
-        <MetricCard
-          title="Pendentes"
-          value={formatNumber(stats?.pendingPayments || 0)}
-          iconName="clock"
-          color="yellow"
-          index={2}
-        />
-        <MetricCard
-          title="Recusados"
-          value={formatNumber(stats?.refusedPayments || 0)}
-          iconName="x"
-          color="red"
-          index={3}
-        />
-      </div>
+      {/* Sprint Overview */}
+      <SprintOverview 
+        metrics={sprintMetrics}
+        sprintName="Sprint Atual"
+        sprintStatus="active"
+      />
 
       {/* Gráfico + Métricas Secundárias */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -121,58 +218,39 @@ export default function DashboardPage() {
           <SalesChart data={salesData} />
         </div>
 
-        {/* Métricas Secundárias */}
-        <div className="space-y-4">
-          <MetricCard
-            title="Taxa de Conversão"
-            value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
-            iconName="chart"
-            color="purple"
-            className="h-full"
-            index={4}
-          />
-          <MetricCard
-            title="Clientes Ativos"
-            value={formatNumber(stats?.totalCustomers || 0)}
-            iconName="users"
-            color="blue"
-            className="h-full"
-            index={5}
-          />
-        </div>
-      </div>
-
-      {/* Métricas Secundárias + Breakdown de Pagamentos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:col-span-2">
-          <MetricCard
-            title="Total de Vendas"
-            value={formatNumber(stats?.totalSales || 0)}
-            iconName="shopping"
-            color="indigo"
-            index={7}
-          />
-          <MetricCard
-            title="Vendas Hoje"
-            value={formatNumber(stats?.salesToday || 0)}
-            iconName="zap"
-            color="yellow"
-            index={8}
-          />
-          <MetricCard
-            title="Produtos em Loja"
-            value={formatNumber(stats?.totalProducts || 0)}
-            iconName="package"
-            color="green"
-            index={9}
-          />
-        </div>
+        {/* Breakdown de Pagamentos */}
         <PaymentBreakdown
           approved={stats?.approvedPayments || 0}
           pending={stats?.pendingPayments || 0}
           refused={stats?.refusedPayments || 0}
         />
       </div>
+
+      {/* Burndown Chart */}
+      <BurndownChart 
+        data={burndownData}
+        title="Burndown Chart"
+        subtitle="Progresso da Sprint"
+      />
+
+      {/* Epics Section */}
+      <EpicsSection 
+        epics={epics}
+        title="Epics"
+      />
+
+      {/* Project Statistics */}
+      <ProjectStatistics 
+        stats={projectStats}
+        title="Estatísticas do Projeto"
+        subtitle="Progresso geral"
+      />
+
+      {/* Team Members */}
+      <TeamMembers 
+        members={teamMembers}
+        title="Membros da Equipe"
+      />
 
       {/* Atividade Recente */}
       <DashboardActivity
@@ -303,17 +381,10 @@ function DashboardSkeleton() {
         </div>
         <Skeleton className="h-9 w-32 bg-dashboard-surface" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-2xl bg-dashboard-surface" />
-        ))}
-      </div>
+      <Skeleton className="h-40 rounded-2xl bg-dashboard-surface" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Skeleton className="lg:col-span-2 h-[380px] rounded-2xl bg-dashboard-surface" />
-        <div className="space-y-4">
-          <Skeleton className="h-[180px] rounded-2xl bg-dashboard-surface" />
-          <Skeleton className="h-[180px] rounded-2xl bg-dashboard-surface" />
-        </div>
+        <Skeleton className="h-[380px] rounded-2xl bg-dashboard-surface" />
       </div>
       <Skeleton className="h-96 rounded-2xl bg-dashboard-surface" />
     </div>
