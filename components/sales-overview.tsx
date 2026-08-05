@@ -59,11 +59,11 @@ export const SalesOverview = memo(({
                       {metric.label}
                     </span>
                     <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110",
+                      "w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110",
                       "bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md",
                       "shadow-lg group-hover:shadow-xl"
                     )}>
-                      <div className="text-dashboard-text-muted group-hover:text-dashboard-accent transition-colors">
+                      <div className="text-dashboard-text-muted group-hover:text-dashboard-accent transition-colors flex items-center justify-center w-6 h-6">
                         {metric.icon}
                       </div>
                     </div>
