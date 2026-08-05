@@ -9,17 +9,16 @@ import {
   Users,
   TrendingUp,
   Package,
-  Zap,
+  AlertTriangle,
 } from "lucide-react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
 import { PaymentBreakdown } from "@/components/payment-breakdown"
 import { DashboardActivity } from "@/components/dashboard-activity"
-import { SprintOverview } from "@/components/sprint-overview"
-import { EpicsSection } from "@/components/epics-section"
-import { ProjectStatistics } from "@/components/project-statistics"
-import { BurndownChart } from "@/components/burndown-chart"
-import { TeamMembers } from "@/components/team-members"
+import { SalesOverview } from "@/components/sales-overview"
+import { TopProductsSection } from "@/components/top-products-section"
+import { PaymentMetrics } from "@/components/payment-metrics"
+import { TopCustomers } from "@/components/top-customers"
 import { 
   PaymentStatusBadge, 
   DeliveryStatusBadge 
@@ -66,119 +65,104 @@ export default function DashboardPage() {
 
   const { stats, recentOrders, salesData, user } = data
 
-  // Dados para Sprint Overview
-  const sprintMetrics = [
+  // Dados para Sales Overview - Métricas principais do negócio
+  const salesMetrics = [
     {
-      label: "Velocidade da Equipe",
-      value: stats?.teamVelocity || 52,
+      label: "Receita Total",
+      value: formatCurrency(stats?.totalRevenue || 0),
       icon: <TrendingUp className="w-4 h-4" />,
       color: "pink" as const,
       trend: "up" as const,
     },
     {
-      label: "Membros da Equipe",
-      value: stats?.teamMembers || 12,
-      icon: <Users className="w-4 h-4" />,
+      label: "Vendas Hoje",
+      value: formatNumber(stats?.salesToday || 0),
+      icon: <ShoppingCart className="w-4 h-4" />,
       color: "green" as const,
     },
     {
-      label: "Tarefas Entregues",
-      value: stats?.tasksDelivered || 23,
-      icon: <Package className="w-4 h-4" />,
+      label: "Total de Clientes",
+      value: formatNumber(stats?.totalCustomers || 0),
+      icon: <Users className="w-4 h-4" />,
       color: "yellow" as const,
     },
     {
-      label: "Picos Entregues",
-      value: stats?.spikesDelivered || 16,
-      icon: <Zap className="w-4 h-4" />,
+      label: "Produtos em Loja",
+      value: formatNumber(stats?.totalProducts || 0),
+      icon: <Package className="w-4 h-4" />,
       color: "purple" as const,
     },
   ]
 
-  // Dados para Epics
-  const epics = [
+  // Dados para Top Products - Produtos em destaque
+  const topProducts = [
     {
       id: "1",
-      title: "Mobile Onboarding",
-      type: "Design",
-      status: "design" as const,
+      name: "Produto Premium",
+      category: "Eletrônicos",
+      stock: 25,
+      price: 199.99,
       icon: <ShoppingCart className="w-4 h-4" />,
       color: "blue" as const,
     },
     {
       id: "2",
-      title: "Adding Item",
-      type: "Development",
-      status: "development" as const,
+      name: "Serviço Digital",
+      category: "Serviços",
+      stock: 50,
+      price: 99.99,
       icon: <Package className="w-4 h-4" />,
       color: "pink" as const,
     },
     {
       id: "3",
-      title: "Admin panel",
-      type: "Development",
-      status: "development" as const,
-      icon: <Users className="w-4 h-4" />,
+      name: "Pacote Especial",
+      category: "Combo",
+      stock: 5,
+      price: 299.99,
+      icon: <TrendingUp className="w-4 h-4" />,
       color: "yellow" as const,
     },
     {
       id: "4",
-      title: "Mobile MVP",
-      type: "Design & Development",
-      status: "review" as const,
-      icon: <TrendingUp className="w-4 h-4" />,
+      name: "Produto Básico",
+      category: "Eletrônicos",
+      stock: 0,
+      price: 49.99,
+      icon: <AlertTriangle className="w-4 h-4" />,
       color: "purple" as const,
-    },
-    {
-      id: "5",
-      title: "QR Scann",
-      type: "Development",
-      status: "completed" as const,
-      icon: <Zap className="w-4 h-4" />,
-      color: "green" as const,
     },
   ]
 
-  // Dados para Project Statistics
-  const projectStats = [
+  // Dados para Payment Metrics - Taxa de conversão e status de pagamentos
+  const paymentMetrics = [
     {
-      label: "Project progress",
-      value: 75,
-      unit: "percent",
+      label: "Taxa de Conversão",
+      value: Math.round(stats?.conversionRate || 0),
+      unit: "% de aprovação",
       color: "pink" as const,
     },
     {
-      label: "Business goals",
-      value: 42,
-      unit: "delivered",
-      color: "purple" as const,
+      label: "Pagamentos Pendentes",
+      value: Math.min(Math.round((stats?.pendingPayments / Math.max(stats?.pendingPayments + stats?.approvedPayments + stats?.refusedPayments, 1)) * 100), 100),
+      unit: `${stats?.pendingPayments || 0} aguardando`,
+      color: "yellow" as const,
     },
     {
-      label: "Budget used",
-      value: 42,
-      unit: "percent",
-      color: "green" as const,
+      label: "Taxa de Recusa",
+      value: Math.min(Math.round((stats?.refusedPayments / Math.max(stats?.pendingPayments + stats?.approvedPayments + stats?.refusedPayments, 1)) * 100), 100),
+      unit: `${stats?.refusedPayments || 0} recusados`,
+      color: "purple" as const,
     },
   ]
 
-  // Dados para Burndown Chart
-  const burndownData = [
-    { day: "Seg", ideal: 100, actual: 95 },
-    { day: "Ter", ideal: 85, actual: 88 },
-    { day: "Qua", ideal: 70, actual: 72 },
-    { day: "Qui", ideal: 55, actual: 50 },
-    { day: "Sex", ideal: 40, actual: 35 },
-    { day: "Sab", ideal: 25, actual: 20 },
-    { day: "Dom", ideal: 10, actual: 5 },
-  ]
-
-  // Dados para Team Members
-  const teamMembers = [
-    { id: "1", name: "Arkadiusz", role: "Developer", storyPoints: 32 },
-    { id: "2", name: "Johnny", role: "Designer", storyPoints: 12 },
-    { id: "3", name: "Daniel", role: "Developer", storyPoints: 32 },
-    { id: "4", name: "Peter", role: "PM", storyPoints: 12 },
-    { id: "5", name: "Jessica", role: "QA", storyPoints: 37 },
+  // Dados para Top Customers - Principais clientes
+  const topCustomers = [
+    { id: "1", name: "Cliente Premium", totalSpent: 1250.50, orderCount: 5 },
+    { id: "2", name: "João Silva", totalSpent: 890.00, orderCount: 3 },
+    { id: "3", name: "Maria Santos", totalSpent: 756.30, orderCount: 4 },
+    { id: "4", name: "Pedro Oliveira", totalSpent: 620.00, orderCount: 2 },
+    { id: "5", name: "Ana Costa", totalSpent: 450.75, orderCount: 2 },
   ]
 
   return (
@@ -204,14 +188,12 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Sprint Overview */}
-      <SprintOverview 
-        metrics={sprintMetrics}
-        sprintName="Sprint Atual"
-        sprintStatus="active"
+      {/* Sales Overview - Métricas principais */}
+      <SalesOverview 
+        metrics={salesMetrics}
       />
 
-      {/* Gráfico + Métricas Secundárias */}
+      {/* Gráfico de Receita + Breakdown de Pagamentos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico de Receita */}
         <div className="lg:col-span-2">
@@ -226,30 +208,23 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Burndown Chart */}
-      <BurndownChart 
-        data={burndownData}
-        title="Burndown Chart"
-        subtitle="Progresso da Sprint"
+      {/* Top Products - Produtos em destaque */}
+      <TopProductsSection 
+        products={topProducts}
+        title="Produtos em Destaque"
       />
 
-      {/* Epics Section */}
-      <EpicsSection 
-        epics={epics}
-        title="Epics"
+      {/* Payment Metrics - Taxa de conversão e status */}
+      <PaymentMetrics 
+        metrics={paymentMetrics}
+        title="Métricas de Pagamento"
+        subtitle="Taxa de conversão e status dos pagamentos"
       />
 
-      {/* Project Statistics */}
-      <ProjectStatistics 
-        stats={projectStats}
-        title="Estatísticas do Projeto"
-        subtitle="Progresso geral"
-      />
-
-      {/* Team Members */}
-      <TeamMembers 
-        members={teamMembers}
-        title="Membros da Equipe"
+      {/* Top Customers - Principais clientes */}
+      <TopCustomers 
+        customers={topCustomers}
+        title="Principais Clientes"
       />
 
       {/* Atividade Recente */}
