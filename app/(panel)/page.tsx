@@ -9,7 +9,6 @@ import {
   Users,
   TrendingUp,
   Package,
-  AlertTriangle,
 } from "lucide-react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
@@ -65,76 +64,35 @@ export default function DashboardPage() {
 
   const { stats, recentOrders, salesData, user } = data
 
-  // Dados para Sales Overview - Métricas principais do negócio
+  // Dados para Sales Overview - Conectados à API
   const salesMetrics = [
     {
       label: "Receita Total",
       value: formatCurrency(stats?.totalRevenue || 0),
-      icon: <TrendingUp className="w-4 h-4" />,
+      icon: <TrendingUp className="w-5 h-5" />,
       color: "pink" as const,
-      trend: "up" as const,
     },
     {
       label: "Vendas Hoje",
       value: formatNumber(stats?.salesToday || 0),
-      icon: <ShoppingCart className="w-4 h-4" />,
+      icon: <ShoppingCart className="w-5 h-5" />,
       color: "green" as const,
     },
     {
       label: "Total de Clientes",
       value: formatNumber(stats?.totalCustomers || 0),
-      icon: <Users className="w-4 h-4" />,
+      icon: <Users className="w-5 h-5" />,
       color: "yellow" as const,
     },
     {
       label: "Produtos em Loja",
       value: formatNumber(stats?.totalProducts || 0),
-      icon: <Package className="w-4 h-4" />,
+      icon: <Package className="w-5 h-5" />,
       color: "purple" as const,
     },
   ]
 
-  // Dados para Top Products - Produtos em destaque
-  const topProducts = [
-    {
-      id: "1",
-      name: "Produto Premium",
-      category: "Eletrônicos",
-      stock: 25,
-      price: 199.99,
-      icon: <ShoppingCart className="w-4 h-4" />,
-      color: "blue" as const,
-    },
-    {
-      id: "2",
-      name: "Serviço Digital",
-      category: "Serviços",
-      stock: 50,
-      price: 99.99,
-      icon: <Package className="w-4 h-4" />,
-      color: "pink" as const,
-    },
-    {
-      id: "3",
-      name: "Pacote Especial",
-      category: "Combo",
-      stock: 5,
-      price: 299.99,
-      icon: <TrendingUp className="w-4 h-4" />,
-      color: "yellow" as const,
-    },
-    {
-      id: "4",
-      name: "Produto Básico",
-      category: "Eletrônicos",
-      stock: 0,
-      price: 49.99,
-      icon: <AlertTriangle className="w-4 h-4" />,
-      color: "purple" as const,
-    },
-  ]
-
-  // Dados para Payment Metrics - Taxa de conversão e status de pagamentos
+  // Dados para Payment Metrics - Conectados à API
   const paymentMetrics = [
     {
       label: "Taxa de Conversão",
@@ -156,14 +114,25 @@ export default function DashboardPage() {
     },
   ]
 
-  // Dados para Top Customers - Principais clientes
-  const topCustomers = [
-    { id: "1", name: "Cliente Premium", totalSpent: 1250.50, orderCount: 5 },
-    { id: "2", name: "João Silva", totalSpent: 890.00, orderCount: 3 },
-    { id: "3", name: "Maria Santos", totalSpent: 756.30, orderCount: 4 },
-    { id: "4", name: "Pedro Oliveira", totalSpent: 620.00, orderCount: 2 },
-    { id: "5", name: "Ana Costa", totalSpent: 450.75, orderCount: 2 },
-  ]
+  // Filtrar clientes reais dos pedidos recentes
+  const topCustomersFromOrders = recentOrders && recentOrders.length > 0 
+    ? Array.from(
+        new Map(
+          recentOrders
+            .filter((order: any) => order.customerName || order.customerUsername)
+            .map((order: any) => [
+              order.customerId || order.customerUsername,
+              {
+                id: order.customerId || order.customerUsername,
+                name: order.customerName || order.customerUsername || "Cliente",
+                totalSpent: order.amount || 0,
+                orderCount: 1,
+              },
+            ])
+        ).values()
+      )
+      .slice(0, 5)
+    : []
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
@@ -208,12 +177,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Top Products - Produtos em destaque */}
-      <TopProductsSection 
-        products={topProducts}
-        title="Produtos em Destaque"
-      />
-
       {/* Payment Metrics - Taxa de conversão e status */}
       <PaymentMetrics 
         metrics={paymentMetrics}
@@ -221,9 +184,9 @@ export default function DashboardPage() {
         subtitle="Taxa de conversão e status dos pagamentos"
       />
 
-      {/* Top Customers - Principais clientes */}
+      {/* Top Customers - Principais clientes (vindo dos dados reais) */}
       <TopCustomers 
-        customers={topCustomers}
+        customers={topCustomersFromOrders}
         title="Principais Clientes"
       />
 
@@ -248,7 +211,7 @@ export default function DashboardPage() {
         <CardContent className="p-0">
           {!recentOrders || recentOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-dashboard-surface-elevated flex items-center justify-center mb-4 border border-dashboard-border">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
                 <ShoppingCart className="w-8 h-8 text-dashboard-text-muted/30" />
               </div>
               <h3 className="text-dashboard-text font-bold">Nenhum pedido ainda</h3>

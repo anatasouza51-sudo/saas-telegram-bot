@@ -3,7 +3,7 @@
 import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Package } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -23,11 +23,11 @@ interface TopProductsSectionProps {
 }
 
 const colorMap = {
-  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
-  green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
-  yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20" },
-  pink: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20" },
+  blue: { accent: "text-blue-400", bg: "from-blue-500/10 to-blue-500/5" },
+  green: { accent: "text-emerald-400", bg: "from-emerald-500/10 to-emerald-500/5" },
+  yellow: { accent: "text-amber-400", bg: "from-amber-500/10 to-amber-500/5" },
+  purple: { accent: "text-purple-400", bg: "from-purple-500/10 to-purple-500/5" },
+  pink: { accent: "text-pink-400", bg: "from-pink-500/10 to-pink-500/5" },
 }
 
 export const TopProductsSection = memo(({
@@ -35,12 +35,29 @@ export const TopProductsSection = memo(({
   title = "Produtos em Destaque",
 }: TopProductsSectionProps) => {
   if (products.length === 0) {
-    return null
+    return (
+      <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
+        <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
+          <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
+            {title}
+          </CardTitle>
+          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
+            Nenhum produto cadastrado
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-12 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+            <Package className="w-8 h-8 text-dashboard-text-muted/30" />
+          </div>
+          <p className="text-sm text-dashboard-text-muted">Seus produtos aparecerão aqui</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] flex flex-row items-center justify-between">
+      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
             {title}
@@ -69,26 +86,28 @@ export const TopProductsSection = memo(({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 className={cn(
-                  "p-4 hover:bg-white/[0.02] transition-all group cursor-pointer",
+                  "p-5 hover:bg-gradient-to-br transition-all duration-300 group backdrop-blur-sm border-0",
                   colors.bg
                 )}
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110 shrink-0",
-                      colors.bg,
-                      colors.text
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 shrink-0",
+                      "bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md",
+                      colors.accent
                     )}>
                       {product.icon}
                     </div>
                     {product.stock !== undefined && (
                       <span className={cn(
-                        "text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full",
-                        product.stock > 10 ? "text-emerald-400" : product.stock > 0 ? "text-amber-400" : "text-rose-400",
-                        "bg-white/5"
+                        "text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg",
+                        product.stock > 10 ? "text-emerald-400 bg-emerald-500/10" : 
+                        product.stock > 0 ? "text-amber-400 bg-amber-500/10" : 
+                        "text-rose-400 bg-rose-500/10",
+                        "border border-white/10 backdrop-blur-sm"
                       )}>
-                        {product.stock} em estoque
+                        {product.stock > 0 ? `${product.stock} em estoque` : "Sem estoque"}
                       </span>
                     )}
                   </div>
@@ -96,14 +115,14 @@ export const TopProductsSection = memo(({
                     <h4 className="text-xs font-bold text-dashboard-text line-clamp-2">
                       {product.name}
                     </h4>
-                    <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center justify-between mt-2 gap-2">
                       {product.category && (
-                        <p className="text-[10px] text-dashboard-text-muted">
+                        <p className="text-[10px] text-dashboard-text-muted truncate">
                           {product.category}
                         </p>
                       )}
                       {product.price !== undefined && (
-                        <p className="text-xs font-bold text-dashboard-accent">
+                        <p className="text-xs font-bold text-dashboard-accent ml-auto">
                           R$ {product.price.toFixed(2)}
                         </p>
                       )}

@@ -2,6 +2,7 @@
 
 import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Users } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -28,21 +29,42 @@ const getInitials = (name: string) => {
 }
 
 const colors = [
-  "bg-pink-500",
-  "bg-purple-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-blue-500",
-  "bg-rose-500",
+  "bg-gradient-to-br from-pink-500 to-pink-600",
+  "bg-gradient-to-br from-purple-500 to-purple-600",
+  "bg-gradient-to-br from-emerald-500 to-emerald-600",
+  "bg-gradient-to-br from-amber-500 to-amber-600",
+  "bg-gradient-to-br from-blue-500 to-blue-600",
+  "bg-gradient-to-br from-rose-500 to-rose-600",
 ]
 
 export const TopCustomers = memo(({
   customers,
   title = "Principais Clientes",
 }: TopCustomersProps) => {
+  if (customers.length === 0) {
+    return (
+      <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
+        <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
+          <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
+            {title}
+          </CardTitle>
+          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
+            Seus clientes aparecerão aqui
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-12 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+            <Users className="w-8 h-8 text-dashboard-text-muted/30" />
+          </div>
+          <p className="text-sm text-dashboard-text-muted">Comece a vender para ver seus clientes</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01]">
+      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
         <div>
           <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
             {title}
@@ -52,8 +74,8 @@ export const TopCustomers = memo(({
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-3">
+      <CardContent className="p-6">
+        <div className="flex flex-wrap gap-4">
           {customers.map((customer, index) => (
             <motion.div
               key={customer.id}
@@ -63,7 +85,7 @@ export const TopCustomers = memo(({
               className="flex flex-col items-center gap-2 group cursor-pointer"
             >
               <div className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center text-xs font-black text-white transition-transform group-hover:scale-110",
+                "w-14 h-14 rounded-xl flex items-center justify-center text-xs font-black text-white transition-all duration-300 group-hover:scale-110 shadow-lg",
                 colors[index % colors.length]
               )}>
                 {customer.avatar ? (
@@ -77,11 +99,11 @@ export const TopCustomers = memo(({
                 )}
               </div>
               <div className="text-center">
-                <p className="text-xs font-bold text-dashboard-text truncate max-w-[80px]">
+                <p className="text-xs font-bold text-dashboard-text truncate max-w-[90px]">
                   {customer.name.split(" ")[0]}
                 </p>
                 {customer.orderCount !== undefined && (
-                  <p className="text-[10px] text-dashboard-text-muted truncate max-w-[80px]">
+                  <p className="text-[10px] text-dashboard-text-muted truncate max-w-[90px]">
                     {customer.orderCount} compra{customer.orderCount !== 1 ? "s" : ""}
                   </p>
                 )}
