@@ -1,5 +1,4 @@
 {
-  "buildCommand": "npm install --os=linux --cpu=x64 sharp && next build",
   "crons": [
     {
       "path": "/api/tg/cron",
