@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { getSessionUser } from "@/lib/session"
 import { AuthForm } from "@/components/auth-form"
 import { GhostBg } from "@/components/ghost-bg"
+import { StarryBackground } from "@/components/starry-background"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,9 @@ export default async function SignUpPage() {
 
   return (
     <main className="min-h-screen w-full bg-[#020203] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Starry Background */}
+      <StarryBackground />
+      
       {/* Ghost Background Animation */}
       <GhostBg />
 
