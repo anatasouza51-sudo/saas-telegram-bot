@@ -30,8 +30,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  // Removido maximumScale e userScalable: false para permitir que o navegador
-  // e o "Modo Desktop" funcionem como esperado.
   colorScheme: 'dark',
   themeColor: '#0f1220',
 }
@@ -53,4 +51,4 @@ export default function RootLayout({
   )
 }
 
-// Deploy trigger: Sat Aug  1 18:00:00 UTC 2026 — BUGFIX: /start silence (upsertCustomer race + sendPhoto fallback + cron schedule + DB migration)
+// Deploy trigger: Thu Aug 05 2026 — BUGFIX: Add error boundaries to prevent "This page couldn't load" crash

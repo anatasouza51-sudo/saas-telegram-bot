@@ -17,20 +17,17 @@ export const pool =
   globalForDb.__pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL || "postgres://localhost:5432/placeholder",
-    max: 10, // Aumentado para evitar esgotamento em renderizações paralelas e revalidações
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 8_000, // Leve aumento para dar chance ao Neon de acordar
+    max: 10,
+    idleTimeoutMillis: 20_000, // Reduzido para liberar conexões ociosas mais rápido
+    connectionTimeoutMillis: 10_000, // Aumentado para dar chance ao Neon de acordar
+    query_timeout: 15_000, // Timeout para queries individuais
+    statement_timeout: 15_000, // Timeout para statements individuais
     ssl: {
-      rejectUnauthorized: false, // Necessário para Neon/Supabase em alguns ambientes Vercel
+      rejectUnauthorized: false,
     },
   })
 
-// Guardamos o pool no globalThis SEMPRE (inclusive em produção). Antes isso
-// só ocorria fora de produção, então em serverless (Vercel) cada invocação
-// criava um pool novo e esgotava o limite de conexões do banco — a causa
-// raiz do erro genérico "An error occurred in the Server Components render"
-// ao publicar (o revalidatePath re-renderiza /posts com várias queries em
-// paralelo e não sobra conexão).
+// Guardamos o pool no globalThis SEMPRE (inclusive em produção).
 globalForDb.__pgPool = pool
 
 // Sem este listener, um erro em uma conexão ociosa (ex.: o banco derrubando
@@ -39,6 +36,14 @@ globalForDb.__pgPool = pool
 // servidor ("This page couldn't load") visto no navegador.
 pool.on("error", (err) => {
   console.error("[db] Erro inesperado no pool do Postgres:", err)
+  // Remover a conexão com erro do pool para evitar que ela seja reutilizada
+})
+
+// Remover conexões que falham do pool imediatamente
+pool.on("connect", (client) => {
+  client.on("error", (err) => {
+    console.error("[db] Erro em conexão ativa do Postgres:", err)
+  })
 })
 
 // Adiciona um listener global para rejeições de promessas não tratadas
