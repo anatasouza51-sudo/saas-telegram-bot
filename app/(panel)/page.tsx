@@ -136,19 +136,28 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* Header Premium */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-dashboard-border/30 pb-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-dashboard-accent/20 to-dashboard-accent-secondary/20 border border-dashboard-accent/30 flex items-center justify-center shadow-lg backdrop-blur-md">
-              <span className="text-xl animate-bounce-slow">👋</span>
+      {/* Header Premium - Nome Grande & Resumo Dinâmico */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-dashboard-border/30 pb-8">
+        <div className="space-y-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dashboard-accent/20 to-dashboard-accent-secondary/20 border border-dashboard-accent/30 flex items-center justify-center shadow-lg backdrop-blur-md">
+                <span className="text-lg animate-bounce-slow">👋</span>
+              </div>
+              <p className="text-xs font-black text-dashboard-accent uppercase tracking-[0.2em]">Dashboard Principal</p>
             </div>
-            <div>
-              <h2 className="text-3xl font-black text-dashboard-text tracking-tight">
-                Olá, {user?.name?.split(' ')[0] || "Operador"}
-              </h2>
-              <p className="text-xs font-bold text-dashboard-text-muted uppercase tracking-widest">
-                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            
+            <h2 className="text-5xl md:text-6xl font-black text-dashboard-text tracking-tighter leading-none">
+              Olá, <span className="text-transparent bg-clip-text bg-gradient-to-r from-dashboard-text via-dashboard-text to-dashboard-text-muted">{user?.name?.split(' ')[0] || "Operador"}</span>
+            </h2>
+            
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-sm md:text-base text-dashboard-text-muted font-medium">
+                {stats?.pendingPayments > 0 
+                  ? `Você tem ${stats.pendingPayments} pagamento${stats.pendingPayments > 1 ? 's' : ''} pendente${stats.pendingPayments > 1 ? 's' : ''} aguardando ação.` 
+                  : stats?.salesToday > 0 
+                    ? `Sua loja já realizou ${stats.salesToday} venda${stats.salesToday > 1 ? 's' : ''} hoje. Continue assim!` 
+                    : "Sua loja está pronta e operando normalmente hoje."}
               </p>
             </div>
           </div>
