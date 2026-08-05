@@ -5,7 +5,7 @@ import Image from "next/image"
 
 export const StarryBackground = memo(() => {
   return (
-    <div className="fixed inset-0 w-full h-full z-[-1] overflow-hidden bg-black">
+    <div className="fixed inset-0 w-full h-full z-[-1] overflow-hidden">
       <div className="relative w-full h-full">
         <Image
           src="/assets/auth-bg.jpeg"
