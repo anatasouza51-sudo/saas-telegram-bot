@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { StarryBackground } from '@/components/starry-background'
 import './globals.css'
 
 const geistSans = Geist({
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`dark ${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable}`}>
       <body className="bg-background font-sans antialiased bg-grain relative">
+        <StarryBackground />
         {children}
         <Toaster />
         {process.env.NODE_ENV === 'production' && <Analytics />}
