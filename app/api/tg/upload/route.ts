@@ -9,7 +9,6 @@ import type { TelegramMediaKind } from "@/lib/telegram"
 import { sanitizeFileName } from "@/lib/validation"
 import { logActivity } from "@/lib/log"
 import { encrypt } from "@/lib/crypto"
-import sharp from "sharp"
 import { randomBytes } from "node:crypto"
 
 export const runtime = "nodejs"
@@ -199,13 +198,17 @@ async function handleUpload(req: Request) {
 
   if (finalMime.startsWith("image/") && !forceDocument && kind !== "animation") {
     try {
+      // Dynamic import to avoid crash if sharp native module fails to load on Vercel
+      const sharp = (await import("sharp")).default
       processedBuffer = await sharp(buffer)
         .rotate()
         .toBuffer()
       console.log(`[upload] Image re-encoded and metadata stripped for ${file.name}`)
     } catch (err: any) {
-      console.error(`[upload] Image re-encoding failed for ${file.name}:`, err)
-      return jsonResponse({ error: "Arquivo de imagem corrompido ou inválido" }, 400)
+      console.error(`[upload] Image re-encoding failed for ${file.name}:`, err.message || err)
+      // If sharp fails to load or process, just use the original buffer
+      processedBuffer = buffer
+      console.log(`[upload] Using original buffer (sharp unavailable or image corrupt)`)
     }
   }
 
