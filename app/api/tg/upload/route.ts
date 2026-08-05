@@ -190,27 +190,11 @@ async function handleUpload(req: Request) {
   const kind = kindFor(finalMime, forceDocument)
   console.log(`[upload] Detected kind: ${kind}, MIME: ${finalMime}`)
 
-  // Zero Trust: Re-process images to remove EXIF metadata.
-  let processedBuffer = buffer
+  // Use original buffer directly — no sharp dependency needed.
+  const processedBuffer = buffer
   const finalFileName = sanitizeFileName(file.name)
   const extension = finalFileName.split(".").pop() || "bin"
   const secureName = `${randomBytes(16).toString("hex")}.${extension}`
-
-  if (finalMime.startsWith("image/") && !forceDocument && kind !== "animation") {
-    try {
-      // Dynamic import to avoid crash if sharp native module fails to load on Vercel
-      const sharp = (await import("sharp")).default
-      processedBuffer = await sharp(buffer)
-        .rotate()
-        .toBuffer()
-      console.log(`[upload] Image re-encoded and metadata stripped for ${file.name}`)
-    } catch (err: any) {
-      console.error(`[upload] Image re-encoding failed for ${file.name}:`, err.message || err)
-      // If sharp fails to load or process, just use the original buffer
-      processedBuffer = buffer
-      console.log(`[upload] Using original buffer (sharp unavailable or image corrupt)`)
-    }
-  }
 
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
   console.log(`[upload] Uploading to Telegram CDN chat ${cdnChatId}...`)
