@@ -136,55 +136,58 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* Header Premium - Nome Grande & Resumo Dinâmico */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-dashboard-border/30 pb-8">
-        <div className="space-y-2">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dashboard-accent/20 to-dashboard-accent-secondary/20 border border-dashboard-accent/30 flex items-center justify-center shadow-lg backdrop-blur-md">
-                <span className="text-lg animate-bounce-slow">👋</span>
+      {/* Header Premium - Painel Glassmorphism */}
+      <div className="relative group">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-dashboard-accent/20 to-dashboard-accent-secondary/20 rounded-[2.5rem] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8 bg-dashboard-surface/40 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-[2.5rem] shadow-2xl">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-dashboard-accent/30 to-dashboard-accent-secondary/30 border border-white/10 flex items-center justify-center shadow-inner backdrop-blur-md">
+                <span className="text-2xl animate-bounce-slow">👋</span>
               </div>
-              <p className="text-xs font-black text-dashboard-accent uppercase tracking-[0.2em]">Dashboard Principal</p>
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black text-dashboard-accent uppercase tracking-[0.3em] leading-none mb-1">Status: Online</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-widest">Painel de Controle</p>
+                </div>
+              </div>
             </div>
             
-            <h2 className="text-5xl md:text-6xl font-black text-dashboard-text tracking-tighter leading-none">
-              Olá, <span className="text-transparent bg-clip-text bg-gradient-to-r from-dashboard-text via-dashboard-text to-dashboard-text-muted">{user?.name?.split(' ')[0] || "Operador"}</span>
-            </h2>
-            
-            <div className="flex items-center gap-2 mt-2">
-              <p className="text-sm md:text-base text-dashboard-text-muted font-medium">
+            <div className="space-y-2">
+              <h2 className="text-5xl md:text-7xl font-black text-dashboard-text tracking-tighter leading-none">
+                Olá, <span className="text-transparent bg-clip-text bg-gradient-to-r from-dashboard-text via-white to-dashboard-text-muted">{user?.name?.split(' ')[0] || "Operador"}</span>
+              </h2>
+              
+              <p className="text-sm md:text-lg text-dashboard-text-muted font-medium max-w-2xl leading-relaxed">
                 {stats?.pendingPayments > 0 
-                  ? `Você tem ${stats.pendingPayments} pagamento${stats.pendingPayments > 1 ? 's' : ''} pendente${stats.pendingPayments > 1 ? 's' : ''} aguardando ação.` 
+                  ? `Você tem ${stats.pendingPayments} pagamento${stats.pendingPayments > 1 ? 's' : ''} pendente${stats.pendingPayments > 1 ? 's' : ''} aguardando sua aprovação.` 
                   : stats?.salesToday > 0 
-                    ? `Sua loja já realizou ${stats.salesToday} venda${stats.salesToday > 1 ? 's' : ''} hoje. Continue assim!` 
-                    : "Sua loja está pronta e operando normalmente hoje."}
+                    ? `Excelente! Sua loja já processou ${stats.salesToday} venda${stats.salesToday > 1 ? 's' : ''} hoje.` 
+                    : "Sua loja está configurada e pronta para receber novas vendas via Telegram."}
               </p>
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="hidden md:block text-right mr-2">
-            <p className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-tight">Status do Sistema</p>
-            <div className="flex items-center justify-end gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-emerald-500 uppercase">Online</span>
-            </div>
-          </div>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchData}
-            disabled={loading}
-            className={cn(
-              "h-11 px-5 bg-white/5 border-white/10 text-dashboard-text hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-xl gap-2 backdrop-blur-md",
-              loading && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
-            <span className="text-xs font-bold uppercase tracking-wider">Atualizar Painel</span>
-          </Button>
+          <div className="flex flex-col items-center md:items-end gap-4">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={fetchData}
+              disabled={loading}
+              className={cn(
+                "h-14 px-8 bg-white/5 border-white/10 text-dashboard-text hover:bg-white/10 hover:border-white/20 transition-all duration-500 rounded-2xl gap-3 backdrop-blur-md group/btn shadow-xl",
+                loading && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <RefreshCcw className={cn("w-5 h-5 transition-transform duration-700 group-hover/btn:rotate-180", loading && "animate-spin")} />
+              <span className="text-sm font-black uppercase tracking-widest">Atualizar Dados</span>
+            </Button>
+            
+            <p className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-[0.2em] opacity-50">
+              Última atualização: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
         </div>
       </div>
 
