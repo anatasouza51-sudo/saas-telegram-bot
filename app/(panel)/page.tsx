@@ -69,25 +69,25 @@ export default function DashboardPage() {
     {
       label: "Receita Total",
       value: formatCurrency(stats?.totalRevenue || 0),
-      icon: <TrendingUp className="w-5 h-5" />,
+      icon: <TrendingUp className="w-full h-full" />,
       color: "pink" as const,
     },
     {
       label: "Vendas Hoje",
       value: formatNumber(stats?.salesToday || 0),
-      icon: <ShoppingCart className="w-5 h-5" />,
+      icon: <ShoppingCart className="w-full h-full" />,
       color: "green" as const,
     },
     {
       label: "Total de Clientes",
       value: formatNumber(stats?.totalCustomers || 0),
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users className="w-full h-full" />,
       color: "yellow" as const,
     },
     {
       label: "Produtos em Loja",
       value: formatNumber(stats?.totalProducts || 0),
-      icon: <Package className="w-5 h-5" />,
+      icon: <Package className="w-full h-full" />,
       color: "purple" as const,
     },
   ]
