@@ -4,5 +4,13 @@
       "path": "/api/tg/cron",
       "schedule": "0 0 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/tg/upload/**": {
+      "maxDuration": 60
+    },
+    "app/api/telegram/webhook/**": {
+      "maxDuration": 30
+    }
+  }
 }
