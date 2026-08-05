@@ -397,14 +397,26 @@ async function buildCategoryScreen(
 
   const slice = items
 
-  const rows: InlineButton[][] = slice.map((p) => [
-    {
-      // SEGURANÇA VISUAL: Se o nome for muito longo, truncamos para evitar que o preço
-      // seja cortado nos botões do Telegram (limite sugerido de ~32-36 caracteres).
-      text: `${p.name.length > 28 ? p.name.slice(0, 25) + "..." : p.name} — ${formatCurrency(Number(p.price))}`,
-      callback_data: `prod:${p.id}`,
-    },
-  ])
+  const rows: InlineButton[][] = []
+  const productLines: string[] = []
+
+  // Build numbered list for the message body and compact buttons
+  slice.forEach((p, i) => {
+    const displayIndex = i + 1
+    const price = formatCurrency(Number(p.price))
+    
+    // Add to message body: 1. Product Name - R$ 100,00
+    productLines.push(`${displayIndex}. <b>${escapeHtml(p.name)}</b> — ${price}`)
+    
+    // Add to keyboard: [ 1. Comprar ]
+    // We use a separate row for each to keep it clean, or 2 per row if many.
+    rows.push([
+      {
+        text: `${displayIndex}. Selecionar — ${price}`,
+        callback_data: `prod:${p.id}`,
+      },
+    ])
+  })
 
   const nav = pageNav(`cat:${catId}:`, safePage, totalPages)
   if (nav.length) rows.push(nav)
@@ -414,10 +426,12 @@ async function buildCategoryScreen(
 
   const parts = [`<b>${escapeHtml(title)}</b>`]
   if (description) parts.push("", description)
-  parts.push(
-    "",
-    items.length === 0 ? "<i>Nenhum produto disponível.</i>" : "Escolha um produto:",
-  )
+  
+  if (items.length === 0) {
+    parts.push("", "<i>Nenhum produto disponível no momento.</i>")
+  } else {
+    parts.push("", ...productLines, "", "Escolha uma opção abaixo:")
+  }
 
   return {
     imageUrl,
