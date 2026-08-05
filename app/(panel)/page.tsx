@@ -136,53 +136,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* Header Premium - Barra Compacta */}
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-dashboard-accent/10 to-dashboard-accent-secondary/10 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-700"></div>
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 bg-dashboard-surface/40 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl shadow-xl">
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col border-r border-white/10 pr-6">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Status: Online</p>
-              </div>
-              <h2 className="text-2xl font-black text-dashboard-text tracking-tight">
-                Olá, {user?.name?.split(' ')[0] || "Operador"}
-              </h2>
-            </div>
-            
-            <p className="text-xs md:text-sm text-dashboard-text-muted font-medium max-w-md leading-tight">
-              {stats?.pendingPayments > 0 
-                ? `Você tem ${stats.pendingPayments} pagamento${stats.pendingPayments > 1 ? 's' : ''} pendente${stats.pendingPayments > 1 ? 's' : ''} aguardando sua aprovação.` 
-                : stats?.salesToday > 0 
-                  ? `Excelente! Sua loja já processou ${stats.salesToday} venda${stats.salesToday > 1 ? 's' : ''} hoje.` 
-                  : "Sua loja está configurada e pronta para receber novas vendas via Telegram."}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="hidden lg:flex flex-col items-end text-right">
-              <p className="text-[9px] font-bold text-dashboard-text-muted uppercase tracking-widest opacity-50">Painel de Controle</p>
-              <p className="text-[9px] font-bold text-dashboard-text-muted uppercase tracking-widest opacity-50">
-                Atualizado: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={fetchData}
-              disabled={loading}
-              className={cn(
-                "h-10 px-4 bg-white/5 border-white/10 text-dashboard-text hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-xl gap-2 backdrop-blur-md group/btn",
-                loading && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <RefreshCcw className={cn("w-3.5 h-3.5 transition-transform duration-500 group-hover/btn:rotate-180", loading && "animate-spin")} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Atualizar</span>
-            </Button>
-          </div>
-        </div>
+      {/* Botão de Sincronização Discreto */}
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={fetchData}
+          disabled={loading}
+          className={cn(
+            "h-8 px-3 text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5 rounded-lg gap-2 transition-all",
+            loading && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          <RefreshCcw className={cn("w-3 h-3", loading && "animate-spin")} />
+          <span className="text-[10px] font-bold uppercase tracking-widest">Sincronizar</span>
+        </Button>
       </div>
 
       {/* Sales Overview - Métricas principais */}
