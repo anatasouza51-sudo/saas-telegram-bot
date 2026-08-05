@@ -136,25 +136,47 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-dashboard-text tracking-tight flex items-center gap-2">
-            Olá, {user?.name?.split(' ')[0] || "Operador"} <span className="animate-bounce-slow">👋</span>
-          </h2>
-          <p className="text-sm text-dashboard-text-muted font-medium">
-            Aqui está o que está acontecendo na sua loja hoje.
-          </p>
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-dashboard-border/30 pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-dashboard-accent/20 to-dashboard-accent-secondary/20 border border-dashboard-accent/30 flex items-center justify-center shadow-lg backdrop-blur-md">
+              <span className="text-xl animate-bounce-slow">👋</span>
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-dashboard-text tracking-tight">
+                Olá, {user?.name?.split(' ')[0] || "Operador"}
+              </h2>
+              <p className="text-xs font-bold text-dashboard-text-muted uppercase tracking-widest">
+                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+          </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={fetchData}
-          className="bg-dashboard-surface border-dashboard-border text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5 self-start md:self-center gap-2"
-        >
-          <RefreshCcw className="w-3 h-3" />
-          Atualizar
-        </Button>
+        
+        <div className="flex items-center gap-3">
+          <div className="hidden md:block text-right mr-2">
+            <p className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-tight">Status do Sistema</p>
+            <div className="flex items-center justify-end gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-emerald-500 uppercase">Online</span>
+            </div>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchData}
+            disabled={loading}
+            className={cn(
+              "h-11 px-5 bg-white/5 border-white/10 text-dashboard-text hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-xl gap-2 backdrop-blur-md",
+              loading && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
+            <span className="text-xs font-bold uppercase tracking-wider">Atualizar Painel</span>
+          </Button>
+        </div>
       </div>
 
       {/* Sales Overview - Métricas principais */}
