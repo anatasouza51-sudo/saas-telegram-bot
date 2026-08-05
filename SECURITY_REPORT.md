@@ -12,7 +12,8 @@ A aplicação já apresentava uma base sólida de segurança, com proteções co
 | :--- | :--- | :--- | :--- |
 | **Exposição de Informações (CWE-209)** | Médio | O endpoint `/api/bootstrap` retornava mensagens de erro detalhadas do banco de dados para o cliente. | Removido o retorno de `err.message` no JSON de erro. |
 | **Acesso Não Autorizado** | Alto | O endpoint `/api/bootstrap` estava aberto se as variáveis de ambiente de token não fossem configuradas. | Implementado bloqueio padrão: se o token não estiver configurado no servidor, o acesso é negado. |
-| **Dados Sensíveis em Repouso (CWE-311)** | Médio | Segredos de webhooks (Telegram/Veopag) eram armazenados em texto plano no banco de dados. | Implementada criptografia AES-256-GCM antes da persistência na tabela `settings`. |
+| **Dados Sensíveis em Repouso (CWE-311)** | Médio | Segredos e tokens (Telegram/Veopag) eram armazenados em texto plano no banco de dados. | Implementada criptografia AES-256-GCM antes da persistência na tabela `settings`. |
+| **Falha de Runtime (Correção)** | Crítico | O bot não respondia porque tentava usar o token criptografado diretamente do banco. | Corrigida a função `loadStoreContext` para descriptografar o token e segredos em tempo de execução. |
 | **Vazamento de PII (CWE-532)** | Baixo | O sistema registrava os payloads brutos de webhooks do Telegram para diagnóstico, podendo conter dados privados de usuários. | Removido o armazenamento do payload bruto; agora apenas metadados (tipo e horário) são mantidos. |
 | **SSRF (Server-Side Request Forgery)** | Médio | A lista de bloqueio de domínios internos estava incompleta. | Expandida a lista de hostnames e sufixos bloqueados (ex: `instance-data`, `.test`, `.invalid`). |
 

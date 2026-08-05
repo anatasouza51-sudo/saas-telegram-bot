@@ -30,7 +30,7 @@ import { logActivity } from "@/lib/log"
 import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
-import { escapeHtml } from "@/lib/security"
+import { escapeHtml, isEncrypted, decrypt } from "@/lib/security"
 import { sanitizeDisplayName } from "@/lib/validation"
 import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
@@ -91,8 +91,16 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     .from(settings)
     .where(eq(settings.ownerId, storeId))
 
+  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "pix.config"]
+
   const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
+  for (const r of rows) {
+    let val = r.value ?? ""
+    if (SENSITIVE_KEYS.includes(r.key) && isEncrypted(val)) {
+      val = decrypt(val) ?? val
+    }
+    map[r.key] = val
+  }
 
   const token = map["telegram.botToken"]
   if (!token) return null
