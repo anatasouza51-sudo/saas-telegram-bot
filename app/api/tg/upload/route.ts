@@ -13,13 +13,7 @@ import sharp from "sharp"
 import { randomBytes } from "node:crypto"
 
 export const runtime = "nodejs"
-// Vercel serverless body size limit. Must match the MAX_BYTES below.
-export const config = {
-  bodyParser: {
-    sizeLimit: "50mb",
-  },
-  maxDuration: 60,
-}
+// maxDuration is configured in vercel.json for this route.
 // Telegram bot API allows up to 50MB for bot uploads.
 const MAX_BYTES = 50 * 1024 * 1024
 
