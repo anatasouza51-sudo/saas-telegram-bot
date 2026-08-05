@@ -1,9 +1,14 @@
 export function formatCurrency(value: number | string) {
   const n = typeof value === "string" ? Number.parseFloat(value) : value
+  if (!Number.isFinite(n)) return "R$ 0,00"
+  
+  // Garantimos o formato brasileiro: R$ 100,00 (com vírgula e 2 casas)
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(Number.isFinite(n) ? n : 0)
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)
 }
 
 export function formatNumber(value: number | string) {

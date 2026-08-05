@@ -399,7 +399,9 @@ async function buildCategoryScreen(
 
   const rows: InlineButton[][] = slice.map((p) => [
     {
-      text: `${p.name} — ${formatCurrency(Number(p.price))}`,
+      // SEGURANÇA VISUAL: Se o nome for muito longo, truncamos para evitar que o preço
+      // seja cortado nos botões do Telegram (limite sugerido de ~32-36 caracteres).
+      text: `${p.name.length > 28 ? p.name.slice(0, 25) + "..." : p.name} — ${formatCurrency(Number(p.price))}`,
       callback_data: `prod:${p.id}`,
     },
   ])
