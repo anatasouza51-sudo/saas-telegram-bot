@@ -1,4 +1,4 @@
-import { ProductsViewRefactored } from "@/components/products/products-view-refactored"
+import { ProductsView } from "@/components/products/products-view"
 import { listProductsAdvanced, getProductStats, listCategories } from "@/app/actions/products-refactored"
 import { listCoupons } from "@/app/actions/coupons"
 import { requireCapability } from "@/lib/session"
@@ -32,7 +32,7 @@ export default async function ProductsPage() {
           <TabsTrigger value="coupons">Cupons</TabsTrigger>
         </TabsList>
         <TabsContent value="products" className="mt-6">
-          <ProductsViewRefactored products={products} categories={categories} stats={stats as any} />
+          <ProductsView products={products} categories={categories} stats={stats as any} />
         </TabsContent>
         <TabsContent value="coupons" className="mt-6">
           <CouponsView initialCoupons={coupons} />

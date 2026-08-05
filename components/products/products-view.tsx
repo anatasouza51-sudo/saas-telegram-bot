@@ -84,7 +84,7 @@ const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
   { value: "manual-delivery", label: "Entrega manual" },
 ]
 
-export function ProductsViewRefactored({
+export function ProductsView({
   products,
   categories,
   stats,
