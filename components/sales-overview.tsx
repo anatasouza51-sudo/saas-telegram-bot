@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils"
 
 interface SalesMetric {
   label: string
-  value: number | string
+  value: string | number
   icon: React.ReactNode
   color: "pink" | "green" | "yellow" | "purple"
-  trend?: "up" | "down"
 }
 
 interface SalesOverviewProps {
@@ -18,30 +17,10 @@ interface SalesOverviewProps {
 }
 
 const colorClasses = {
-  pink: {
-    bg: "bg-pink-500/10",
-    border: "border-pink-500/20",
-    text: "text-pink-400",
-    dot: "bg-pink-500",
-  },
-  green: {
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    text: "text-emerald-400",
-    dot: "bg-emerald-500",
-  },
-  yellow: {
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    text: "text-amber-400",
-    dot: "bg-amber-500",
-  },
-  purple: {
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
-    text: "text-purple-400",
-    dot: "bg-purple-500",
-  },
+  pink: "from-pink-500/20 to-pink-500/5 border-pink-500/20 hover:border-pink-500/40",
+  green: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40",
+  yellow: "from-amber-500/20 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40",
+  purple: "from-purple-500/20 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40",
 }
 
 export const SalesOverview = memo(({
@@ -49,16 +28,14 @@ export const SalesOverview = memo(({
 }: SalesOverviewProps) => {
   return (
     <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01]">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
-              Visão Geral de Vendas
-            </CardTitle>
-            <CardDescription className="text-xs text-dashboard-text-muted mt-1">
-              Métricas principais do seu negócio
-            </CardDescription>
-          </div>
+      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
+        <div>
+          <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
+            Visão Geral de Vendas
+          </CardTitle>
+          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
+            Métricas principais do seu negócio
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -72,34 +49,29 @@ export const SalesOverview = memo(({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 className={cn(
-                  "p-4 hover:bg-white/[0.02] transition-colors group",
-                  colors.bg
+                  "p-5 hover:bg-gradient-to-br transition-all duration-300 group backdrop-blur-sm border-0",
+                  colors
                 )}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-widest">
                       {metric.label}
                     </span>
                     <div className={cn(
-                      "w-6 h-6 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
-                      colors.bg
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110",
+                      "bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md",
+                      "shadow-lg group-hover:shadow-xl"
                     )}>
-                      {metric.icon}
+                      <div className="text-dashboard-text-muted group-hover:text-dashboard-accent transition-colors">
+                        {metric.icon}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-end justify-between gap-2">
+                  <div>
                     <h3 className="text-2xl font-black text-dashboard-text tracking-tight tabular-nums">
                       {metric.value}
                     </h3>
-                    {metric.trend && (
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase",
-                        metric.trend === "up" ? "text-emerald-400" : "text-rose-400"
-                      )}>
-                        {metric.trend === "up" ? "↑" : "↓"}
-                      </span>
-                    )}
                   </div>
                 </div>
               </motion.div>
