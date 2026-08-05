@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { telegramMedia } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import type { TelegramMediaKind } from "@/lib/telegram"
+import { TelegramClient } from "@/lib/telegram"
 import { sanitizeFileName } from "@/lib/validation"
 import { logActivity } from "@/lib/log"
 import { encrypt } from "@/lib/crypto"
@@ -13,6 +14,12 @@ import sharp from "sharp"
 import { randomBytes } from "node:crypto"
 
 export const runtime = "nodejs"
+// Vercel serverless body size limit. Must match the MAX_BYTES below.
+export const config = {
+  bodyParser: {
+    sizeLimit: "50mb",
+  },
+}
 // Telegram bot API allows up to 50MB for bot uploads.
 const MAX_BYTES = 50 * 1024 * 1024
 
@@ -65,15 +72,17 @@ export async function POST(req: Request) {
   try {
     return await handleUpload(req)
   } catch (err: any) {
+    const msg = err?.message ?? "unknown"
+    const stack = err?.stack?.split("\n").slice(0, 3).join("\n")
     console.error("[upload] Unhandled error:", {
-      message: err?.message ?? "unknown",
-      stack: err?.stack?.split("\n").slice(0, 3).join("\n"),
+      message: msg,
+      stack,
       name: err?.constructor?.name,
     })
-    // Always return JSON so the client can parse it.
+    // Always return JSON so the client can parse it (prevents "Resposta inválida").
     return NextResponse.json(
-      { error: err?.message ?? "Erro inesperado no servidor" },
-      { status: 500 },
+      { error: "Erro interno no servidor. Verifique os logs para detalhes." },
+      { status: 500, headers: { "Content-Type": "application/json" } },
     )
   }
 }
@@ -103,8 +112,12 @@ async function handleUpload(req: Request) {
   let form: FormData
   try {
     form = await req.formData()
-  } catch {
-    return NextResponse.json({ error: "Requisição inválida" }, { status: 400 })
+  } catch (err) {
+    console.error("[upload] formData parsing failed:", err)
+    return NextResponse.json(
+      { error: "Falha ao processar o arquivo. Tente um arquivo menor ou recarregue a página." },
+      { status: 400 },
+    )
   }
   const file = form.get("file")
   const forceDocument = form.get("asDocument") === "true"
@@ -159,15 +172,38 @@ async function handleUpload(req: Request) {
   }
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
   console.log(`[upload] Uploading to Telegram CDN chat ${cdnChatId}...`)
-  const result = await client.uploadMedia(cdnChatId, kind, {
-    data: processedBuffer,
-    filename: secureName,
-    mimeType: finalMime,
-  })
-  console.log(`[upload] Telegram response: ok=${result.ok}, hasMedia=${!!result.media}`)
-  if (!result.ok || !result.media) {
+  let result: { ok: boolean; description?: string; media?: any }
+  try {
+    result = await client.uploadMedia(cdnChatId, kind, {
+      data: processedBuffer,
+      filename: secureName,
+      mimeType: finalMime,
+    })
+  } catch (err) {
+    console.error("[upload] uploadMedia threw:", err)
     return NextResponse.json(
-      { error: result.description ?? "Falha ao enviar para o Telegram" },
+      {
+        error: "Falha ao conectar com o Telegram. Verifique se o token do bot e o Chat ID estão corretos.",
+      },
+      { status: 502 },
+    )
+  }
+  console.log(`[upload] Telegram response: ok=${result.ok}, hasMedia=${!!result.media}, description=${result.description ?? "(none)"}`)
+  if (!result.ok || !result.media) {
+    const desc = result.description ?? "Falha ao enviar para o Telegram"
+    // Give a clearer message for common Telegram errors.
+    let friendlyError = desc
+    if (desc.includes("chat not found") || desc.includes("Bad Request: chat not found")) {
+      friendlyError = "Chat ID não encontrado. Verifique se o bot foi adicionado ao grupo/canal de armazenamento e o Chat ID está correto."
+    } else if (desc.includes("Forbidden")) {
+      friendlyError = "Bot sem permissão para enviar no grupo. Adicione o bot como admin ou participante do grupo."
+    } else if (desc.includes("too large") || desc.includes("exceeds")) {
+      friendlyError = "Arquivo muito grande para o Telegram."
+    } else if (desc.includes("network")) {
+      friendlyError = "Timeout ao enviar para o Telegram — tente novamente."
+    }
+    return NextResponse.json(
+      { error: friendlyError },
       { status: 502 },
     )
   }
