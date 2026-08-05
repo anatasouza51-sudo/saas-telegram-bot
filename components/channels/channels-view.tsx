@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -40,7 +39,17 @@ import {
   AlertTriangle,
   Radio,
   Trash2,
+  AlertCircle,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 export type ChannelRow = {
   id: number
@@ -236,10 +245,16 @@ export function ChannelsView({
     })
   }
 
-  function handleRemove(id: number, title: string) {
-    if (!confirm(`Remover "${title}" da lista?\n\nO bot continuará no grupo/canal, mas ele não será mais gerenciado pelo painel.`)) {
-      return
-    }
+  const [removeDialog, setRemoveDialog] = useState<{ id: number; title: string } | null>(null)
+
+  function handleRemoveClick(id: number, title: string) {
+    setRemoveDialog({ id, title })
+  }
+
+  function handleRemoveConfirm() {
+    if (!removeDialog) return
+    const { id, title } = removeDialog
+    setRemoveDialog(null)
     startTransition(async () => {
       try {
         const res = await removeChat(id)
@@ -436,7 +451,7 @@ export function ChannelsView({
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleRemove(c.id, c.title)
+                        handleRemoveClick(c.id, c.title)
                       }}
                       disabled={pending}
                     >
@@ -478,5 +493,32 @@ export function ChannelsView({
         </div>
       )}
     </div>
+
+    <Dialog open={!!removeDialog} onOpenChange={(open) => !open && setRemoveDialog(null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <DialogTitle>Remover "{removeDialog?.title}"?</DialogTitle>
+              <DialogDescription>
+                O bot continuará no grupo/canal, mas ele não será mais gerenciado pelo painel.
+                Você poderá adicioná-lo novamente a qualquer momento.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRemoveDialog(null)}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" onClick={handleRemoveConfirm} disabled={pending}>
+            Remover
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
