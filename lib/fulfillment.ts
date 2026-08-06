@@ -5,6 +5,7 @@ import {
   customers,
   stockItems,
   deliveries,
+  balanceTransactions,
 } from "@/lib/db/schema"
 import { and, eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
@@ -48,7 +49,9 @@ export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
 
   // Side effects run after COMMIT: a failure here must never be reported as a
   // failed fulfillment, otherwise the caller retries an already-delivered order.
-  const notify = await deliverToCustomer(order, content)
+  const notify = order.type === "recharge" 
+    ? await notifyRecharge(order)
+    : await deliverToCustomer(order, content)
   if (!notify.ok) {
     console.error(
       `[fulfillment] order ${orderId} delivered but customer notification failed:`,
@@ -122,8 +125,50 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
       }
     }
 
+    // If it's a balance recharge, we don't claim stock items.
+    if (order.type === "recharge") {
+      if (order.customerId) {
+        // Get current balance
+        const customerRes = await client.query(
+          `SELECT balance FROM customers WHERE id = $1 FOR UPDATE`,
+          [order.customerId],
+        )
+        const customer = customerRes.rows[0]
+        const previousBalance = Number(customer.balance)
+        const amount = Number(order.amount)
+        const newBalance = previousBalance + amount
+
+        // Update balance
+        await client.query(
+          `UPDATE customers
+           SET balance = $1, "totalSpent" = "totalSpent" + $2, "updatedAt" = now()
+           WHERE id = $3`,
+          [newBalance.toString(), amount.toString(), order.customerId],
+        )
+
+        // Record transaction
+        await client.query(
+          `INSERT INTO balance_transactions ("ownerId", "customerId", type, amount, "previousBalance", "newBalance", "orderId", description)
+           VALUES ($1, $2, 'deposit', $3, $4, $5, $6, 'Recarga de saldo')`,
+          [order.ownerId, order.customerId, amount.toString(), previousBalance.toString(), newBalance.toString(), orderId],
+        )
+      }
+
+      // Mark order approved + delivered (recharge is "delivered" once balance is added)
+      await client.query(
+        `UPDATE orders
+         SET "paymentStatus" = 'approved', "deliveryStatus" = 'delivered', "updatedAt" = now()
+         WHERE id = $1`,
+        [orderId],
+      )
+
+      await client.query("COMMIT")
+      committed = true
+      return { ok: true, order, content: "RECHARGE", stockItemId: 0 }
+    }
+
+    // --- Standard Product Flow ---
     // Claim one available stock item without racing other transactions.
-    // Scoped to the order's store so items never cross tenants.
     const stockRes = await client.query(
       `SELECT id, content FROM stock_items
        WHERE "productId" = $1 AND "ownerId" = $2 AND status = 'available'
@@ -138,7 +183,6 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
       return { ok: false, reason: "Sem estoque disponível", code: "no_stock" }
     }
 
-    // Mark item sold, bind it to this order.
     await client.query(
       `UPDATE stock_items
        SET status = 'sold', "orderId" = $1, "soldAt" = now()
@@ -146,7 +190,6 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
       [orderId, item.id],
     )
 
-    // Mark order approved + delivered.
     await client.query(
       `UPDATE orders
        SET "paymentStatus" = 'approved', "deliveryStatus" = 'delivered', "updatedAt" = now()
@@ -154,14 +197,12 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
       [orderId],
     )
 
-    // Record the delivery.
     await client.query(
       `INSERT INTO deliveries ("ownerId", "orderId", "productId", "customerId", "stockItemId", "deliveredContent", status)
        VALUES ($1, $2, $3, $4, $5, $6, 'delivered')`,
       [order.ownerId, orderId, order.productId, order.customerId, item.id, item.content],
     )
 
-    // Update customer aggregates.
     if (order.customerId) {
       await client.query(
         `UPDATE customers
@@ -224,6 +265,49 @@ async function deliverToCustomer(
       error: err instanceof Error ? err.message : "Erro ao notificar o cliente",
     }
   }
+}
+
+async function notifyRecharge(
+  order: DeliverableOrder & { amount: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!order.customerId) return { ok: false, error: "Pedido sem cliente vinculado" }
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, order.customerId))
+  if (!customer?.telegramId) {
+    return { ok: false, error: "Cliente sem Telegram vinculado" }
+  }
+
+  const [setting] = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(
+      and(
+        eq(settings.ownerId, order.ownerId),
+        eq(settings.key, "telegram.botToken"),
+      ),
+    )
+  if (!setting?.value) return { ok: false, error: "Token do bot não configurado" }
+
+  const client = new TelegramClient(setting.value)
+  const amount = formatCurrency(Number(order.amount))
+  const newBalance = formatCurrency(Number(customer.balance))
+
+  const message = [
+    `<b>💰 Saldo Adicionado!</b>`,
+    ``,
+    `Sua recarga de <b>${amount}</b> foi aprovada com sucesso.`,
+    `Seu novo saldo é: <b>${newBalance}</b>`,
+    ``,
+    `Você já pode usar este saldo para realizar compras no bot!`,
+  ].join("\n")
+
+  const sent = await client.sendMessage(customer.telegramId, message)
+  if (!sent.ok) {
+    return { ok: false, error: sent.description ?? "Falha ao enviar no Telegram" }
+  }
+  return { ok: true }
 }
 
 async function sendDeliveryMessage(
