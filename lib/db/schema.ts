@@ -152,6 +152,7 @@ export const customers = pgTable(
     status: text("status").notNull().default("active"),
     // Coupon code the customer has applied but not yet used.
     activeCoupon: text("activeCoupon"),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
   },
   (t) => ({

@@ -323,6 +323,7 @@ export async function ensureDbStructure() {
         "balance" NUMERIC(12,2) NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'active',
         "activeCoupon" TEXT,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
         "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `)
@@ -340,6 +341,7 @@ export async function ensureDbStructure() {
         "couponCode" TEXT,
         "paymentStatus" TEXT NOT NULL DEFAULT 'pending',
         "deliveryStatus" TEXT NOT NULL DEFAULT 'pending',
+        type TEXT NOT NULL DEFAULT 'product',
         gateway TEXT NOT NULL DEFAULT 'veopag',
         "paymentId" TEXT,
         "pixCode" TEXT,
@@ -529,6 +531,8 @@ export async function ensureDbStructure() {
     // Colunas extras
     await addColumnIfMissing(client2, "customers", "activeCoupon", "TEXT")
     await addColumnIfMissing(client2, "customers", "balance", "NUMERIC(12,2) NOT NULL DEFAULT 0")
+    await addColumnIfMissing(client2, "customers", "updatedAt", "TIMESTAMP NOT NULL DEFAULT NOW()")
+    await addColumnIfMissing(client2, "orders", "type", "TEXT NOT NULL DEFAULT 'product'")
     await addColumnIfMissing(client2, "orders", "originalAmount", "NUMERIC(12,2)")
     await addColumnIfMissing(client2, "orders", "couponCode", "TEXT")
 
