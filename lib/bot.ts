@@ -316,7 +316,7 @@ async function buildHomeScreen(
     rows.push([{ text: ctx.support.label, callback_data: "support" }])
   }
 
-  rows.push([{ text: "👤 Meu Perfil / Saldo", callback_data: "profile" }])
+  rows.push([{ text: "💳 Adicionar saldo", callback_data: "profile" }])
 
   const text =
     entries.length === 0

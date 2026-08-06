@@ -7,10 +7,11 @@ import {
   deliveries,
   balanceTransactions,
 } from "@/lib/db/schema"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
 import { settings, telegramChats } from "@/lib/db/schema"
+import { getSettings } from "@/lib/settings"
 import { escapeHtml } from "@/lib/security"
 import { parsePixConfig } from "@/lib/pix"
 import { formatCurrency } from "@/lib/format"
@@ -141,9 +142,9 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
         // Update balance
         await client.query(
           `UPDATE customers
-           SET balance = $1, "totalSpent" = "totalSpent" + $2, "updatedAt" = now()
-           WHERE id = $3`,
-          [newBalance.toString(), amount.toString(), order.customerId],
+           SET balance = $1, "updatedAt" = now()
+           WHERE id = $2`,
+          [newBalance.toString(), order.customerId],
         )
 
         // Record transaction
@@ -247,6 +248,8 @@ type DeliverableOrder = {
   ownerId: string
   customerId: string | null
   productName: string | null
+  amount: string
+  type: string
   pixChatId?: string | null
   pixMessageId?: number | null
 }
@@ -279,18 +282,11 @@ async function notifyRecharge(
     return { ok: false, error: "Cliente sem Telegram vinculado" }
   }
 
-  const [setting] = await db
-    .select({ value: settings.value })
-    .from(settings)
-    .where(
-      and(
-        eq(settings.ownerId, order.ownerId),
-        eq(settings.key, "telegram.botToken"),
-      ),
-    )
-  if (!setting?.value) return { ok: false, error: "Token do bot não configurado" }
+  const config = await getSettings(order.ownerId, ["telegram.botToken"])
+  const token = config["telegram.botToken"]
+  if (!token) return { ok: false, error: "Token do bot não configurado" }
 
-  const client = new TelegramClient(setting.value)
+  const client = new TelegramClient(token)
   const amount = formatCurrency(Number(order.amount))
   const newBalance = formatCurrency(Number(customer.balance))
 
@@ -324,20 +320,10 @@ async function sendDeliveryMessage(
   }
 
   // Load this store's bot token + PIX config (for the approved message text).
-  const rows = await db
-    .select({ key: settings.key, value: settings.value })
-    .from(settings)
-    .where(
-      and(
-        eq(settings.ownerId, order.ownerId),
-        inArray(settings.key, ["telegram.botToken", "pix.config"]),
-      ),
-    )
-  const map: Record<string, string> = {}
-  for (const r of rows) map[r.key] = r.value ?? ""
-  const token = map["telegram.botToken"]
+  const config = await getSettings(order.ownerId, ["telegram.botToken", "pix.config"])
+  const token = config["telegram.botToken"]
   if (!token) return { ok: false, error: "Token do bot não configurado" }
-  const pix = parsePixConfig(map["pix.config"])
+  const pix = parsePixConfig(config["pix.config"])
 
   const client = new TelegramClient(token)
 
