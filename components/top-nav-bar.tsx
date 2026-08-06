@@ -85,7 +85,7 @@ export const TopNavBar = memo(({
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5"
+            className="lg:hidden text-dashboard-text-muted hover:text-dashboard-text hover:bg-black/5 dark:hover:bg-white/5"
             onClick={toggleMobileMenu}
             aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={mobileMenuOpen}
@@ -114,7 +114,7 @@ export const TopNavBar = memo(({
           <Button
             variant="ghost"
             size="icon"
-            className="text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5"
+            className="text-dashboard-text-muted hover:text-dashboard-text hover:bg-black/5 dark:hover:bg-white/5"
             onClick={() => setProfileDialogOpen(true)}
             aria-label="Configurações de perfil"
           >

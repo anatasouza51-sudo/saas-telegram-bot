@@ -37,7 +37,7 @@ export function Sidebar() {
       {/* Botão de Menu para Celular (Aciona com os três pontinhos/hambúrguer) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-50 md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-[#0b0e14] border border-zinc-800 text-zinc-200 shadow-lg"
+        className="fixed top-4 right-4 z-50 md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-dashboard-surface border border-dashboard-border text-dashboard-text shadow-lg"
         aria-label="Abrir Menu"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -59,7 +59,7 @@ export function Sidebar() {
         ${isOpen ? "translate-x-0" : "translate-x-full"}
       `}>
         {/* Container em formato de cápsula com borda contornando tudo */}
-        <div className="flex flex-col items-center justify-between w-20 h-full bg-[#07090e] border border-zinc-800/80 rounded-2xl py-4 shadow-2xl mx-3 my-auto">
+        <div className="flex flex-col items-center justify-between w-20 h-full bg-dashboard-sidebar border border-dashboard-border rounded-2xl py-4 shadow-2xl mx-3 my-auto">
           
           {/* Topo: Sua Logo */}
           <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20">
@@ -80,8 +80,8 @@ export function Sidebar() {
                   onClick={() => setIsOpen(false)}
                   className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 group relative ${
                     isActive
-                      ? "bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                      ? "bg-dashboard-accent text-white shadow-md shadow-dashboard-accent/30"
+                      : "text-dashboard-text-muted hover:text-dashboard-text hover:bg-dashboard-surface-elevated"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -91,7 +91,7 @@ export function Sidebar() {
           </nav>
 
           {/* Rodapé: Perfil e Sair */}
-          <div className="flex flex-col items-center gap-3 w-full px-2 pt-2 border-t border-zinc-800/60">
+          <div className="flex flex-col items-center gap-3 w-full px-2 pt-2 border-t border-dashboard-border">
             <div 
               title="Perfil"
               className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center text-white font-semibold justify-center text-sm shadow-inner cursor-pointer"
