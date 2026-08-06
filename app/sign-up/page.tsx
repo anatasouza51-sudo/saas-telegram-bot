@@ -11,7 +11,7 @@ export default async function SignUpPage() {
   if (current) redirect("/")
 
   return (
-    <main className="min-h-screen w-full text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+    <main className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Ghost Background Animation */}
       <GhostBg />
 
