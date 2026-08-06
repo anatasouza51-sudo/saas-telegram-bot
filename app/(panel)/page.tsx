@@ -1,14 +1,15 @@
 "use client"
 
 import { useEffect, useState, useCallback, memo } from "react"
-import { 
-  AlertCircle, 
-  RefreshCcw, 
+import {
+  AlertCircle,
+  RefreshCcw,
   ArrowRight,
   ShoppingCart,
   Users,
   TrendingUp,
   Package,
+  LayoutDashboard,
 } from "lucide-react"
 import { MetricCard } from "@/components/metric-card"
 import { SalesChart } from "@/components/sales-chart"
@@ -18,12 +19,11 @@ import { SalesOverview } from "@/components/sales-overview"
 import { TopProductsSection } from "@/components/top-products-section"
 import { PaymentMetrics } from "@/components/payment-metrics"
 import { TopCustomers } from "@/components/top-customers"
-import { 
-  PaymentStatusBadge, 
-  DeliveryStatusBadge 
+import {
+  PaymentStatusBadge,
+  DeliveryStatusBadge,
 } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -115,7 +115,7 @@ export default function DashboardPage() {
   ]
 
   // Filtrar clientes reais dos pedidos recentes
-  const topCustomersFromOrders = recentOrders && recentOrders.length > 0 
+  const topCustomersFromOrders = recentOrders && recentOrders.length > 0
     ? Array.from(
         new Map(
           recentOrders
@@ -135,12 +135,12 @@ export default function DashboardPage() {
     : []
 
   return (
-    <div className="space-y-8 pb-12 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       {/* Botão de Sincronização Discreto */}
-      <div className="flex justify-end mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={fetchData}
           disabled={loading}
           className={cn(
@@ -154,34 +154,31 @@ export default function DashboardPage() {
       </div>
 
       {/* Sales Overview - Métricas principais */}
-      <SalesOverview 
-        metrics={salesMetrics}
-      />
+      <SalesOverview metrics={salesMetrics} />
 
       {/* Gráfico de Receita + Breakdown de Pagamentos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de Receita */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
           <SalesChart data={salesData} />
         </div>
-
-        {/* Breakdown de Pagamentos */}
-        <PaymentBreakdown
-          approved={stats?.approvedPayments || 0}
-          pending={stats?.pendingPayments || 0}
-          refused={stats?.refusedPayments || 0}
-        />
+        <div className="lg:col-span-2">
+          <PaymentBreakdown
+            approved={stats?.approvedPayments || 0}
+            pending={stats?.pendingPayments || 0}
+            refused={stats?.refusedPayments || 0}
+          />
+        </div>
       </div>
 
       {/* Payment Metrics - Taxa de conversão e status */}
-      <PaymentMetrics 
+      <PaymentMetrics
         metrics={paymentMetrics}
         title="Métricas de Pagamento"
         subtitle="Taxa de conversão e status dos pagamentos"
       />
 
       {/* Top Customers - Principais clientes (vindo dos dados reais) */}
-      <TopCustomers 
+      <TopCustomers
         customers={topCustomersFromOrders}
         title="Principais Clientes"
       />
@@ -193,25 +190,35 @@ export default function DashboardPage() {
       />
 
       {/* Pedidos Recentes */}
-      <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-dashboard-border/50 bg-white/[0.01] py-4">
-          <div>
-            <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">Pedidos Recentes</CardTitle>
-            <CardDescription className="text-xs text-dashboard-text-muted mt-1">Histórico real de vendas via Telegram</CardDescription>
+      <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface transition-all duration-300 hover:border-dashboard-border-active">
+        {/* Ambient glow */}
+        <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-gradient-to-br from-pink-500/[0.04] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+        {/* Header */}
+        <div className="relative flex items-center justify-between p-5 border-b border-dashboard-border/50">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+              <ShoppingCart className="w-4 h-4 text-pink-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">Pedidos Recentes</h3>
+              <p className="text-xs text-dashboard-text-muted">Histórico real de vendas via Telegram</p>
+            </div>
           </div>
           <Button variant="ghost" size="sm" className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold">
             Ver todos
             <ArrowRight className="w-3 h-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="p-0">
+        </div>
+
+        <div className="relative p-0">
           {!recentOrders || recentOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                <ShoppingCart className="w-8 h-8 text-dashboard-text-muted/30" />
+              <div className="w-14 h-14 rounded-2xl bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center mb-4">
+                <ShoppingCart className="w-7 h-7 text-dashboard-text-muted/30" />
               </div>
-              <h3 className="text-dashboard-text font-bold">Nenhum pedido ainda</h3>
-              <p className="text-dashboard-text-muted text-xs mt-1">As vendas aparecerão aqui assim que começarem a chegar.</p>
+              <h3 className="text-sm font-bold text-dashboard-text">Nenhum pedido ainda</h3>
+              <p className="text-xs text-dashboard-text-muted mt-1">As vendas aparecerão aqui assim que começarem a chegar.</p>
             </div>
           ) : (
             <>
@@ -219,20 +226,20 @@ export default function DashboardPage() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-widest bg-white/[0.02]">
-                      <th className="px-6 py-4">Cliente</th>
-                      <th className="px-6 py-4">Produto</th>
-                      <th className="px-6 py-4 text-center">Valor</th>
-                      <th className="px-6 py-4 text-center">Status</th>
-                      <th className="px-6 py-4 text-right">Data</th>
+                    <tr className="text-[10px] font-bold text-dashboard-text-muted uppercase tracking-widest bg-white/[0.015]">
+                      <th className="px-6 py-3.5">Cliente</th>
+                      <th className="px-6 py-3.5">Produto</th>
+                      <th className="px-6 py-3.5 text-center">Valor</th>
+                      <th className="px-6 py-3.5 text-center">Status</th>
+                      <th className="px-6 py-3.5 text-right">Data</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-dashboard-border/30">
+                  <tbody className="divide-y divide-dashboard-border/20">
                     {recentOrders.map((order) => (
-                      <tr key={order.id} className="group hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-4">
+                      <tr key={order.id} className="group/row hover:bg-white/[0.02] transition-colors">
+                        <td className="px-6 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center text-[10px] font-black text-dashboard-text-muted group-hover:text-dashboard-accent transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-dashboard-border flex items-center justify-center text-[10px] font-black text-dashboard-text-muted group-hover/row:text-dashboard-accent transition-colors">
                               {(order.customerName || order.customerUsername || "?").charAt(0).toUpperCase()}
                             </div>
                             <span className="text-xs font-bold text-dashboard-text truncate max-w-[120px]">
@@ -240,21 +247,21 @@ export default function DashboardPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3.5">
                           <span className="text-xs text-dashboard-text-muted truncate max-w-[150px] block">{order.productName || "—"}</span>
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-6 py-3.5 text-center">
                           <span className="text-xs font-black text-dashboard-text tabular-nums">
                             {formatCurrency(order.amount || 0)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-6 py-3.5 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <PaymentStatusBadge status={order.paymentStatus} />
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-[10px] font-bold text-dashboard-text-muted uppercase">
+                        <td className="px-6 py-3.5 text-right">
+                          <span className="text-[10px] font-semibold text-dashboard-text-muted uppercase">
                             {formatDateTime(order.createdAt)}
                           </span>
                         </td>
@@ -265,19 +272,19 @@ export default function DashboardPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="md:hidden divide-y divide-dashboard-border/30">
+              <div className="md:hidden divide-y divide-dashboard-border/20">
                 {recentOrders.map((order) => (
                   <div key={order.id} className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center text-[10px] font-black text-dashboard-text-muted">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-dashboard-border flex items-center justify-center text-[10px] font-black text-dashboard-text-muted">
                           {(order.customerName || order.customerUsername || "?").charAt(0).toUpperCase()}
                         </div>
                         <span className="text-xs font-bold text-dashboard-text">
                           {order.customerName || (order.customerUsername ? `@${order.customerUsername}` : "—")}
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold text-dashboard-text-muted uppercase">
+                      <span className="text-[10px] font-semibold text-dashboard-text-muted uppercase">
                         {formatDateTime(order.createdAt)}
                       </span>
                     </div>
@@ -299,33 +306,76 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 pb-12 pt-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48 bg-dashboard-surface" />
-          <Skeleton className="h-4 w-64 bg-dashboard-surface" />
+    <div className="space-y-6 pb-12 pt-6">
+      {/* Title skeleton */}
+      <div className="flex justify-end">
+        <Skeleton className="h-8 w-28 bg-dashboard-surface" />
+      </div>
+
+      {/* Metrics grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="p-5 rounded-2xl border border-dashboard-border bg-dashboard-surface">
+            <div className="flex items-center justify-between mb-4">
+              <Skeleton className="h-3 w-16 bg-dashboard-surface-elevated" />
+              <Skeleton className="h-9 w-9 rounded-xl bg-dashboard-surface-elevated" />
+            </div>
+            <Skeleton className="h-7 w-24 bg-dashboard-surface-elevated" />
+          </div>
+        ))}
+      </div>
+
+      {/* Chart + Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3 p-5 rounded-2xl border border-dashboard-border bg-dashboard-surface h-[340px]">
+          <Skeleton className="h-6 w-40 bg-dashboard-surface-elevated mb-6" />
+          <Skeleton className="h-52 w-full bg-dashboard-surface-elevated rounded-xl" />
         </div>
-        <Skeleton className="h-9 w-32 bg-dashboard-surface" />
+        <div className="lg:col-span-2 p-5 rounded-2xl border border-dashboard-border bg-dashboard-surface h-[340px]">
+          <Skeleton className="h-6 w-36 bg-dashboard-surface-elevated mb-6" />
+          <Skeleton className="h-28 w-28 rounded-full bg-dashboard-surface-elevated mx-auto" />
+        </div>
       </div>
-      <Skeleton className="h-40 rounded-2xl bg-dashboard-surface" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Skeleton className="lg:col-span-2 h-[380px] rounded-2xl bg-dashboard-surface" />
-        <Skeleton className="h-[380px] rounded-2xl bg-dashboard-surface" />
+
+      {/* Metrics circles */}
+      <div className="p-5 rounded-2xl border border-dashboard-border bg-dashboard-surface">
+        <Skeleton className="h-6 w-48 bg-dashboard-surface-elevated mb-6" />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-3 p-4">
+              <Skeleton className="w-[88px] h-[88px] rounded-full bg-dashboard-surface-elevated" />
+              <Skeleton className="h-3 w-20 bg-dashboard-surface-elevated" />
+            </div>
+          ))}
+        </div>
       </div>
-      <Skeleton className="h-96 rounded-2xl bg-dashboard-surface" />
+
+      {/* Orders table */}
+      <div className="p-5 rounded-2xl border border-dashboard-border bg-dashboard-surface">
+        <Skeleton className="h-6 w-40 bg-dashboard-surface-elevated mb-6" />
+        <div className="space-y-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-lg bg-dashboard-surface-elevated" />
+              <Skeleton className="h-3 w-24 bg-dashboard-surface-elevated" />
+              <Skeleton className="h-3 w-16 bg-dashboard-surface-elevated ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
-function DashboardError({ error, retry }: { error: string, retry: () => void }) {
+function DashboardError({ error, retry }: { error: string; retry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
       <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center mb-6 border border-rose-500/20">
@@ -333,7 +383,7 @@ function DashboardError({ error, retry }: { error: string, retry: () => void }) 
       </div>
       <h2 className="text-xl font-black text-dashboard-text tracking-tight">Ops! Algo deu errado</h2>
       <p className="text-dashboard-text-muted text-sm mt-2 max-w-md">{error}</p>
-      <Button 
+      <Button
         onClick={retry}
         className="mt-8 bg-dashboard-accent hover:bg-dashboard-accent/90 text-white font-bold px-8"
       >
