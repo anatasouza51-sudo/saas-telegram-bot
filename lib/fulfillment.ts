@@ -128,16 +128,43 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
 
     // If it's a balance recharge, we don't claim stock items.
     if (order.type === "recharge") {
-      if (order.customerId) {
-        // Get current balance
-        const customerRes = await client.query(
-          `SELECT balance FROM customers WHERE id = $1 FOR UPDATE`,
-          [order.customerId],
-        )
-        const customer = customerRes.rows[0]
-        const previousBalance = Number(customer.balance)
-        const amount = Number(order.amount)
-        const newBalance = previousBalance + amount
+      // A recharge is only complete when there is a real customer to credit.
+      // Never mark the order delivered if the balance cannot be updated.
+      if (!order.customerId) {
+        await client.query("ROLLBACK")
+        return {
+          ok: false,
+          reason: "Recarga sem cliente vinculado; saldo não foi creditado",
+          code: "error",
+        }
+      }
+
+      // Lock the customer row so concurrent/replayed approvals serialize.
+      const customerRes = await client.query(
+        `SELECT balance FROM customers WHERE id = $1 FOR UPDATE`,
+        [order.customerId],
+      )
+      const customer = customerRes.rows[0]
+      if (!customer) {
+        await client.query("ROLLBACK")
+        return {
+          ok: false,
+          reason: "Cliente da recarga não encontrado; saldo não foi creditado",
+          code: "error",
+        }
+      }
+
+      const previousBalance = Number(customer.balance)
+      const amount = Number(order.amount)
+      if (!Number.isFinite(amount) || amount <= 0) {
+        await client.query("ROLLBACK")
+        return {
+          ok: false,
+          reason: "Valor inválido na recarga; saldo não foi creditado",
+          code: "error",
+        }
+      }
+      const newBalance = previousBalance + amount
 
         // Update balance
         await client.query(
@@ -153,7 +180,6 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
            VALUES ($1, $2, 'deposit', $3, $4, $5, $6, 'Recarga de saldo')`,
           [order.ownerId, order.customerId, amount.toString(), previousBalance.toString(), newBalance.toString(), orderId],
         )
-      }
 
       // Mark order approved + delivered (recharge is "delivered" once balance is added)
       await client.query(
