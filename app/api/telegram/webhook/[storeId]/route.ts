@@ -5,6 +5,7 @@ import { recordWebhookEvent } from "@/lib/tg/discovery"
 import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom, hashIp } from "@/lib/security"
+import { validateTelegramWebhook } from "@/lib/cloudflare"
 import { processSchedules } from "@/lib/tg/scheduler"
 import { expireDuePixOrders } from "@/lib/bot"
 import { ensureDbStructure } from "@/lib/db/migrate"
@@ -24,6 +25,11 @@ ensureDbStructure().catch((err) => {
  * `X-Telegram-Bot-Api-Secret-Token` header on every request. We compare it in
  * constant time against the store's stored secret, so forged updates from
  * anyone who merely knows the (non-secret) storeId are rejected and logged.
+ *
+ * Cloudflare integration:
+ * - IP validation against Telegram's published server ranges.
+ * - CF-Connecting-IP used as the canonical source of the client IP.
+ * - If behind Cloudflare, `cf-connecting-ip` header carries the real Telegram IP.
  */
 export async function POST(
   req: Request,
@@ -32,6 +38,21 @@ export async function POST(
   const startedAt = Date.now()
   const { storeId } = await params
   const ip = clientIpFrom(req)
+
+  // Cloudflare + Telegram IP validation
+  // In production, reject requests that don't come from Telegram servers.
+  if (process.env.NODE_ENV === "production") {
+    const validation = validateTelegramWebhook(req)
+    if (!validation.ok) {
+      await logActivity({
+        storeId,
+        action: "Webhook Telegram rejeitado: IP não pertence ao Telegram",
+        category: "security",
+        details: `ip=${ip} reason=${validation.error}`,
+      })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+  }
 
   const limit = await rateLimit(`telegram:${storeId}:${hashIp(ip)}`, {
     max: 120,
