@@ -97,20 +97,25 @@ export async function saveTelegramSettings(input: {
 }
 
 export async function saveGatewaySettings(input: {
+  provider: string
   publicKey: string
   secretKey?: string
 }) {
   const user = await requireCapability("gateway.manage")
-  await saveSetting(user.storeId, "veopag.publicKey", validateGatewayKey(input.publicKey, "Chave pública"))
+  const provider = input.provider.toLowerCase()
+  
+  await saveSetting(user.storeId, `${provider}.publicKey`, validateGatewayKey(input.publicKey, "Chave pública"))
+  
   // Keep the stored secret when the field is left blank (never round-tripped
   // to the client).
   const secret = input.secretKey ? validateGatewayKey(input.secretKey, "Chave secreta") : undefined
   if (secret) {
-    await saveSetting(user.storeId, "veopag.secretKey", secret)
+    await saveSetting(user.storeId, `${provider}.secretKey`, secret)
   }
+  
   await logActivity({
     storeId: user.storeId,
-    action: "Configurações do gateway VeoPag atualizadas",
+    action: `Configurações do gateway ${input.provider} atualizadas`,
     category: "settings",
     actor: user,
   })

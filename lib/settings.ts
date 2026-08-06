@@ -10,7 +10,11 @@ import { encrypt, decrypt, isEncrypted } from "./crypto"
 const SENSITIVE_KEYS = [
   "telegram.botToken",
   "veopag.secretKey",
-  "pix.config" // O PIX config pode conter dados sensíveis dependendo da implementação
+  "gateway2.secretKey",
+  "gateway3.secretKey",
+  "gateway4.secretKey",
+  "gateway5.secretKey",
+  "pix.config"
 ]
 
 /**
