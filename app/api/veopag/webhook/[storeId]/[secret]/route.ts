@@ -65,10 +65,19 @@ export async function POST(
   const rawStatus = String(payload.status ?? payload.payment_status ?? "")
   const status = mapPaymentStatus(rawStatus)
 
-  const orderId = String(externalId)
-  if (!orderId) {
+  // String(undefined) becomes the truthy value "undefined". Validate the
+  // original field before converting so malformed webhooks cannot query or
+  // mutate a fake order id.
+  if (typeof externalId !== "string" || externalId.trim() === "") {
+    await logActivity({
+      storeId,
+      action: "Webhook VeoPag rejeitado: external_id ausente",
+      category: "security",
+      details: `ip=${ip}`,
+    })
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
+  const orderId = externalId.trim()
 
   // Scope the order to this store so webhooks can't touch other tenants.
   const [order] = await db
@@ -79,9 +88,18 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  // Idempotency: if this paymentId was already processed, return early.
-  // Telegram/VeoPag may replay webhooks; we must not double-deliver.
-  if (order.paymentId && order.paymentId === paymentId && order.paymentStatus === status) {
+  // Delivered/approved are terminal states for this order. Never let a late,
+  // duplicated, or contradictory webhook downgrade them.
+  if (order.deliveryStatus === "delivered" ||
+      (order.paymentStatus === "approved" && status !== "approved")) {
+    return NextResponse.json({ received: true, idempotent: true })
+  }
+
+  // Idempotency: non-approved replays can return immediately. For an
+  // approved replay, continue into fulfillOrder when delivery is still pending;
+  // this lets a later webhook retry recover from a transient DB failure after
+  // the order status was already persisted as approved.
+  if (order.paymentId && order.paymentId === paymentId && order.paymentStatus === status && status !== "approved") {
     return NextResponse.json({ received: true, idempotent: true })
   }
 

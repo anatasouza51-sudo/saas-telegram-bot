@@ -10,10 +10,16 @@ import { revalidatePath } from "next/cache"
 
 async function requireOwnedOrder(orderId: string, storeId: string) {
   const [order] = await db
-    .select({ id: orders.id })
+    .select({
+      id: orders.id,
+      type: orders.type,
+      paymentStatus: orders.paymentStatus,
+      deliveryStatus: orders.deliveryStatus,
+    })
     .from(orders)
     .where(and(eq(orders.id, orderId), eq(orders.ownerId, storeId)))
   if (!order) throw new Error("Pedido não encontrado")
+  return order
 }
 
 /**
@@ -22,7 +28,13 @@ async function requireOwnedOrder(orderId: string, storeId: string) {
  */
 export async function approveAndDeliver(orderId: string) {
   const user = await requireCapability("orders.manage")
-  await requireOwnedOrder(orderId, user.storeId)
+  const order = await requireOwnedOrder(orderId, user.storeId)
+  if (order.type === "recharge") {
+    throw new Error("Recargas só podem ser creditadas após confirmação da VeoPag")
+  }
+  if (order.deliveryStatus === "delivered") {
+    throw new Error("Pedido já entregue")
+  }
   const result = await fulfillOrder(orderId)
   if (!result.ok) {
     throw new Error(result.reason)
@@ -41,7 +53,10 @@ export async function approveAndDeliver(orderId: string) {
 
 export async function refuseOrder(orderId: string) {
   const user = await requireCapability("orders.manage")
-  await requireOwnedOrder(orderId, user.storeId)
+  const order = await requireOwnedOrder(orderId, user.storeId)
+  if (order.deliveryStatus === "delivered" || order.paymentStatus === "approved") {
+    throw new Error("Não é possível recusar um pedido já aprovado ou entregue")
+  }
   await db
     .update(orders)
     .set({ paymentStatus: "refused", updatedAt: new Date() })
@@ -58,7 +73,10 @@ export async function refuseOrder(orderId: string) {
 
 export async function cancelOrder(orderId: string) {
   const user = await requireCapability("orders.manage")
-  await requireOwnedOrder(orderId, user.storeId)
+  const order = await requireOwnedOrder(orderId, user.storeId)
+  if (order.deliveryStatus === "delivered" || order.paymentStatus === "approved") {
+    throw new Error("Não é possível cancelar um pedido já aprovado ou entregue")
+  }
   await db
     .update(orders)
     .set({
