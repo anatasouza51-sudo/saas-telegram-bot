@@ -10,7 +10,7 @@ interface Customer {
   id: string
   name: string
   avatar?: string
-  totalSpent?: number
+  totalSpent?: number | string
   orderCount?: number
 }
 
@@ -20,8 +20,10 @@ interface TopCustomersProps {
 }
 
 const getInitials = (name: string) => {
+  if (!name) return "??"
   return name
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -41,7 +43,7 @@ export const TopCustomers = memo(({
   customers,
   title = "Principais Clientes",
 }: TopCustomersProps) => {
-  if (customers.length === 0) {
+  if (!customers || customers.length === 0) {
     return (
       <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
         <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
@@ -76,45 +78,50 @@ export const TopCustomers = memo(({
       </CardHeader>
       <CardContent className="p-6">
         <div className="flex flex-wrap gap-4">
-          {customers.map((customer, index) => (
-            <motion.div
-              key={customer.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="flex flex-col items-center gap-2 group cursor-pointer"
-            >
-              <div className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center text-xs font-black text-white transition-all duration-300 group-hover:scale-110 shadow-lg",
-                colors[index % colors.length]
-              )}>
-                {customer.avatar ? (
-                  <img 
-                    src={customer.avatar} 
-                    alt={customer.name}
-                    className="w-full h-full rounded-xl object-cover"
-                  />
-                ) : (
-                  getInitials(customer.name)
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-bold text-dashboard-text truncate max-w-[90px]">
-                  {customer.name.split(" ")[0]}
-                </p>
-                {customer.orderCount !== undefined && (
-                  <p className="text-[10px] text-dashboard-text-muted truncate max-w-[90px]">
-                    {customer.orderCount} compra{customer.orderCount !== 1 ? "s" : ""}
+          {customers.map((customer, index) => {
+            // Garantir que totalSpent seja tratado como número antes de usar .toFixed
+            const spent = typeof customer.totalSpent === "string" 
+              ? Number.parseFloat(customer.totalSpent) 
+              : (customer.totalSpent || 0)
+            
+            return (
+              <motion.div
+                key={customer.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="flex flex-col items-center gap-2 group cursor-pointer"
+              >
+                <div className={cn(
+                  "w-14 h-14 rounded-xl flex items-center justify-center text-xs font-black text-white transition-all duration-300 group-hover:scale-110 shadow-lg",
+                  colors[index % colors.length]
+                )}>
+                  {customer.avatar ? (
+                    <img 
+                      src={customer.avatar} 
+                      alt={customer.name}
+                      className="w-full h-full rounded-xl object-cover"
+                    />
+                  ) : (
+                    getInitials(customer.name || "Cliente")
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-dashboard-text truncate max-w-[90px]">
+                    {(customer.name || "Cliente").split(" ")[0]}
                   </p>
-                )}
-                {customer.totalSpent !== undefined && (
+                  {customer.orderCount !== undefined && (
+                    <p className="text-[10px] text-dashboard-text-muted truncate max-w-[90px]">
+                      {customer.orderCount} compra{customer.orderCount !== 1 ? "s" : ""}
+                    </p>
+                  )}
                   <p className="text-[10px] font-bold text-dashboard-accent mt-1">
-                    R$ {customer.totalSpent.toFixed(2)}
+                    R$ {spent.toFixed(2)}
                   </p>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                </div>
+              </motion.div>
+            )
+          })}
         </div>
       </CardContent>
     </Card>
