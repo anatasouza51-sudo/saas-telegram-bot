@@ -146,6 +146,9 @@ export const customers = pgTable(
       .default("0"),
     purchaseCount: integer("purchaseCount").notNull().default(0),
     lastPurchaseAt: timestamp("lastPurchaseAt"),
+    balance: numeric("balance", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
     status: text("status").notNull().default("active"),
     // Coupon code the customer has applied but not yet used.
     activeCoupon: text("activeCoupon"),
@@ -178,6 +181,8 @@ export const orders = pgTable("orders", {
   paymentStatus: text("paymentStatus").notNull().default("pending"),
   // pending | delivered | cancelled
   deliveryStatus: text("deliveryStatus").notNull().default("pending"),
+  // product | recharge
+  type: text("type").notNull().default("product"),
   gateway: text("gateway").notNull().default("veopag"),
   paymentId: text("paymentId"),
   // PIX copy-paste (EMV) code returned by the gateway. Persisted so the web
@@ -229,6 +234,20 @@ export const activityLogs = pgTable("activity_logs", {
   action: text("action").notNull(),
   category: text("category").notNull().default("system"),
   details: text("details"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export const balanceTransactions = pgTable("balance_transactions", {
+  id: serial("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),
+  customerId: text("customerId").notNull(),
+  // deposit | spend | refund
+  type: text("type").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  previousBalance: numeric("previousBalance", { precision: 12, scale: 2 }).notNull(),
+  newBalance: numeric("newBalance", { precision: 12, scale: 2 }).notNull(),
+  orderId: text("orderId"),
+  description: text("description"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 

@@ -7,8 +7,10 @@ import {
   deliveries,
   settings,
   stockItems,
+  balanceTransactions,
 } from "@/lib/db/schema"
 import { and, asc, desc, eq, isNull, isNotNull, lte, sql } from "drizzle-orm"
+import { pool } from "@/lib/db"
 import {
   TelegramClient,
   buildInlineKeyboard,
@@ -314,6 +316,8 @@ async function buildHomeScreen(
     rows.push([{ text: ctx.support.label, callback_data: "support" }])
   }
 
+  rows.push([{ text: "👤 Meu Perfil / Saldo", callback_data: "profile" }])
+
   const text =
     entries.length === 0
       ? `${welcome}\n\n<i>Nenhuma categoria disponível no momento.</i>`
@@ -443,6 +447,7 @@ async function buildCategoryScreen(
 async function buildProductScreen(
   ctx: StoreContext,
   productId: number,
+  telegramId?: string,
 ): Promise<Screen> {
   const [product] = await db
     .select()
@@ -491,6 +496,19 @@ async function buildProductScreen(
     if (ctx.catalog.buyButton.enabled) {
       rows.push([{ text: ctx.catalog.buyButton.text, callback_data: `buy:${product.id}` }])
     }
+    
+    // Add "Pay with Balance" button if we have the telegramId
+    if (telegramId) {
+      const [customer] = await db
+        .select({ balance: customers.balance })
+        .from(customers)
+        .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.telegramId, telegramId)))
+      
+      if (customer && Number(customer.balance) >= Number(product.price)) {
+        rows.push([{ text: `💰 Pagar com Saldo (${formatCurrency(Number(customer.balance))})`, callback_data: `paybal:${product.id}` }])
+      }
+    }
+
     if (ctx.catalog.couponButton.enabled) {
       rows.push([{ text: ctx.catalog.couponButton.text, callback_data: `coupon:${product.id}` }])
     }
@@ -503,6 +521,210 @@ async function buildProductScreen(
     imageUrl: product.imageUrl,
     text: caption,
     keyboard: buildInlineKeyboard(rows),
+  }
+}
+
+async function buildProfileScreen(
+  ctx: StoreContext,
+  telegramId: string,
+): Promise<Screen> {
+  const customer = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.telegramId, telegramId)))
+    .then(rows => rows[0])
+
+  if (!customer) {
+    return {
+      text: "Perfil não encontrado. Use /start para se cadastrar.",
+      keyboard: buildInlineKeyboard([[{ text: "🏠 Início", callback_data: "home:0" }]])
+    }
+  }
+
+  const balance = formatCurrency(Number(customer.balance))
+  const spent = formatCurrency(Number(customer.totalSpent))
+
+  const text = [
+    `<b>👤 Seu Perfil</b>`,
+    ``,
+    `🆔 <b>ID:</b> <code>${customer.telegramId}</code>`,
+    `💰 <b>Saldo disponível:</b> <b>${balance}</b>`,
+    `🛍️ <b>Total gasto:</b> ${spent}`,
+    `📦 <b>Compras realizadas:</b> ${customer.purchaseCount}`,
+    ``,
+    `Escolha uma opção abaixo para gerenciar seu saldo ou ver seu histórico.`,
+  ].join("\n")
+
+  const rows: InlineButton[][] = [
+    [{ text: "💳 Recarregar Saldo", callback_data: "recharge_menu" }],
+    [{ text: "📜 Histórico de Compras", callback_data: "history_cmd" }],
+    [{ text: "🏠 Voltar ao Início", callback_data: "home:0" }],
+  ]
+
+  return {
+    text,
+    keyboard: buildInlineKeyboard(rows)
+  }
+}
+
+function buildRechargeScreen(ctx: StoreContext): Screen {
+  const amounts = [10, 20, 50, 100, 200, 500]
+  const rows: InlineButton[][] = []
+  
+  for (let i = 0; i < amounts.length; i += 2) {
+    const row: InlineButton[] = [
+      { text: formatCurrency(amounts[i]), callback_data: `recharge_do:${amounts[i]}` }
+    ]
+    if (amounts[i+1]) {
+      row.push({ text: formatCurrency(amounts[i+1]), callback_data: `recharge_do:${amounts[i+1]}` })
+    }
+    rows.push(row)
+  }
+
+  rows.push([{ text: "⬅️ Voltar ao Perfil", callback_data: "profile" }])
+
+  return {
+    text: "<b>💳 Recarga de Saldo</b>\n\nEscolha o valor que deseja adicionar à sua conta:",
+    keyboard: buildInlineKeyboard(rows)
+  }
+}
+
+async function handlePayWithBalance(
+  ctx: StoreContext,
+  chatId: number,
+  productId: number,
+  from: { id: number; username?: string; first_name?: string },
+) {
+  const [product] = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.ownerId, ctx.storeId), eq(products.id, productId)))
+  if (!product) return
+
+  const customer = await upsertCustomer(ctx.storeId, from)
+  const price = Number(product.price)
+  const balance = Number(customer.balance)
+
+  if (balance < price) {
+    await ctx.tg.sendMessage(
+      chatId,
+      `❌ <b>Saldo Insuficiente</b>\n\nVocê precisa de ${formatCurrency(price)}, mas seu saldo atual é ${formatCurrency(balance)}.\n\nUse a opção de recarga no seu perfil para adicionar fundos.`,
+      { replyMarkup: buildInlineKeyboard([[{ text: "💳 Recarregar", callback_data: "recharge_menu" }]]) }
+    )
+    return
+  }
+
+  const client = await pool.connect()
+  try {
+    await client.query("BEGIN")
+    
+    const newBalance = balance - price
+    
+    await client.query(
+      `UPDATE customers SET balance = $1 WHERE id = $2`,
+      [newBalance.toString(), customer.id]
+    )
+
+    const [order] = await db
+      .insert(orders)
+      .values({
+        ownerId: ctx.storeId,
+        customerId: customer.id,
+        productId: product.id,
+        productName: product.name,
+        amount: String(price),
+        paymentStatus: "approved",
+        deliveryStatus: "pending",
+        gateway: "balance",
+      })
+      .returning()
+
+    await client.query(
+      `INSERT INTO balance_transactions ("ownerId", "customerId", type, amount, "previousBalance", "newBalance", "orderId", description)
+       VALUES ($1, $2, 'spend', $3, $4, $5, $6, $7)`,
+      [ctx.storeId, customer.id, price.toString(), balance.toString(), newBalance.toString(), order.id, `Compra de ${product.name}`]
+    )
+
+    await client.query("COMMIT")
+    
+    await ctx.tg.sendMessage(chatId, `✅ <b>Pagamento com Saldo realizado!</b>\n\nValor de ${formatCurrency(price)} descontado. Seu novo saldo é ${formatCurrency(newBalance)}.`)
+    
+    await fulfillOrder(order.id)
+
+  } catch (err) {
+    await client.query("ROLLBACK")
+    console.error("[bot/payWithBalance] error:", err)
+    await ctx.tg.sendMessage(chatId, "❌ Ocorreu um erro ao processar seu pagamento com saldo. Tente novamente mais tarde.")
+  } finally {
+    client.release()
+  }
+}
+
+async function handleRecharge(
+  ctx: StoreContext,
+  chatId: number,
+  amount: number,
+  from: { id: number; username?: string; first_name?: string },
+) {
+  const customer = await upsertCustomer(ctx.storeId, from)
+  
+  const [order] = await db
+    .insert(orders)
+    .values({
+      ownerId: ctx.storeId,
+      customerId: customer.id,
+      productName: `Recarga de Saldo - ${formatCurrency(amount)}`,
+      amount: String(amount),
+      paymentStatus: "pending",
+      deliveryStatus: "pending",
+      type: "recharge",
+      gateway: "veopag",
+    })
+    .returning()
+
+  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
+  const charge = await createCharge(ctx.veopag, {
+    amount,
+    externalId: String(order.id),
+    description: `Recarga de Saldo - ${customer.name || customer.username}`,
+    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
+    payer: { name: customer.name ?? customer.username ?? "Cliente" },
+  })
+
+  if (!charge.ok) {
+    await ctx.tg.sendMessage(chatId, `⚠️ Erro ao gerar pagamento: ${charge.error}`)
+    return
+  }
+
+  const pixCode = charge.pixCode ?? ""
+  const publicToken = randomBytes(24).toString("base64url")
+  const expiresAt = new Date(Date.now() + ctx.pix.expireMinutes * 60_000)
+
+  await db
+    .update(orders)
+    .set({ paymentId: charge.paymentId, pixCode, publicToken, expiresAt, pixChatId: String(chatId) })
+    .where(eq(orders.id, order.id))
+
+  const caption = buildPixCaption(ctx, {
+    orderId: order.id,
+    productName: `Recarga de Saldo`,
+    amount,
+    pixCode,
+    expiresAt,
+  })
+  const keyboard = buildPixKeyboard(ctx, order.id, pixCode, publicToken)
+
+  const qr = await generatePixQrPng(pixCode)
+  if (qr) {
+    const sent = await ctx.tg.sendPhotoBytes(chatId, qr, { caption, replyMarkup: keyboard, filename: `recharge-${order.id}.png` })
+    if (sent.ok && sent.result?.message_id) {
+      await db.update(orders).set({ pixMessageId: sent.result.message_id }).where(eq(orders.id, order.id))
+    }
+  } else {
+    const sent = await ctx.tg.sendMessage(chatId, caption, { replyMarkup: keyboard })
+    if (sent.ok && sent.result?.message_id) {
+      await db.update(orders).set({ pixMessageId: sent.result.message_id }).where(eq(orders.id, order.id))
+    }
   }
 }
 
@@ -1263,8 +1485,16 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
         ctx,
         chatId,
         messageId,
-        await buildProductScreen(ctx, Number(data.split(":")[1])),
+        await buildProductScreen(ctx, Number(data.split(":")[1]), String(cq.from.id)),
       )
+    } else if (data === "profile") {
+      await renderScreen(ctx, chatId, messageId, await buildProfileScreen(ctx, String(cq.from.id)))
+    } else if (data === "recharge_menu") {
+      await renderScreen(ctx, chatId, messageId, buildRechargeScreen(ctx))
+    } else if (data.startsWith("recharge_do:")) {
+      await handleRecharge(ctx, chatId, Number(data.split(":")[1]), cq.from)
+    } else if (data === "history_cmd") {
+      await showHistory(ctx, chatId, String(cq.from.id))
     } else if (data === "support") {
       await renderScreen(ctx, chatId, messageId, buildSupportScreen(ctx))
     } else if (data === "catalog") {
@@ -1272,6 +1502,8 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       await renderScreen(ctx, chatId, messageId, await buildHomeScreen(ctx, firstName, 0))
     } else if (data.startsWith("buy:")) {
       await startPurchase(ctx, chatId, Number(data.split(":")[1]), cq.from)
+    } else if (data.startsWith("paybal:")) {
+      await handlePayWithBalance(ctx, chatId, Number(data.split(":")[1]), cq.from)
     } else if (data.startsWith("coupon:")) {
       // Ask the customer to type their coupon code.
       const productId = Number(data.split(":")[1])
@@ -1388,6 +1620,8 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
     await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
   } else if (text === "/historico" || text === "/compras") {
     await showHistory(ctx, chatId, senderId)
+  } else if (text === "/perfil" || text === "/saldo") {
+    await renderScreen(ctx, chatId, null, await buildProfileScreen(ctx, senderId))
   } else if (text === "/suporte") {
     await renderScreen(ctx, chatId, null, buildSupportScreen(ctx))
   } else {
@@ -1396,6 +1630,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
       [
         `Comandos disponíveis:`,
         `/catalogo — ver produtos`,
+        `/perfil — seu saldo e conta`,
         `/compras — histórico`,
         `/suporte — falar com suporte`,
       ].join("\n"),
