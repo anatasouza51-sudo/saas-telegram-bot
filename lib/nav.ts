@@ -122,7 +122,7 @@ export const MAIN_NAV: NavNode[] = [
 // System navigation ("Integrações & Sistema"). Intentionally left flat.
 export const SYSTEM_NAV: NavItem[] = [
   { title: "Telegram Bot", href: "/telegram", icon: "Send", capability: "telegram.manage" },
-  { title: "Gateway (VeoPag)", href: "/gateway", icon: "Wallet", capability: "gateway.manage" },
+  { title: "Gateways", href: "/gateway", icon: "Wallet", capability: "gateway.manage" },
   { title: "Administradores", href: "/admins", icon: "ShieldCheck", capability: "admins.manage" },
   { title: "Logs", href: "/logs", icon: "ScrollText", capability: "logs.view" },
 ]
