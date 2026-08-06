@@ -111,9 +111,9 @@ export function getCloudflareHeaders(req: Request) {
  * ```
  */
 export function validateTelegramWebhook(req: Request): { ok: boolean; ip: string; error?: string } {
-  const ip = req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown"
+  const cfIp = req.headers.get("cf-connecting-ip")
+  const forwardedIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const ip = cfIp || forwardedIp || "unknown"
 
   if (ip === "unknown") {
     return { ok: false, ip, error: "Cannot determine source IP" }
@@ -124,9 +124,18 @@ export function validateTelegramWebhook(req: Request): { ok: boolean; ip: string
     return { ok: true, ip }
   }
 
-  if (!isTelegramIp(ip)) {
-    return { ok: false, ip, error: `IP ${ip} is not a recognized Telegram server` }
+  // If behind Cloudflare, validate the Telegram IP from cf-connecting-ip
+  if (cfIp) {
+    if (!isTelegramIp(cfIp)) {
+      return { ok: false, ip: cfIp, error: `IP ${cfIp} is not a recognized Telegram server` }
+    }
+    return { ok: true, ip: cfIp }
   }
 
+  // Not behind Cloudflare: if we can't determine the IP is from Telegram,
+  // allow it through (the webhook secret token is the real auth mechanism).
+  // This avoids blocking legitimate webhook requests when the app is hosted
+  // directly on Vercel/Render/etc. without Cloudflare in front.
+  console.warn("[cloudflare] Telegram IP validation skipped (no CF-Connecting-IP). Relying on webhook secret token.")
   return { ok: true, ip }
 }

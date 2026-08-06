@@ -59,9 +59,14 @@ export async function getOrCreateWebhookSecret(
       console.warn("[webhook-secrets] Tabela 'settings' não encontrada, executando bootstrap...")
       const { ensureDbStructure } = await import("@/lib/db/migrate")
       await ensureDbStructure()
+      // BUGFIX: sempre armazenar o valor criptografado para manter consistência
+      // com os outros caminhos de inserção. Se armazenarmos em plaintext, a
+      // leitura posterior via isEncrypted() vai retornar o valor bruto, mas
+      // se o código depois tentar descriptografar um valor que não é criptografado,
+      // pode causar falhas de validação do webhook.
       await db
         .insert(settings)
-        .values({ ownerId: storeId, key: key(provider), value: secret })
+        .values({ ownerId: storeId, key: key(provider), value: encrypted })
         .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
     } else {
       throw err

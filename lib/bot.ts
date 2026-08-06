@@ -1612,10 +1612,33 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   }
 
   if (text === "/start") {
-    await upsertCustomer(ctx.storeId, msg.from)
+    // BUGFIX: wrap /start in try/catch so that DB errors (missing columns,
+    // missing unique index, etc.) don't silently kill the response. We log
+    // the error and fall back to a simple welcome message.
+    try {
+      await upsertCustomer(ctx.storeId, msg.from)
+    } catch (err) {
+      console.error(
+        `[bot/start] upsertCustomer failed for telegramId=${senderId} store=${ctx.storeId}:`,
+        err instanceof Error ? err.message : err,
+      )
+      // Attempt to send a simple welcome message even if customer upsert failed
+    }
     // Single message: welcome + categories, sent fresh. All later navigation
     // edits this same message in place.
-    await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
+    try {
+      await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
+    } catch (err) {
+      console.error(
+        `[bot/start] renderScreen (home) failed for telegramId=${senderId} store=${ctx.storeId}:`,
+        err instanceof Error ? err.message : err,
+      )
+      // Fallback: send a plain text welcome so the user always gets a response
+      await ctx.tg.sendMessage(
+        chatId,
+        `\ud83d\udc4b Bem-vindo(a) \u00e0 nossa loja!\n\n<i>Estamos processando seu pedido. Tente novamente em instantes.</i>`,
+      )
+    }
   } else if (text === "/catalogo" || text.toLowerCase() === "catálogo") {
     await renderScreen(ctx, chatId, null, await buildHomeScreen(ctx, firstName, 0))
   } else if (text === "/historico" || text === "/compras") {
