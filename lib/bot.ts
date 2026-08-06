@@ -666,7 +666,15 @@ async function handleRecharge(
   amount: number,
   from: { id: number; username?: string; first_name?: string },
 ) {
-  const customer = await upsertCustomer(ctx.storeId, from)
+  // Callback data vem do Telegram, portanto valide antes de tocar no banco ou
+  // chamar a VeoPag. Isso evita pedidos com NaN/zero e torna o erro explícito.
+  if (!Number.isFinite(amount) || amount <= 0) {
+    await ctx.tg.sendMessage(chatId, "❌ Valor de recarga inválido. Volte ao menu e escolha um dos valores disponíveis.")
+    return
+  }
+
+  try {
+    const customer = await upsertCustomer(ctx.storeId, from)
   
   const [order] = await db
     .insert(orders)
@@ -725,6 +733,16 @@ async function handleRecharge(
     if (sent.ok && sent.result?.message_id) {
       await db.update(orders).set({ pixMessageId: sent.result.message_id }).where(eq(orders.id, order.id))
     }
+    }
+  } catch (err) {
+    console.error(
+      `[bot/recharge] failed for store=${ctx.storeId} telegramId=${from.id} amount=${amount}:`,
+      err instanceof Error ? err.message : err,
+    )
+    await ctx.tg.sendMessage(
+      chatId,
+      "❌ Não foi possível gerar o PIX agora. Verifique a configuração do gateway e tente novamente em instantes.",
+    )
   }
 }
 
