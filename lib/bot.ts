@@ -618,31 +618,38 @@ async function handlePayWithBalance(
   try {
     await client.query("BEGIN")
     
-    const newBalance = balance - price
-    
-    await client.query(
-      `UPDATE customers SET balance = $1 WHERE id = $2`,
-      [newBalance.toString(), customer.id]
+    // Lock the balance operation atomically. The previous implementation read
+    // the balance before BEGIN, allowing two simultaneous clicks to overspend.
+    const balanceResult = await client.query(
+      `UPDATE customers
+       SET balance = balance - $1, "updatedAt" = now()
+       WHERE id = $2 AND balance >= $1
+       RETURNING balance`,
+      [price.toString(), customer.id],
     )
+    if (balanceResult.rowCount !== 1) {
+      await client.query("ROLLBACK")
+      await ctx.tg.sendMessage(chatId, "❌ Saldo insuficiente ou alterado por outra compra. Atualize seu perfil e tente novamente.")
+      return
+    }
+    const newBalance = Number(balanceResult.rows[0].balance)
+    const previousBalance = newBalance + price
 
-    const [order] = await db
-      .insert(orders)
-      .values({
-        ownerId: ctx.storeId,
-        customerId: customer.id,
-        productId: product.id,
-        productName: product.name,
-        amount: String(price),
-        paymentStatus: "approved",
-        deliveryStatus: "pending",
-        gateway: "balance",
-      })
-      .returning()
+    // Keep the order insert in the same PostgreSQL transaction as the debit.
+    const orderResult = await client.query(
+      `INSERT INTO orders
+        ("ownerId", "customerId", "productId", "productName", amount,
+         "paymentStatus", "deliveryStatus", type, gateway)
+       VALUES ($1, $2, $3, $4, $5, 'approved', 'pending', 'product', 'balance')
+       RETURNING *`,
+      [ctx.storeId, customer.id, product.id, product.name, price.toString()],
+    )
+    const order = orderResult.rows[0]
 
     await client.query(
       `INSERT INTO balance_transactions ("ownerId", "customerId", type, amount, "previousBalance", "newBalance", "orderId", description)
        VALUES ($1, $2, 'spend', $3, $4, $5, $6, $7)`,
-      [ctx.storeId, customer.id, price.toString(), balance.toString(), newBalance.toString(), order.id, `Compra de ${product.name}`]
+      [ctx.storeId, customer.id, price.toString(), previousBalance.toString(), newBalance.toString(), order.id, `Compra de ${product.name}`]
     )
 
     await client.query("COMMIT")
