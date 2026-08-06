@@ -47,15 +47,15 @@ export default async function GatewayPage() {
   const pixConfig = parsePixConfig(saved["pix.config"])
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gateways</CardTitle>
-          <CardDescription>
+    <div className="flex flex-col gap-6 p-3 md:p-6 max-w-4xl mx-auto">
+      <Card className="border-dashboard-border/30 bg-dashboard-card/50">
+        <CardHeader className="px-4 py-5 md:px-6">
+          <CardTitle className="text-xl md:text-2xl font-black tracking-tight">Gateways</CardTitle>
+          <CardDescription className="text-xs md:text-sm text-dashboard-text-muted">
             Gerencie suas integrações de pagamento. Configure as chaves e URLs de webhook para cada provedor.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="px-3 pb-6 md:px-6 flex flex-col gap-1">
           {await Promise.all(gatewayProviders.map(async (provider) => {
             const hasSecretKey = Boolean(saved[`${provider.id}.secretKey`])
             

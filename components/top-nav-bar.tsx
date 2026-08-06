@@ -69,7 +69,7 @@ export const TopNavBar = memo(({
       channels: "Grupos & Canais",
       automations: "Automações",
       telegram: "Telegram Bot",
-      gateway: "Gateway (VeoPag)",
+      gateway: "Gateways",
       admins: "Administradores",
       logs: "Logs"
     }
