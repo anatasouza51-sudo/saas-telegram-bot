@@ -274,10 +274,10 @@ export function PostEditor({
   return (
     <div className="flex flex-col gap-4 w-full">
       {/* Editor principal */}
-      <Card className="flex flex-col gap-4 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-2xl w-full">
+      <Card className="flex flex-col gap-4 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-2xl w-full">
         {/* Título */}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">
             Título interno (opcional)
           </Label>
           <Input
@@ -285,21 +285,21 @@ export function PostEditor({
             placeholder="Ex.: Promoção de fim de semana"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm focus:border-primary/40 focus:ring-primary/10 transition-all"
+            className="h-10 bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl px-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all"
           />
         </div>
 
         {/* Mensagem */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">
               Mensagem
             </Label>
             <Select
               value={parseMode}
               onValueChange={(v) => setParseMode((v as "HTML" | "Markdown") ?? "HTML")}
             >
-              <SelectTrigger size="sm" className="w-28 h-7 bg-white/5 border-white/10 rounded-lg text-xs font-bold">
+              <SelectTrigger size="sm" className="w-28 h-7 bg-dashboard-bg/50 border-dashboard-border/30 rounded-lg text-xs font-bold text-dashboard-text">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -310,17 +310,17 @@ export function PostEditor({
           </div>
 
           {/* Toolbar de formatação */}
-          <div className="flex gap-1 p-1 bg-black/20 rounded-xl w-fit">
-            <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Negrito">
+          <div className="flex gap-1 p-1 bg-black/5 dark:bg-black/20 rounded-xl w-fit">
+            <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Negrito">
               <Bold className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Itálico">
+            <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Itálico">
               <Italic className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Código">
+            <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Código">
               <Code className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-8 w-8 hover:bg-white/10 rounded-lg" aria-label="Link">
+            <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Link">
               <Link2 className="h-4 w-4" />
             </Button>
           </div>
@@ -332,16 +332,16 @@ export function PostEditor({
             placeholder="Escreva sua mensagem..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="bg-white/5 border-white/10 rounded-xl p-3 text-sm focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
+            className="bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl p-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
           />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-dashboard-text-muted/60">
             {text.length} caracteres · Formatação {parseMode}
           </p>
         </div>
 
         {/* Mídia */}
         <div className="flex flex-col gap-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mídia</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Mídia</Label>
           <MediaAttachment
             items={media}
             onAdd={(m) => setMedia((prev) => [...prev, m])}
@@ -352,19 +352,19 @@ export function PostEditor({
 
         {/* Botões inline */}
         <div className="flex flex-col gap-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Botões inline</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Botões inline</Label>
           <ButtonBuilder rows={buttons} onChange={setButtons} />
         </div>
       </Card>
 
       {/* Destinos da Mensagem — aparece em mobile abaixo do editor */}
-      <Card className="flex flex-col gap-3 p-4 bg-slate-900/40 border-white/5 rounded-2xl shadow-xl w-full">
+      <Card className="flex flex-col gap-3 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-xl w-full">
         <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Destinos da Mensagem</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Destinos da Mensagem</Label>
           <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">{targets.size} selecionados</span>
         </div>
         {audience.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic bg-white/5 p-3 rounded-xl border border-dashed border-white/10">
+          <p className="text-xs text-dashboard-text-muted italic bg-dashboard-bg/50 p-3 rounded-xl border border-dashed border-dashboard-border/30">
             Nenhum grupo/canal de audiência configurado.
           </p>
         ) : (
@@ -396,7 +396,7 @@ export function PostEditor({
         <Button
           onClick={handlePublish}
           disabled={isPending}
-          className="w-full h-11 bg-primary text-black font-black uppercase text-xs rounded-xl shadow-lg shadow-primary/10"
+          className="w-full h-11 bg-primary text-primary-foreground font-black uppercase text-xs rounded-xl shadow-lg shadow-primary/10"
         >
           <Send className="mr-2 h-4 w-4" />
           Publicar agora
@@ -405,7 +405,7 @@ export function PostEditor({
           variant="outline"
           onClick={() => setScheduleOpen((s) => !s)}
           disabled={isPending}
-          className="w-full h-10 bg-white/5 border-white/10 text-white font-black uppercase text-xs rounded-xl"
+          className="w-full h-10 bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text font-black uppercase text-xs rounded-xl"
         >
           <CalendarClock className="mr-2 h-4 w-4" />
           Agendar
@@ -415,7 +415,7 @@ export function PostEditor({
             variant="ghost"
             onClick={handleSaveDraft}
             disabled={isPending}
-            className="h-9 text-muted-foreground hover:text-white font-bold uppercase text-[10px] rounded-xl"
+            className="h-9 text-dashboard-text-muted hover:text-dashboard-text font-bold uppercase text-[10px] rounded-xl"
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
             Salvar rascunho
@@ -424,7 +424,7 @@ export function PostEditor({
             variant="ghost"
             onClick={handleSaveTemplate}
             disabled={isPending}
-            className="h-9 text-muted-foreground hover:text-white font-bold uppercase text-[10px] rounded-xl"
+            className="h-9 text-dashboard-text-muted hover:text-dashboard-text font-bold uppercase text-[10px] rounded-xl"
           >
             <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
             Salvar template
@@ -432,59 +432,93 @@ export function PostEditor({
         </div>
       </div>
 
-      {/* Painel de agendamento */}
+      {/* Agendamento Popover-like (Mobile Friendly) */}
       {scheduleOpen && (
-        <Card className="flex flex-col gap-4 p-4 bg-slate-900/60 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-primary" />
-            <Label className="text-xs font-black uppercase tracking-widest">Configurar Agendamento</Label>
+        <Card className="flex flex-col gap-4 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-widest text-dashboard-text">Configurar Agendamento</h3>
+            <Button variant="ghost" size="icon" onClick={() => setScheduleOpen(false)} className="h-8 w-8 text-dashboard-text-muted">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="run-at" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Data e hora de envio
-              </Label>
+          
+          <div className="grid gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Data e Hora</Label>
               <Input
-                id="run-at"
                 type="datetime-local"
                 value={runAt}
                 onChange={(e) => setRunAt(e.target.value)}
-                className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm"
+                className="bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text rounded-xl"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Frequência</Label>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Recorrência</Label>
               <Select
                 value={recurrence}
-                onValueChange={(v) =>
-                  setRecurrence((v as Recurrence["kind"]) ?? "once")
-                }
+                onValueChange={(v) => setRecurrence(v as Recurrence["kind"])}
               >
-                <SelectTrigger className="h-10 bg-white/5 border-white/10 rounded-xl px-3 text-sm">
+                <SelectTrigger className="bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {RECURRENCE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {recurrence === "interval" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">A cada</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={intervalEvery}
+                    onChange={(e) => setIntervalEvery(parseInt(e.target.value) || 1)}
+                    className="bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text rounded-xl"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Unidade</Label>
+                  <Select
+                    value={intervalUnit}
+                    onValueChange={(v) => setIntervalUnit(v as any)}
+                  >
+                    <SelectTrigger className="bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutes">Minutos</SelectItem>
+                      <SelectItem value="hours">Horas</SelectItem>
+                      <SelectItem value="days">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <Button
+              onClick={handleSchedule}
+              disabled={isPending}
+              className="w-full bg-dashboard-accent text-white font-black uppercase text-xs rounded-xl h-11"
+            >
+              Confirmar Agendamento
+            </Button>
           </div>
-          <Button
-            onClick={handleSchedule}
-            disabled={isPending}
-            className="w-full h-10 bg-primary text-black font-black uppercase text-xs rounded-xl"
-          >
-            Confirmar Agendamento
-          </Button>
         </Card>
       )}
 
-      {/* Preview — apenas em telas maiores */}
-      <div className="hidden md:block">
+      {/* Preview flutuante ou abaixo no mobile */}
+      <div className="mt-4">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted mb-2 block">
+          Prévia no Telegram
+        </Label>
         <PostPreview
           botName={botName}
           text={text}
@@ -493,7 +527,6 @@ export function PostEditor({
           buttons={buttons}
         />
       </div>
-
     </div>
   )
 }
@@ -513,7 +546,7 @@ function TargetGroup({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted/60">
         {icon}
         {label}
       </div>
@@ -521,36 +554,51 @@ function TargetGroup({
         {items.map((item) => {
           const active = targets.has(item.chatId)
           return (
-            <div key={item.id} className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => onToggle(item.chatId)}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.98]",
-                  active
-                    ? "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5"
-                    : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white",
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold">{item.title}</p>
-                  <p className="truncate text-[10px] opacity-60 font-medium">
-                    @{item.chatId}
-                  </p>
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onToggle(item.chatId)}
+              className={cn(
+                "flex items-center justify-between p-3 rounded-xl border transition-all text-left",
+                active
+                  ? "bg-primary/10 border-primary/40 text-dashboard-text"
+                  : "bg-dashboard-bg/30 border-dashboard-border/20 text-dashboard-text-muted hover:border-dashboard-border/40",
+              )}
+            >
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-bold truncate">{item.title}</span>
+                <span className="text-[9px] font-medium opacity-60 truncate">
+                  {item.chatId}
+                </span>
+              </div>
+              {active && (
+                <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                  <CheckIcon className="h-2.5 w-2.5 text-black" />
                 </div>
-                <div className={cn(
-                  "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
-                  active ? "border-primary bg-primary text-black" : "border-white/20"
-                )}>
-                  {active && <Send className="w-2.5 h-2.5" />}
-                </div>
-              </button>
-
-{/* Tópicos removidos para simplificação do envio para o chat geral */}
-            </div>
+              )}
+            </button>
           )
         })}
       </div>
     </div>
+  )
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   )
 }

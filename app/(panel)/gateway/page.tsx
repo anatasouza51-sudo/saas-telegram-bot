@@ -48,7 +48,7 @@ export default async function GatewayPage() {
 
   return (
     <div className="flex flex-col gap-6 p-3 md:p-6 max-w-4xl mx-auto">
-      <Card className="border-dashboard-border/30 bg-dashboard-card/50">
+      <Card className="border-dashboard-border/30 bg-dashboard-card">
         <CardHeader className="px-4 py-5 md:px-6">
           <CardTitle className="text-xl md:text-2xl font-black tracking-tight">Gateways</CardTitle>
           <CardDescription className="text-xs md:text-sm text-dashboard-text-muted">
