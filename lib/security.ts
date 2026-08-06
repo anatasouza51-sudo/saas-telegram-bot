@@ -155,16 +155,22 @@ if (typeof setInterval !== "undefined") {
 
 /**
  * Identifica o IP do cliente de forma segura.
- * Considera headers da Vercel e proxies confiáveis.
+ * Prioridade: Vercel > Cloudflare (CF-Connecting-IP) > proxies genéricos.
+ * CF-Connecting-IP é definido pelo Cloudflare e não pode ser falsificado pelo usuário final.
  */
 export function clientIpFrom(req: Request): string {
-  // Headers da Vercel são os mais confiáveis se estivermos lá
+  // 1. Cloudflare — IP real do cliente (não falsificável)
+  const cfIp = req.headers.get("cf-connecting-ip")
+  if (cfIp) return cfIp.trim()
+
+  // 2. Vercel — headers próprios da plataforma
   const vercelIp = req.headers.get("x-vercel-proxied-for") || req.headers.get("x-real-ip")
   if (vercelIp) return vercelIp.split(",")[0].trim()
 
+  // 3. Proxy genérico
   const fwd = req.headers.get("x-forwarded-for")
   if (fwd) return fwd.split(",")[0].trim()
-  
+
   return "unknown"
 }
 
