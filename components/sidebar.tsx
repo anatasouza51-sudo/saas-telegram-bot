@@ -23,7 +23,7 @@ const navItems = [
   { name: "Vendas", href: "/orders", icon: ShoppingCart },
   { name: "Divulgação", href: "/posts", icon: Megaphone },
   { name: "Telegram", href: "/telegram", icon: Send },
-  { name: "Gateway", href: "/gateway", icon: Wallet },
+  { name: "Gateways", href: "/gateway", icon: Wallet },
   { name: "Clientes", href: "/customers", icon: Users },
   { name: "Logs", href: "/logs", icon: FileText },
 ]
