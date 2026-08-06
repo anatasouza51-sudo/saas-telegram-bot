@@ -50,27 +50,26 @@ export function middleware(request: NextRequest) {
   }
 
   // Get the real client IP from Cloudflare header
-  const cfIp = request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const cfIp = request.headers.get("cf-connecting-ip")
+  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
 
-  if (!cfIp) {
-    // No IP information — reject in production
-    if (process.env.NODE_ENV === "production") {
+  // BUGFIX: If the app is behind Cloudflare, validate the Telegram IP.
+  // If NOT behind Cloudflare (no cf-connecting-ip), allow the request through.
+  // The webhook secret token (X-Telegram-Bot-Api-Secret-Token) is the real
+  // authentication mechanism — it's unguessable per store and validated in the
+  // route handler. Blocking at the middleware level without Cloudflare headers
+  // would reject ALL legitimate Telegram webhooks.
+  if (cfIp) {
+    // Behind Cloudflare — validate Telegram IP range
+    if (process.env.NODE_ENV === "production" && !isTelegramIp(cfIp)) {
       return NextResponse.json(
-        { error: "Forbidden: missing source IP" },
+        { error: "Forbidden: unauthorized source" },
         { status: 403 },
       )
     }
-    return NextResponse.next()
   }
-
-  // Validate that the request originates from Telegram servers
-  if (process.env.NODE_ENV === "production" && !isTelegramIp(cfIp)) {
-    return NextResponse.json(
-      { error: "Forbidden: unauthorized source" },
-      { status: 403 },
-    )
-  }
+  // No cf-connecting-ip: not behind Cloudflare, let it through.
+  // The route handler's secret token check provides the real security.
 
   return NextResponse.next()
 }

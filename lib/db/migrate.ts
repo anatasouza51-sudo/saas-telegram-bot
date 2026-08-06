@@ -320,6 +320,7 @@ export async function ensureDbStructure() {
         "totalSpent" NUMERIC(12,2) NOT NULL DEFAULT 0,
         "purchaseCount" INTEGER NOT NULL DEFAULT 0,
         "lastPurchaseAt" TIMESTAMP,
+        "balance" NUMERIC(12,2) NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'active',
         "activeCoupon" TEXT,
         "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
@@ -509,8 +510,25 @@ export async function ensureDbStructure() {
       }
     }
 
+    // Balance transactions table
+    await client2.query(`
+      CREATE TABLE IF NOT EXISTS balance_transactions (
+        id SERIAL PRIMARY KEY,
+        "ownerId" TEXT NOT NULL,
+        "customerId" TEXT NOT NULL,
+        "type" TEXT NOT NULL,
+        amount NUMERIC(12,2) NOT NULL,
+        "previousBalance" NUMERIC(12,2) NOT NULL,
+        "newBalance" NUMERIC(12,2) NOT NULL,
+        "orderId" TEXT,
+        description TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
     // Colunas extras
     await addColumnIfMissing(client2, "customers", "activeCoupon", "TEXT")
+    await addColumnIfMissing(client2, "customers", "balance", "NUMERIC(12,2) NOT NULL DEFAULT 0")
     await addColumnIfMissing(client2, "orders", "originalAmount", "NUMERIC(12,2)")
     await addColumnIfMissing(client2, "orders", "couponCode", "TEXT")
 
