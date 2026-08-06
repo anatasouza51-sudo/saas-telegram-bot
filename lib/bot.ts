@@ -707,6 +707,10 @@ async function handleRecharge(
   })
 
   if (!charge.ok) {
+    await db
+      .update(orders)
+      .set({ paymentStatus: "refused", deliveryStatus: "cancelled", updatedAt: new Date() })
+      .where(eq(orders.id, order.id))
     await ctx.tg.sendMessage(chatId, `⚠️ Erro ao gerar pagamento: ${charge.error}`)
     return
   }
