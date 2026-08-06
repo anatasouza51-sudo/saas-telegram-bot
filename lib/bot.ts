@@ -16,7 +16,7 @@ import {
   buildInlineKeyboard,
   type TelegramUpdate,
 } from "@/lib/telegram"
-import { createCharge, type VeoPagCredentials } from "@/lib/veopag"
+import { createCharge, getDepositStatus, mapPaymentStatus, type VeoPagCredentials } from "@/lib/veopag"
 import {
   parsePixConfig,
   generatePixQrPng,
@@ -1175,6 +1175,31 @@ async function handlePixVerify(
         )
       }
     }
+    return
+  }
+
+  // Webhooks can be delayed or lost. Reconcile directly with VeoPag before
+  // telling the customer that the payment is still pending.
+  const gatewayStatus = await getDepositStatus(ctx.veopag, String(order.id))
+  if (gatewayStatus.ok && mapPaymentStatus(gatewayStatus.status) === "approved") {
+    const expectedAmount = Number(order.amount)
+    if (gatewayStatus.amount != null && Math.abs(gatewayStatus.amount - expectedAmount) > 0.01) {
+      console.error(`[bot/pix] amount mismatch for order ${order.id}: expected=${expectedAmount} gateway=${gatewayStatus.amount}`)
+      await ctx.tg.answerCallbackQuery(callbackId, "Pagamento identificado, mas o valor não confere. Suporte foi avisado.")
+      return
+    }
+
+    await db
+      .update(orders)
+      .set({ paymentStatus: "approved", paymentId: gatewayStatus.transactionId ?? order.paymentId, updatedAt: new Date() })
+      .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
+    const result = await fulfillOrder(order.id)
+    if (result.ok || result.code === "already_delivered") {
+      await ctx.tg.answerCallbackQuery(callbackId, "Pagamento aprovado! Saldo atualizado. ✅")
+      return
+    }
+    console.error(`[bot/pix] reconciliation delivery failed for order ${order.id}:`, result.reason)
+    await ctx.tg.answerCallbackQuery(callbackId, "Pagamento aprovado, mas o saldo ainda não foi atualizado. Suporte foi avisado.")
     return
   }
 
