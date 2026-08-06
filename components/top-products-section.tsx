@@ -1,7 +1,4 @@
-"use client"
-
 import { memo } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Package } from "lucide-react"
 import { motion } from "framer-motion"
@@ -23,11 +20,11 @@ interface TopProductsSectionProps {
 }
 
 const colorMap = {
-  blue: { accent: "text-blue-400", bg: "from-blue-500/10 to-blue-500/5" },
-  green: { accent: "text-emerald-400", bg: "from-emerald-500/10 to-emerald-500/5" },
-  yellow: { accent: "text-amber-400", bg: "from-amber-500/10 to-amber-500/5" },
-  purple: { accent: "text-purple-400", bg: "from-purple-500/10 to-purple-500/5" },
-  pink: { accent: "text-pink-400", bg: "from-pink-500/10 to-pink-500/5" },
+  blue: { accent: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+  green: { accent: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  yellow: { accent: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  purple: { accent: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  pink: { accent: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
 }
 
 export const TopProductsSection = memo(({
@@ -36,105 +33,106 @@ export const TopProductsSection = memo(({
 }: TopProductsSectionProps) => {
   if (products.length === 0) {
     return (
-      <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-        <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm">
-          <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
-            {title}
-          </CardTitle>
-          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
-            Nenhum produto cadastrado
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-12 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-            <Package className="w-8 h-8 text-dashboard-text-muted/30" />
+      <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <Package className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-sm text-dashboard-text-muted">Seus produtos aparecerão aqui</p>
-        </CardContent>
-      </Card>
+          <div>
+            <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">{title}</h3>
+            <p className="text-xs text-dashboard-text-muted">Nenhum produto cadastrado</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="w-10 h-10 rounded-xl bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center mb-3">
+            <Package className="w-4 h-4 text-dashboard-text-muted/30" />
+          </div>
+          <p className="text-xs text-dashboard-text-muted">Seus produtos aparecerão aqui</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="bg-dashboard-surface border-dashboard-border overflow-hidden">
-      <CardHeader className="border-b border-dashboard-border/50 bg-white/[0.01] backdrop-blur-sm flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
-            {title}
-          </CardTitle>
-          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
-            {products.length} produto{products.length !== 1 ? "s" : ""}
-          </CardDescription>
+    <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300 hover:border-dashboard-border-active">
+      {/* Ambient glow */}
+      <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-gradient-to-br from-amber-500/[0.04] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+      {/* Header */}
+      <div className="relative flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <Package className="w-4 h-4 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">{title}</h3>
+            <p className="text-xs text-dashboard-text-muted">{products.length} produto{products.length !== 1 ? "s" : ""}</p>
+          </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold"
         >
           Ver todos
           <ArrowRight className="w-3 h-3" />
         </Button>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y divide-dashboard-border/30">
-          {products.map((product, index) => {
-            const colors = colorMap[product.color]
-            return (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className={cn(
-                  "p-5 hover:bg-gradient-to-br transition-all duration-300 group backdrop-blur-sm border-0",
-                  colors.bg
-                )}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 shrink-0",
-                      "bg-gradient-to-br from-white/10 to-white/5 border border-white/20 backdrop-blur-md",
-                      colors.accent
+      </div>
+
+      <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {products.map((product, index) => {
+          const colors = colorMap[product.color]
+          return (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="p-4 rounded-xl border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] transition-all duration-300 group cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className={cn(
+                    "w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0",
+                    colors.bg,
+                    colors.accent
+                  )}>
+                    {product.icon}
+                  </div>
+                  {product.stock !== undefined && (
+                    <span className={cn(
+                      "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border border-white/[0.06]",
+                      product.stock > 10 ? "text-emerald-400 bg-emerald-500/10" :
+                      product.stock > 0 ? "text-amber-400 bg-amber-500/10" :
+                      "text-rose-400 bg-rose-500/10",
                     )}>
-                      {product.icon}
-                    </div>
-                    {product.stock !== undefined && (
-                      <span className={cn(
-                        "text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg",
-                        product.stock > 10 ? "text-emerald-400 bg-emerald-500/10" : 
-                        product.stock > 0 ? "text-amber-400 bg-amber-500/10" : 
-                        "text-rose-400 bg-rose-500/10",
-                        "border border-white/10 backdrop-blur-sm"
-                      )}>
-                        {product.stock > 0 ? `${product.stock} em estoque` : "Sem estoque"}
-                      </span>
+                      {product.stock > 0 ? `${product.stock} em estoque` : "Sem estoque"}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-dashboard-text line-clamp-2">
+                    {product.name}
+                  </h4>
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    {product.category && (
+                      <p className="text-[10px] text-dashboard-text-muted truncate">
+                        {product.category}
+                      </p>
+                    )}
+                    {product.price !== undefined && (
+                      <p className="text-xs font-bold text-dashboard-accent ml-auto">
+                        R$ {product.price.toFixed(2)}
+                      </p>
                     )}
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-dashboard-text line-clamp-2">
-                      {product.name}
-                    </h4>
-                    <div className="flex items-center justify-between mt-2 gap-2">
-                      {product.category && (
-                        <p className="text-[10px] text-dashboard-text-muted truncate">
-                          {product.category}
-                        </p>
-                      )}
-                      {product.price !== undefined && (
-                        <p className="text-xs font-bold text-dashboard-accent ml-auto">
-                          R$ {product.price.toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
                 </div>
-              </motion.div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+    </div>
   )
 })
 
