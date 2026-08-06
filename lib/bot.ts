@@ -685,7 +685,7 @@ async function startPurchase(
 function buildPixCaption(
   ctx: StoreContext,
   order: {
-    orderId: number
+    orderId: string
     productName: string
     amount: number
     originalAmount?: number
@@ -725,7 +725,7 @@ function buildPixCaption(
 // only appears when its `enabled` flag is on, and uses its custom label.
 function buildPixKeyboard(
   ctx: StoreContext,
-  orderId: number,
+  orderId: string,
   pixCode: string,
   publicToken: string,
 ) {
@@ -879,7 +879,7 @@ async function handlePixVerify(
   ctx: StoreContext,
   callbackId: string,
   chatId: number,
-  orderId: number,
+  orderId: string,
 ) {
   const [order] = await db
     .select()
@@ -957,7 +957,7 @@ async function handlePixCancel(
   ctx: StoreContext,
   callbackId: string,
   chatId: number,
-  orderId: number,
+  orderId: string,
 ) {
   const [order] = await db
     .select()
@@ -1296,9 +1296,9 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
           ),
         )
     } else if (data.startsWith("pixver:")) {
-      await handlePixVerify(ctx, cq.id, chatId, Number(data.split(":")[1]))
+      await handlePixVerify(ctx, cq.id, chatId, data.split(":")[1])
     } else if (data.startsWith("pixcxl:")) {
-      await handlePixCancel(ctx, cq.id, chatId, Number(data.split(":")[1]))
+      await handlePixCancel(ctx, cq.id, chatId, data.split(":")[1])
     }
     const cbElapsed = Date.now() - cbStarted
     if (cbElapsed > 1_500) {
