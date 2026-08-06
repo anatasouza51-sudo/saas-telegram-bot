@@ -170,6 +170,48 @@ export async function createCharge(
   }
 }
 
+export type DepositStatusResult =
+  | { ok: true; status: string; amount?: number; transactionId?: string }
+  | { ok: false; error: string }
+
+/**
+ * Queries VeoPag directly by our external_id. This is the reconciliation
+ * fallback for providers/webhooks that deliver the payment late or not at all.
+ */
+export async function getDepositStatus(
+  credentials: VeoPagCredentials,
+  externalId: string,
+): Promise<DepositStatusResult> {
+  if (!credentials.publicKey || !credentials.secretKey) {
+    return { ok: false, error: "Credenciais da VeoPag não configuradas" }
+  }
+  const auth = await getToken(credentials)
+  if (!auth.ok) return { ok: false, error: auth.error }
+
+  try {
+    const url = `${VEOPAG_BASE}/api/transactions/deposit?external_id=${encodeURIComponent(externalId)}`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${auth.token}` },
+      signal: AbortSignal.timeout(10_000),
+    })
+    const data = (await res.json().catch(() => ({}))) as Record<string, any>
+    if (res.status === 401) tokenCache.delete(credentials.publicKey)
+    if (!res.ok) {
+      return { ok: false, error: data?.message ?? `Falha ao consultar depósito (HTTP ${res.status})` }
+    }
+    const deposit = data.deposit
+    if (!deposit) return { ok: true, status: "PENDING" }
+    return {
+      ok: true,
+      status: String(deposit.status ?? "PENDING"),
+      amount: deposit.amount == null ? undefined : Number(deposit.amount),
+      transactionId: deposit.transaction_id ?? deposit.transactionId,
+    }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Erro de rede" }
+  }
+}
+
 /** Normalizes VeoPag payment statuses into our internal statuses. */
 export function mapPaymentStatus(
   raw: string,
