@@ -178,7 +178,9 @@ export function clientIpFrom(req: Request): string {
  * Gera um hash do IP para privacidade em logs persistentes ou rate limiting.
  * Usa um segredo do servidor para evitar rainbow tables.
  */
+const IP_SALT = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET
+const DYNAMIC_SALT = IP_SALT || randomBytes(32).toString("hex")
+
 export function hashIp(ip: string): string {
-  const secret = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET || "internal-ip-salt"
-  return createHmac("sha256", secret).update(ip).digest("hex").slice(0, 16)
+  return createHmac("sha256", DYNAMIC_SALT).update(ip).digest("hex").slice(0, 16)
 }
