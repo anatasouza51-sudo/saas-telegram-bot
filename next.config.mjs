@@ -45,7 +45,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: "{telegram,veopag,api.telegram,files.telegram}.com",
       },
     ],
   },
