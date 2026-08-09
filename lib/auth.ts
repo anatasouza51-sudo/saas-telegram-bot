@@ -17,27 +17,30 @@ const trustedOrigins = [
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : undefined,
   process.env.NODE_ENV === "development" ? "http://localhost:3000" : undefined,
-  // Wildcards cover v0 preview and Vercel preview/production domains, which
-  // change per deployment and would otherwise trigger "Invalid origin".
   "https://*.vercel.app",
   "https://*.vusercontent.net",
   "https://*.v0.dev",
   "https://*.v0.app",
 ].filter(Boolean) as string[]
 
+// PROTEÇÃO DE SEGURANÇA (C-2): Fail-closed para Better Auth secret.
+// Se BETTER_AUTH_SECRET não estiver definido, lançamos erro em qualquer ambiente
+// para impedir forjação de cookies de sessão (Account Takeover).
+const authSecret = process.env.BETTER_AUTH_SECRET
+if (!authSecret || authSecret.length < 16) {
+  throw new Error(
+    "[auth] ERRO CRÍTICO DE SEGURANÇA: BETTER_AUTH_SECRET não configurado ou muito curto. Defina a variável de ambiente."
+  )
+}
+
 export const auth = betterAuth({
-  // Antes: `new Pool(...)` próprio aqui, além do pool de lib/db — ou seja,
-  // toda página abria conexões em DOIS pools distintos (sessão + dados).
-  // Reaproveitar o mesmo pool corta pela metade o número de conexões
-  // simultâneas que uma única requisição pode consumir.
   database: pool,
-  secret: process.env.BETTER_AUTH_SECRET || "development_secret_key_placeholder_12345",
+  secret: authSecret,
   baseURL: getBaseURL(),
   trustedOrigins,
   appName: "SaaS Telegram Bot",
   emailAndPassword: {
     enabled: true,
-    // Enforce a reasonable minimum; Better Auth hashes with scrypt by default.
     minPasswordLength: 8,
     maxPasswordLength: 128,
   },
@@ -48,14 +51,10 @@ export const auth = betterAuth({
       skipVerificationOnEnable: false,
     }),
   ],
-  // Sessions expire after 7 days and refresh at most once per day. Better Auth
-  // stores sessions in the DB, so revocation/logout is immediate and complete.
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
   },
-  // Built-in rate limiting throttles brute-force attempts. Auth endpoints get a
-  // tighter window than the global default.
   rateLimit: {
     enabled: true,
     window: 60,
@@ -92,9 +91,6 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (userData) => {
-          // Every direct signup is the owner (admin) of their own store.
-          // Team members are created server-side with an explicit ownerId/role,
-          // so we only default self-service signups here.
           return {
             data: {
               ...userData,
@@ -106,9 +102,6 @@ export const auth = betterAuth({
       },
     },
   },
-  // Cookie defaults are HttpOnly + Secure (set automatically by Better Auth
-  // in production via the `baseURL` being HTTPS). SameSite is managed by the
-  // framework's built-in handler, which emits Lax for the sign-in flow.
   advanced: {
     cookieCache: {
       enabled: true,

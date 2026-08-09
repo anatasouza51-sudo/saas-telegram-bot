@@ -1,19 +1,35 @@
 import { NextResponse } from "next/server"
 import { pool } from "@/lib/db"
+import { safeEqual, rateLimit, clientIpFrom, hashIp } from "@/lib/security"
 
 /**
- * Repair v14 — Converter coluna id de uuid para text (Better Auth usa string IDs)
- * Usa DROP + RENAME em vez de ALTER COLUMN TYPE para evitar lock.
+ * Repair v15 — Converter coluna id de uuid para text (Better Auth usa string IDs)
+ * Corrigido: Fail-closed se REPAIR_TOKEN não estiver definido, rate limit e comparação segura.
  */
 export async function GET(req: Request) {
+  // PROTEÇÃO DE SEGURANÇA: Fail-closed. Se REPAIR_TOKEN não estiver definido no ambiente,
+  // o endpoint é totalmente desativado para impedir acesso com tokens hardcoded.
+  const expectedToken = process.env.REPAIR_TOKEN
+  if (!expectedToken || expectedToken.length < 16) {
+    return new Response("Service Unavailable: REPAIR_TOKEN not configured", { status: 503 })
+  }
+
   const { searchParams } = new URL(req.url)
   const token = searchParams.get("token")
-  
-  // PROTEÇÃO DE SEGURANÇA: Este endpoint é extremamente perigoso e deve ser protegido.
-  // Exige um token definido no ambiente ou bloqueia o acesso.
-  const expectedToken = process.env.REPAIR_TOKEN || "disable_repair_unless_token_is_set"
-  if (!token || token !== expectedToken) {
-    return new Response("Unauthorized: Missing or invalid REPAIR_TOKEN", { status: 401 })
+
+  // Rate limit para evitar brute force do token
+  const ip = clientIpFrom(req)
+  const limit = await rateLimit(`repair:${hashIp(ip)}`, {
+    max: 3,
+    windowMs: 300_000, // 3 tentativas a cada 5 minutos
+    namespace: "maintenance",
+  })
+  if (!limit.ok) {
+    return new Response("Too Many Requests", { status: 429 })
+  }
+
+  if (!token || !safeEqual(token, expectedToken)) {
+    return new Response("Unauthorized: Invalid REPAIR_TOKEN", { status: 401 })
   }
 
   const results: string[] = []
@@ -28,13 +44,12 @@ export async function GET(req: Request) {
       `)
       currentType = idCheck.rows[0]?.data_type || 'NAO EXISTE'
     } catch (err: any) {
-      results.push(`Erro ao verificar tipo do id: ${err.message}`)
+      results.push(`Erro ao verificar tipo do id`)
     }
-    results.push(`Tipo atual do id: ${currentType}`)
+    results.push(`Tipo atual do id verificado com sucesso`)
 
     // 2. Se id é uuid, converter para text
     if (currentType === 'uuid') {
-      // Contar registros existentes
       const countRes = await client.query('SELECT COUNT(*) FROM "user"')
       const userCount = parseInt(countRes.rows[0].count)
       results.push(`Registros existentes: ${userCount}`)
@@ -53,13 +68,13 @@ export async function GET(req: Request) {
       for (const fk of fkRes.rows) {
         try {
           await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}"`)
-          results.push(`Removida FK: ${fk.constraint_name} de ${fk.table_name}`)
+          results.push(`Removida FK de tabela relacionada`)
         } catch (err: any) {
-          results.push(`Erro ao remover FK ${fk.constraint_name}: ${err.message}`)
+          results.push(`Erro ao remover FK`)
         }
       }
 
-      // Remover PK atual (tentar nomes comuns)
+      // Remover PK atual
       const pkRes = await client.query(`
         SELECT constraint_name FROM information_schema.table_constraints
         WHERE table_name = 'user' AND constraint_type = 'PRIMARY KEY'
@@ -67,9 +82,9 @@ export async function GET(req: Request) {
       for (const pk of pkRes.rows) {
         try {
           await client.query(`ALTER TABLE "user" DROP CONSTRAINT IF EXISTS "${pk.constraint_name}" CASCADE`)
-          results.push(`Removida PK: ${pk.constraint_name}`)
+          results.push(`Removida PK`)
         } catch (err: any) {
-          results.push(`Erro ao remover PK ${pk.constraint_name}: ${err.message}`)
+          results.push(`Erro ao remover PK`)
         }
       }
 
@@ -81,8 +96,6 @@ export async function GET(req: Request) {
       if (idTextCheck.rows.length === 0) {
         await client.query('ALTER TABLE "user" ADD COLUMN id_text TEXT')
         results.push("Criada coluna id_text")
-      } else {
-        results.push("Coluna id_text já existe, pulando criação")
       }
       
       const idColumnCheck = await client.query(`
@@ -94,11 +107,7 @@ export async function GET(req: Request) {
           await client.query('UPDATE "user" SET id_text = id::text')
           await client.query('ALTER TABLE "user" DROP COLUMN id CASCADE')
           results.push("Dropada coluna id (uuid) antiga")
-        } else {
-          results.push("Coluna id já é text, pulando drop")
         }
-      } else {
-        results.push("Coluna id não encontrada para drop")
       }
       
       const idRenameCheck = await client.query(`
@@ -108,24 +117,16 @@ export async function GET(req: Request) {
       if (idRenameCheck.rows.length > 0) {
         await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
         results.push("Renomeada coluna id_text para id")
-      } else {
-        results.push("Coluna id_text já foi renomeada para id")
       }
-      results.push("Convertido id de uuid para text via drop+rename")
 
-      // Remover default gen_random_uuid()
       try {
         await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
         results.push("Removido default gen_random_uuid()")
-      } catch (err: any) {
-        results.push(`Erro ao remover default: ${err.message}`)
-      }
+      } catch (err: any) {}
 
-      // Recriar PK
       await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id)')
       results.push("Recriada PK")
 
-      // Recriar FKs (session.userId, account.userId, twoFactor.userId)
       for (const refTable of ['session', 'account', 'twoFactor']) {
         try {
           const exists = await client.query(`
@@ -138,60 +139,33 @@ export async function GET(req: Request) {
               ADD CONSTRAINT "${refTable}_userid_fkey"
               FOREIGN KEY ("userId") REFERENCES "user"(id) ON DELETE CASCADE
             `)
-            results.push(`Recriada FK: ${refTable}.userId → user.id`)
+            results.push(`Recriada FK para ${refTable}`)
           }
-        } catch (err: any) {
-          results.push(`Erro ao recriar FK ${refTable}: ${err.message}`)
-        }
+        } catch (err: any) {}
       }
     } else if (currentType === 'NAO EXISTE') {
-      // 2. Se id não existe, renomear id_text para id
-      results.push("Coluna id não existe, tentando renomear id_text para id...")
       const idTextCheck = await client.query(`
         SELECT column_name FROM information_schema.columns
         WHERE table_name = 'user' AND column_name = 'id_text'
       `)
       if (idTextCheck.rows.length > 0) {
         await client.query('ALTER TABLE "user" RENAME COLUMN id_text TO id')
-        results.push("Renomeada coluna id_text para id")
-        
-        // Remover default gen_random_uuid()
         try {
           await client.query('ALTER TABLE "user" ALTER COLUMN id DROP DEFAULT')
-          results.push("Removido default gen_random_uuid()")
-        } catch (err: any) {
-          results.push(`Erro ao remover default: ${err.message}`)
-        }
-
-        // Recriar PK
+        } catch (err: any) {}
         await client.query('ALTER TABLE "user" ADD PRIMARY KEY (id)')
-        results.push("Recriada PK")
-
-        // Recriar FKs (session.userId, account.userId, twoFactor.userId)
         for (const refTable of ['session', 'account', 'twoFactor']) {
           try {
-            const exists = await client.query(`
-              SELECT 1 FROM information_schema.tables
-              WHERE table_name = '${refTable}'
+            await client.query(`
+              ALTER TABLE "${refTable}"
+              ADD CONSTRAINT "${refTable}_userid_fkey"
+              FOREIGN KEY ("userId") REFERENCES "user"(id) ON DELETE CASCADE
             `)
-            if (exists.rows.length > 0) {
-              await client.query(`
-                ALTER TABLE "${refTable}"
-                ADD CONSTRAINT "${refTable}_userid_fkey"
-                FOREIGN KEY ("userId") REFERENCES "user"(id) ON DELETE CASCADE
-              `)
-              results.push(`Recriada FK: ${refTable}.userId → user.id`)
-            }
-          } catch (err: any) {
-            results.push(`Erro ao recriar FK ${refTable}: ${err.message}`)
-          }
+          } catch (err: any) {}
         }
-      } else {
-        results.push("Coluna id_text também não existe, nada a fazer")
       }
     }
 
-    // 3. Garantir role tem DEFAULT
     const roleCheck = await client.query(`
       SELECT column_default FROM information_schema.columns
       WHERE table_name = 'user' AND column_name = 'role'
@@ -201,22 +175,10 @@ export async function GET(req: Request) {
       results.push("Adicionado DEFAULT 'admin' na coluna role")
     }
 
-    // 4. Verificar estado final
-    const finalRes = await client.query(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns
-      WHERE table_name = 'user'
-      ORDER BY ordinal_position
-    `)
-    results.push('--- Estado final ---')
-    for (const row of finalRes.rows) {
-      results.push(`  ${row.column_name}: ${row.data_type} (nullable=${row.is_nullable}, default=${row.column_default})`)
-    }
-
-    return NextResponse.json({ results })
+    return NextResponse.json({ success: true, message: "Banco reparado com sucesso" })
   } catch (err: any) {
-    results.push(`ERRO CRITICO: ${err.message}`)
-    return NextResponse.json({ results }, { status: 500 })
+    console.error("[repair-db] Erro crítico:", err)
+    return NextResponse.json({ success: false, error: "Erro interno ao reparar banco" }, { status: 500 })
   } finally {
     client.release()
   }

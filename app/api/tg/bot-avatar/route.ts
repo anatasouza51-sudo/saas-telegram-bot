@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/session"
 import { can } from "@/lib/roles"
+import { safeFetch, validateFetchUrl } from "@/lib/ssrf-protection"
 
 export const runtime = "nodejs"
 
 /**
  * Proxy para carregar o avatar do bot do Telegram sem expor o token no frontend.
- * Recebe a URL completa do Telegram (que contém o token) e retransmite os bytes.
+ * Corrigido (M-3): Utiliza validateFetchUrl e safeFetch para prevenir SSRF e túneis arbitrários.
  */
 export async function GET(req: Request) {
   const user = await getSessionUser()
@@ -17,12 +18,18 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const telegramUrl = searchParams.get("url")
 
-  if (!telegramUrl || !telegramUrl.startsWith("https://api.telegram.org/file/bot")) {
+  if (!telegramUrl) {
     return new NextResponse("URL inválida", { status: 400 })
   }
 
   try {
-    const response = await fetch(telegramUrl)
+    // Validação estrita de SSRF e domínio do Telegram
+    const validated = validateFetchUrl(telegramUrl)
+    if (!validated.startsWith("https://api.telegram.org/file/bot")) {
+      return new NextResponse("URL não permitida", { status: 400 })
+    }
+
+    const response = await safeFetch(validated)
     if (!response.ok || !response.body) {
       return new NextResponse("Falha ao buscar imagem do Telegram", { status: response.status })
     }
@@ -35,6 +42,6 @@ export async function GET(req: Request) {
     })
   } catch (err) {
     console.error("[bot-avatar-proxy] Error:", err)
-    return new NextResponse("Erro interno", { status: 500 })
+    return new NextResponse("Erro interno ou URL inválida", { status: 400 })
   }
 }

@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { user } from "@/lib/db/schema"
+import { user, activityLogs } from "@/lib/db/schema"
 import { auth } from "@/lib/auth"
 import { requireCapability } from "@/lib/session"
 import { logActivity } from "@/lib/log"
@@ -11,8 +11,6 @@ import { and, eq, or } from "drizzle-orm"
 
 import { revalidatePath } from "next/cache"
 
-// A user belongs to store S when they ARE the owner (user.id = S) or when
-// they are a team member of it (user.ownerId = S).
 function storeMembers(storeId: string) {
   return or(eq(user.id, storeId), eq(user.ownerId, storeId))
 }
@@ -44,54 +42,58 @@ export async function createAdmin(input: {
     return { ok: false, error: "Permissão inválida" }
   }
 
-  // Validate input size to prevent oversized payloads.
   const name = validateProfileName(input.name)
   const email = validateEmail(input.email)
 
+  let newUserId: string | undefined
   try {
-    // Better Auth creates the user (with hashed password).
-    // O hook de banco em lib/auth.ts define role=admin e ownerId=null por padrão.
-    // Para evitar que um erro entre o signup e o update deixe um usuário como admin global,
-    // usamos uma transação ou garantimos a ordem correta.
-    
-    // NOTA: signUpEmail não aceita role/ownerId no body por padrão no Better Auth (segurança).
-    // Asseguramos que o usuário seja criado e IMEDIATAMENTE vinculado à loja do actor.
+    // 1. Better Auth cria o usuário (com hash de senha)
     const created = await auth.api.signUpEmail({
       body: {
         name,
         email,
         password: input.password,
-        // Passamos metadados que podem ser lidos no hook, se configurado,
-        // ou apenas procedemos com o update atômico.
       },
     })
 
-    const newUserId = created.user?.id
+    newUserId = created.user?.id
     if (!newUserId) {
       throw new Error("Falha ao recuperar ID do novo usuário")
     }
 
-    // Vinculação obrigatória ao storeId do criador para evitar Broken Access Control
-    await db
-      .update(user)
-      .set({ 
-        role: input.role, 
-        ownerId: actor.storeId,
-        // Garantimos que onboarding seja resetado para membros de equipe
-        onboardingSeen: true 
-      })
-      .where(eq(user.id, newUserId))
+    // 2. Corrigido (A-2): Executamos o vínculo à loja dentro de transação e
+    // garantimos consistência atômica. Se falhar, fazemos compensação removendo o usuário criado.
+    await db.transaction(async (tx) => {
+      await tx
+        .update(user)
+        .set({ 
+          role: input.role, 
+          ownerId: actor.storeId,
+          onboardingSeen: true 
+        })
+        .where(eq(user.id, newUserId!))
 
-    await logActivity({
-      storeId: actor.storeId,
-      action: `Administrador criado: ${input.email} (${input.role})`,
-      category: "admin",
-      actor,
+      await tx.insert(activityLogs).values({
+        ownerId: actor.storeId,
+        action: `Administrador criado: ${email} (${input.role})`,
+        category: "admin",
+        actorId: actor.id,
+        actorName: actor.name,
+      })
     })
+
     revalidatePath("/admins")
     return { ok: true }
   } catch (e) {
-    console.error("[admins] could not create admin:", e)
+    console.error("[admins] could not create admin, rolling back user:", e)
+    // Compensação: se o vínculo falhou, removemos o usuário órfão criado pelo signup
+    if (newUserId) {
+      try {
+        await db.delete(user).where(eq(user.id, newUserId))
+      } catch (cleanupErr) {
+        console.error("[admins] failed to cleanup orphaned user after transaction failure:", cleanupErr)
+      }
+    }
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Erro ao criar administrador",
@@ -103,7 +105,6 @@ export async function updateAdminRole(userId: string, role: Role) {
   const actor = await requireCapability("admins.manage")
   if (!ROLES.includes(role)) return { ok: false, error: "Permissão inválida" }
 
-  // Target must belong to the same store.
   const [target] = await db
     .select()
     .from(user)
@@ -111,7 +112,6 @@ export async function updateAdminRole(userId: string, role: Role) {
     .limit(1)
   if (!target) return { ok: false, error: "Administrador não encontrado." }
 
-  // Prevent removing the last admin of this store.
   if (role !== "admin") {
     const admins = await db
       .select()
@@ -149,7 +149,6 @@ export async function deleteAdmin(userId: string) {
     .limit(1)
   if (!target) return { ok: false, error: "Administrador não encontrado." }
 
-  // The store owner (self-owned account) can never be deleted here.
   if (target.id === actor.storeId) {
     return {
       ok: false,
