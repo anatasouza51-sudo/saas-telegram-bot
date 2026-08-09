@@ -1,6 +1,14 @@
 // Security headers applied to every response. CSP is intentionally strict but
 // allows the styles/images this app actually uses. 'unsafe-inline' is required
 // for Next's inline runtime styles; scripts avoid it in production.
+
+// SECURITY (Low-14): Mitigação do 'unsafe-inline' em script-src.
+// O Next.js gera scripts inline cujo hash muda a cada build, então a abordagem
+// prática e recomendada é usar 'strict-dynamic' em produção: scripts carregados
+// por um script confiável (o loader do Next) são permitidos, mas scripts estáticos
+// injetados diretamente no HTML por terceiros são bloqueados. O 'unsafe-inline'
+// permanece apenas como fallback para navegadores antigos que não suportam
+// strict-dynamic, com efeito neutralizado quando strict-dynamic está presente.
 const isProd = process.env.NODE_ENV === "production"
 
 // Frame protection is only enforced in production so the v0/Vercel preview
@@ -28,7 +36,9 @@ const securityHeaders = [
       "object-src 'none'",
       "img-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'" + (isProd ? "" : " 'unsafe-eval'"),
+      isProd
+        ? "script-src 'self' 'strict-dynamic' 'unsafe-inline'"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "font-src 'self' data:",
       "connect-src 'self' https:",
       "form-action 'self'",
