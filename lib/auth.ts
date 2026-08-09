@@ -71,8 +71,8 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
-    // Requer verificação de email antes de permitir login completo
-    requireEmailVerification: true,
+    // Desativado para permitir acesso direto sem exigir Resend API Key
+    requireEmailVerification: false,
   },
   // sendOnSignUp é true por padrão quando requireEmailVerification está ativo.
   emailVerification: RESEND_API_KEY ? { sendVerificationEmail } : undefined,
