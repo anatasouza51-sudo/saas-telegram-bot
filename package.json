@@ -13,7 +13,7 @@
     "@base-ui/react": "^1.5.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.1",
-    "@vercel/analytics": "1.6.1",
+    "@vercel/analytics": "2.0.1",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -21,7 +21,7 @@
     "framer-motion": "^12.42.2",
     "ioredis": "^6.0.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
+    "next": "16.3.0",
     "next-themes": "^0.4.6",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
@@ -48,8 +48,5 @@
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "typescript": "5.7.3"
-  },
-  "overrides": {
-    "hono": "4.12.25"
   }
 }

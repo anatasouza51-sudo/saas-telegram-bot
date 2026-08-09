@@ -6,6 +6,46 @@ import { getWebhookSecret } from "@/lib/webhook-secrets"
 import { logActivity } from "@/lib/log"
 import { safeEqual, rateLimit, clientIpFrom, hashIp } from "@/lib/security"
 import { validateTelegramWebhook } from "@/lib/cloudflare"
+
+// Replay attack protection: cache processed update_id per store (24h TTL via Redis).
+// Prevents re-sending of captured webhook payloads.
+const replayPrefix = "tg:replay:"
+
+function getRedis() {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return null
+  return { url, token }
+}
+
+async function isReplay(storeId: string, updateId: number): Promise<boolean> {
+  const redis = getRedis()
+  if (!redis) return false // No Redis — skip replay check (degraded)
+  const key = `${replayPrefix}${storeId}:${updateId}`
+  try {
+    const resp = await fetch(`${redis.url}/get/${key}`, {
+      headers: { Authorization: `Bearer ${redis.token}` },
+    })
+    const data = await resp.json()
+    return data.result !== null && data.result !== undefined
+  } catch {
+    return false // Redis failure — don't block legitimate updates
+  }
+}
+
+async function markProcessed(storeId: string, updateId: number): Promise<void> {
+  const redis = getRedis()
+  if (!redis) return
+  const key = `${replayPrefix}${storeId}:${updateId}`
+  try {
+    // Set with 24h expiry (86400s)
+    await fetch(`${redis.url}/set/${key}/1?EX=86400`, {
+      headers: { Authorization: `Bearer ${redis.token}` },
+    })
+  } catch {
+    // Best-effort: failure to mark doesn't break functionality
+  }
+}
 import { processSchedules } from "@/lib/tg/scheduler"
 import { expireDuePixOrders } from "@/lib/bot"
 import { ensureDbStructure } from "@/lib/db/migrate"
@@ -83,6 +123,16 @@ export async function POST(
     update = (await req.json()) as TelegramUpdate
   } catch {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+  }
+
+  // Replay attack protection: skip already-processed update_ids
+  if (update.update_id != null) {
+    if (await isReplay(storeId, update.update_id)) {
+      console.log(`[telegram/webhook] Replay detected, skipping update_id=${update.update_id}`)
+      return NextResponse.json({ ok: true })
+    }
+    // Mark as processed (fire-and-forget)
+    markProcessed(storeId, update.update_id).catch(() => {})
   }
 
   // Record diagnostics. Fire-and-forget: diagnostics are best-effort and must

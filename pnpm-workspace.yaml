@@ -1,3 +1,6 @@
 allowBuilds:
   sharp: true
   unrs-resolver: false
+overrides:
+  "postcss@<=8.5.22": "8.5.23"
+  "nanoid@<3.3.17": "3.3.17"
