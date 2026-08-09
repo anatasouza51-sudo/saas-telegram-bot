@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/tg/cron",
-      "schedule": "* * * * *"
-    }
-  ],
   "functions": {
     "app/api/tg/upload/**": {
       "maxDuration": 60
