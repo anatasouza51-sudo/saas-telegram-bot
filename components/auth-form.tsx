@@ -72,34 +72,48 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       let result: any
       
       if (isSignUp) {
-        result = await authClient.signUp.email({ email, password, name })
-        if (result.error) {
+        result = await authClient.signUp.email({ 
+          email, 
+          password, 
+          name,
+          callbackURL: "/"
+        }, {
+          onSuccess: () => {
+            window.location.href = "/"
+          },
+          onError: (ctx) => {
+            setError(ctx.error.message || "Falha ao criar conta")
+            setLoading(false)
+          }
+        })
+        if (result?.error) {
           setError(result.error.message || "Falha ao criar conta")
           setLoading(false)
           return
         }
-        result = await authClient.signIn.email({ email, password })
       } else {
-        result = await authClient.signIn.email({ email, password })
+        result = await authClient.signIn.email({ 
+          email, 
+          password,
+          callbackURL: "/"
+        }, {
+          onSuccess: () => {
+            window.location.href = "/"
+          },
+          onError: (ctx) => {
+            setError(ctx.error.message || "Credenciais inválidas")
+            setLoading(false)
+          }
+        })
+        if (result?.error) {
+          setError(result.error.message || "Credenciais inválidas")
+          setLoading(false)
+          return
+        }
       }
 
-      if (result.error) {
-        setError(result.error.message || "Credenciais invalidas")
-        setLoading(false)
-        return
-      }
-
-      // Verificar se 2FA eh necessario
-      if (result.data?.twoFactorRedirect) {
-        router.push("/two-factor")
-        return
-      }
-      
-      // Sucesso no login sem 2FA — aguardar propagação do cookie de sessão
-      router.refresh()
-      setTimeout(() => {
-        window.location.replace("/")
-      }, 1000)
+      // Se chegou aqui e não redirecionou pelo onSuccess, forçar redirecionamento
+      window.location.href = "/"
       
     } catch (err) {
       console.error("Auth error:", err)

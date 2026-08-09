@@ -121,7 +121,7 @@ export default function OnboardingTutorial() {
         >
           {/* Overlay escuro com área transparente ao redor do tooltip */}
           <motion.div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px] pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
