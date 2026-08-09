@@ -23,7 +23,7 @@ export const pool =
     query_timeout: 15_000, // Timeout para queries individuais
     statement_timeout: 15_000, // Timeout para statements individuais
     ssl: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: true,
     },
   })
 
