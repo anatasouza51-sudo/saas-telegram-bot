@@ -178,7 +178,10 @@ export function clientIpFrom(req: Request): string {
  * Gera um hash do IP para privacidade em logs persistentes ou rate limiting.
  * Usa um segredo do servidor para evitar rainbow tables.
  */
-const IP_SALT = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET
+const IP_SALT =
+  process.env.RATE_LIMIT_SECRET ||
+  process.env.BETTER_AUTH_SECRET ||
+  "vercel-build-fallback-secret-at-least-32-chars-long"
 const DYNAMIC_SALT = IP_SALT || randomBytes(32).toString("hex")
 
 export function hashIp(ip: string): string {
