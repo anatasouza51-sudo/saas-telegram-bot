@@ -10,6 +10,7 @@ import { sanitizeFileName } from "@/lib/validation"
 import { logActivity } from "@/lib/log"
 import { encrypt } from "@/lib/crypto"
 import { randomBytes } from "node:crypto"
+import { csrfGuard } from "@/lib/security"
 
 export const runtime = "nodejs"
 // maxDuration is configured in vercel.json for this route.
@@ -72,6 +73,9 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 }
 
 export async function POST(req: Request) {
+  // CSRF protection: reject requests from untrusted origins
+  const guard = csrfGuard(req)
+  if (guard) return guard
   try {
     return await handleUpload(req)
   } catch (err: any) {

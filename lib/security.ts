@@ -187,3 +187,52 @@ const DYNAMIC_SALT = IP_SALT || randomBytes(32).toString("hex")
 export function hashIp(ip: string): string {
   return createHmac("sha256", DYNAMIC_SALT).update(ip).digest("hex").slice(0, 16)
 }
+
+// --- CSRF Protection ---
+
+/**
+ * Trusted origin hosts for CSRF protection on mutating API routes.
+ * Prevents cross-site POST/PUT/PATCH/DELETE from malicious origins.
+ */
+const TRUSTED_ORIGIN_HOSTS = new Set<string>([
+  "saas-telegram-bot-git-main-drip-nation.vercel.app",
+  "saas-telegram-k9bqrmgr9-drip-nation.vercel.app",
+  "saas-telegram-bot.vercel.app",
+  "localhost",
+  "127.0.0.1",
+])
+
+/**
+ * Check if the Origin header is from a trusted source.
+ * Returns true for same-origin (null/absent) or trusted domains.
+ */
+export function isTrustedOrigin(origin: string | null): boolean {
+  if (!origin) return true // Same-origin request (no Origin header)
+  try {
+    const url = new URL(origin)
+    const host = url.host
+    // Exact match against known hosts
+    if (TRUSTED_ORIGIN_HOSTS.has(host)) return true
+    // Vercel wildcard subdomains (*.vercel.app, *.vusercontent.net)
+    if (host.endsWith(".vercel.app") || host.endsWith(".vusercontent.net")) return true
+    return false
+  } catch {
+    return false // Malformed Origin — reject
+  }
+}
+
+/**
+ * CSRF guard for mutating API routes (POST/PUT/PATCH/DELETE).
+ * Returns a 403 Response if Origin is untrusted, or null if OK.
+ * Usage: const guard = csrfGuard(req); if (guard) return guard;
+ */
+export function csrfGuard(req: Request): Response | null {
+  const origin = req.headers.get("origin")
+  if (!isTrustedOrigin(origin)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+  return null
+}
