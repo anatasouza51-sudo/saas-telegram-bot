@@ -42,3 +42,7 @@ Para o /start funcionar:
 - IP validation falhando (app não atrás do Cloudflare mas NODE_ENV=production)
 - BotToken não configurado na store
 - Tabela customers sem coluna `balance` causando erro no upsertCustomer ou queries subsequentes
+
+## Auditoria de Autenticação - Ghost Bot (Atualização)
+- **URL de Produção**: `https://ghostsbot.vercel.app`
+- **Problema**: O Better Auth em produção na Vercel requer que as variáveis de ambiente `BETTER_AUTH_SECRET` e `BETTER_AUTH_URL` (ou `NEXT_PUBLIC_APP_URL`) estejam explicitamente configuradas no painel da Vercel para que os cookies de sessão (`__Secure-better-auth.session_token`) sejam emitidos com segurança e aceitos nas rotas do painel.
