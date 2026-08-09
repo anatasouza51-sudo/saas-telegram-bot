@@ -16,7 +16,7 @@ const globalForDb = globalThis as unknown as { __pgPool?: Pool }
 export const pool =
   globalForDb.__pgPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL || "postgres://localhost:5432/placeholder", /* fallback p/ build; falha em runtime se ausente */
+    connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || "postgres://localhost:5432/placeholder",
     max: 10,
     idleTimeoutMillis: 20_000, // Reduzido para liberar conexões ociosas mais rápido
     connectionTimeoutMillis: 10_000, // Aumentado para dar chance ao Neon de acordar
