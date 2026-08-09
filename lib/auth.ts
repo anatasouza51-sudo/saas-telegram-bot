@@ -30,11 +30,7 @@ async function sendVerificationEmail({ user, url }: { user: { email: string; nam
 }
 
 function getBaseURL() {
-  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return process.env.V0_RUNTIME_URL || "http://localhost:3000"
+  return "https://ghostsbot.vercel.app"
 }
 
 const trustedOrigins = [
