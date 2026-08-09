@@ -2,6 +2,33 @@ import { betterAuth } from "better-auth"
 import { twoFactor } from "better-auth/plugins"
 import { pool } from "@/lib/db"
 
+// SECURITY: Email verification via Resend (gratuito até 100 emails/dia).
+// Configure RESEND_API_KEY e EMAIL_FROM no painel do Vercel para ativar.
+// Sem a API key, a verificação é pulada (degraded) mas o schema emailVerified
+// continua no banco para quando a chave for configurada.
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const EMAIL_FROM = process.env.EMAIL_FROM || "noreply@saas-telegram-bot.com"
+
+async function sendVerificationEmail({ user, url }: { user: { email: string; name?: string }; url: string }) {
+  const resp = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: EMAIL_FROM,
+      to: [user.email],
+      subject: "Confirme seu email — SaaS Telegram Bot",
+      html: `<p>Olá ${user.name || ""},</p><p>Clique para confirmar seu email:</p><p><a href="${url}">${url}</a></p>`,
+    }),
+  })
+  if (!resp.ok) {
+    const text = await resp.text()
+    throw new Error(`Resend send failed: ${resp.status} ${text}`)
+  }
+}
+
 function getBaseURL() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
@@ -44,7 +71,11 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    // Requer verificação de email antes de permitir login completo
+    requireEmailVerification: true,
   },
+  // sendOnSignUp é true por padrão quando requireEmailVerification está ativo.
+  emailVerification: RESEND_API_KEY ? { sendVerificationEmail } : undefined,
   plugins: process.env.DISABLE_TWOFACTOR === "1" ? [] : [
     twoFactor({
       issuer: "SaaS Telegram Bot",
