@@ -340,13 +340,21 @@ export function PostEditor({
             onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_LENGTH))}
             className="bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl p-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
           />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-dashboard-text-muted/60">
-            {text.length} / {MAX_TEXT_LENGTH} caracteres · Formatação{" "}
-            {parseMode}
-            {text.length >= MAX_TEXT_LENGTH
-              ? " · Limite atingido"
-              : ""}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-dashboard-text-muted/60">
+              {text.length} / {MAX_TEXT_LENGTH} caracteres · Formatação{" "}
+              {parseMode}
+              {text.length >= MAX_TEXT_LENGTH
+                ? " · Limite atingido"
+                : ""}
+            </p>
+            <p
+              className="text-[10px] text-dashboard-text-muted/60"
+              title="Mensagens com mais de 4.096 caracteres são divididas automaticamente em blocos ao enviar."
+            >
+              Máx. 5.000 caracteres
+            </p>
+          </div>
         </div>
 
         {/* Mídia */}
