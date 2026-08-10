@@ -30,6 +30,9 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     if (!entries.length) return null
 
     const cookieHeader = entries.map((c) => `${c.name}=${c.value}`).join("; ")
+    if (process.env.NODE_ENV === "production") {
+      console.log("[getSessionUser] Cookies encontrados:", entries.map(c => c.name).join(", "))
+    }
     const h = new Headers()
     h.set("cookie", cookieHeader)
 
