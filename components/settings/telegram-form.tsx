@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { saveTelegramSettings, registerTelegramWebhook } from "@/app/actions/settings"
+import { checkWebhookRegistration } from "@/app/actions/check-webhook"
 import { getBotPreview, type BotPreview } from "@/app/actions/tg-preview"
 import { autoDetectTelegramGroups, syncGroupToAudience } from "@/app/actions/tg-auto-detect"
 import { toast } from "sonner"
@@ -42,6 +43,26 @@ export function TelegramForm({
   const [adminIds, setAdminIds] = useState(initial.adminIds)
   const [pending, startTransition] = useTransition()
   const [registering, startRegister] = useTransition()
+  // Webhook mismatch guard: if Telegram's registered URL points at another
+  // store, updates (and /start, buttons) never reach this shop silently.
+  const [webhookMatches, setWebhookMatches] = useState<boolean | null>(null)
+  const [webhookRegisteredUrl, setWebhookRegisteredUrl] = useState<string | null>(null)
+  const [checkingWebhook, setCheckingWebhook] = useState(false)
+  async function refreshWebhookStatus() {
+    if (!botConfigured) return
+    setCheckingWebhook(true)
+    try {
+      const res = await checkWebhookRegistration()
+      if (res.ok) {
+        setWebhookMatches(res.matches ?? false)
+        setWebhookRegisteredUrl(res.registeredUrl ?? null)
+      }
+    } catch {
+      // Best-effort diagnostics — never break the page on a check failure
+    } finally {
+      setCheckingWebhook(false)
+    }
+  }
   const [detecting, startDetect] = useTransition()
   const [copied, setCopied] = useState(false)
   
@@ -54,6 +75,10 @@ export function TelegramForm({
   const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
 
   // Fetch bot preview when token changes
+  useEffect(() => {
+    refreshWebhookStatus()
+  }, [botConfigured])
+
   useEffect(() => {
     const token = botToken.trim()
     if (token && token.includes(":")) {
@@ -99,10 +124,15 @@ export function TelegramForm({
       const res = await registerTelegramWebhook()
       if (res.ok) {
         toast.success("Webhook registrado no Telegram com sucesso")
+        await refreshWebhookStatus()
       } else {
         toast.error(res.error || "Falha ao registrar webhook")
       }
     })
+  }
+
+  function fixMismatchedWebhook() {
+    connect()
   }
 
   function copyUrl() {
@@ -162,6 +192,41 @@ export function TelegramForm({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Mismatch warning: the silent failure where Telegram keeps an old
+          webhook registration pointing at another store's URL. */}
+      {botConfigured && checkingWebhook && (
+        <p className="text-xs text-muted-foreground">
+          Verificando o status do webhook no Telegram...
+        </p>
+      )}
+      {botConfigured && webhookMatches === false && (
+        <div className="rounded-xl border border-destructive bg-destructive/10 p-4 space-y-2">
+          <p className="font-bold text-destructive">
+            ⚠️ O webhook do Telegram NÃO aponta para esta loja
+          </p>
+          <p className="text-sm text-muted-foreground break-all">
+            O Telegram está entregando as mensagens a outra URL:{" "}
+            <code className="text-xs">{webhookRegisteredUrl ?? "?"}</code>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            URL esperada desta loja:{" "}
+            <code className="text-xs break-all">{webhookUrl}</code>
+          </p>
+          <p className="text-sm">
+            É por isso que o bot não responde. Clique abaixo para registrar o
+            webhook correto agora.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={fixMismatchedWebhook}
+            disabled={registering}
+            className="bg-primary text-black font-bold hover:bg-primary/90"
+          >
+            {registering ? "Corrigindo..." : "Corrigir webhook (1 clique)"}
+          </Button>
+        </div>
+      )}
       {/* Seção 1: Configuração do Token */}
       <Card>
         <CardHeader>
