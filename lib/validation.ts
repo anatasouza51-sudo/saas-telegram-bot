@@ -21,9 +21,10 @@ const MAX_TEXT_LENGTH = 10_000
 // Telegram-specific content limits
 // ---------------------------------------------------------------------------
 // Telegram imposes its own caps on messages (4 096 chars for normal users,
-// 8 192 for premium accounts). We enforce a server-side ceiling of 4 000 to
-// leave room for footer metadata and avoid truncation surprises.
-const MAX_TELEGRAM_MESSAGE_LENGTH = 4_000
+// 8 192 for premium accounts). Users asked for a 5 000 char ceiling on the
+// post editor; oversized sends are split downstream, but the boundary here
+// prevents absurd payloads (e.g. 100k-char pasted scripts) from being saved.
+const MAX_TELEGRAM_MESSAGE_LENGTH = 5_000
 // Telegram post titles / template names / folder names should stay short.
 const MAX_TITLE_LENGTH = 255
 // Stock item content per line (e.g. license keys, serials).
