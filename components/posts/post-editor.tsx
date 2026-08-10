@@ -84,6 +84,11 @@ export function PostEditor({
   const [postId, setPostId] = useState<number | undefined>(initial?.id)
   const [title, setTitle] = useState(initial?.title ?? "")
   const [text, setText] = useState(initial?.text ?? "")
+  // 5 000 char cap on the message editor: scripts pasted with hundreds of
+  // thousands of chars would otherwise be silently sent downstream and can
+  // break Telegram (4096 limit) or bloat the DB. Server validation enforces
+  // the same cap (validateTelegramText / sanitizeTelegramHtml).
+  const MAX_TEXT_LENGTH = 5_000
   const [parseMode, setParseMode] = useState<"HTML" | "Markdown">(
     initial?.parseMode ?? "HTML",
   )
@@ -331,11 +336,16 @@ export function PostEditor({
             rows={8}
             placeholder="Escreva sua mensagem..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            maxLength={MAX_TEXT_LENGTH}
+            onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_LENGTH))}
             className="bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl p-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
           />
           <p className="text-[10px] font-bold uppercase tracking-widest text-dashboard-text-muted/60">
-            {text.length} caracteres · Formatação {parseMode}
+            {text.length} / {MAX_TEXT_LENGTH} caracteres · Formatação{" "}
+            {parseMode}
+            {text.length >= MAX_TEXT_LENGTH
+              ? " · Limite atingido"
+              : ""}
           </p>
         </div>
 
