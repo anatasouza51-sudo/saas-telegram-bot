@@ -1,5 +1,4 @@
 import "server-only"
-import { cache } from "react"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
@@ -23,7 +22,13 @@ export type SessionUser = {
 /**
  * Returns the current session user or null. Does not redirect.
  */
-export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+// Correção de isolamento entre contas:
+// A função NÃO usa mais `cache(...)` do React, pois o cache compartilhado por
+// requisição do Next.js (request-scope) podia ser reutilizado entre contas
+// quando o mesmo runtime processava requisições concorrentes, fazendo o
+// SessionUser (ownerId/storeId) da Conta A ser servido à Conta B.
+// Agora cada requisição valida a própria sessão a partir dos seus cookies.
+export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies()
     const entries = cookieStore.getAll()
@@ -113,7 +118,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     console.error("[getSessionUser] Session lookup failed:", error)
     return null
   }
-})
+}
 
 /**
  * Requires an authenticated user. Redirects to /sign-in otherwise.
