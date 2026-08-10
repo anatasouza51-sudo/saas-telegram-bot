@@ -1,5 +1,4 @@
 import "server-only"
-import { cache } from "react"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
@@ -22,8 +21,12 @@ export type SessionUser = {
 
 /**
  * Returns the current session user or null. Does not redirect.
+ *
+ * NOTE: This function intentionally does NOT use a global memoization/cache,
+ * because session identity depends on request cookies and must be resolved
+ * per-request to avoid tenant leakage between users.
  */
-export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies()
     const entries = cookieStore.getAll()
@@ -62,7 +65,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       role?: string
       ownerId?: string | null
       image?: string | null
-      onboardingSeen?: boolean
+      onboardingSeen?: boolean | null
     }
     
     // Se por algum motivo o Better Auth ainda retornar o nome antigo da sessão,
@@ -113,7 +116,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     console.error("[getSessionUser] Session lookup failed:", error)
     return null
   }
-})
+}
 
 /**
  * Requires an authenticated user. Redirects to /sign-in otherwise.
