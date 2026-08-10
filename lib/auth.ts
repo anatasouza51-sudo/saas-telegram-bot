@@ -139,10 +139,11 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 5 * 60,
     },
-    // Garante que o SameSite seja configurado corretamente para evitar bloqueios de cookies em cross-origin redirects
+    // BUGFIX: Forçar SameSite: None e Secure: true para garantir que o cookie de sessão 
+    // seja aceito em redirecionamentos entre subdomínios Vercel (ex: ghostsbot.vercel.app -> ghostsbot-git-main.vercel.app)
     defaultCookieAttributes: {
-      sameSite: "lax" as const,
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "none" as const,
+      secure: true,
       httpOnly: true,
     },
   },

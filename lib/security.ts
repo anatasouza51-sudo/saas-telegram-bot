@@ -195,6 +195,7 @@ export function hashIp(ip: string): string {
  * Prevents cross-site POST/PUT/PATCH/DELETE from malicious origins.
  */
 const TRUSTED_ORIGIN_HOSTS = new Set<string>([
+  "ghostsbot.vercel.app",
   "saas-telegram-bot-git-main-drip-nation.vercel.app",
   "saas-telegram-k9bqrmgr9-drip-nation.vercel.app",
   "saas-telegram-bot.vercel.app",
