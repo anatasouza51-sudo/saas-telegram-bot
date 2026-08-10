@@ -29,6 +29,9 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     const entries = cookieStore.getAll()
     if (!entries.length) return null
 
+    const hasSessionCookie = entries.some((c) =>
+      c.name.startsWith("better-auth.session_token")
+    )
     const cookieHeader = entries.map((c) => `${c.name}=${c.value}`).join("; ")
     if (process.env.NODE_ENV === "production") {
       console.log("[getSessionUser] Cookies encontrados:", entries.map(c => c.name).join(", "))
@@ -45,7 +48,13 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     })
     
     if (!session?.user) {
-      console.warn("[getSessionUser] Nenhuma sessao encontrada para os cookies fornecidos.")
+      if (process.env.NODE_ENV === "production") {
+        console.warn(
+          "[getSessionUser] Cookie de sessao presente mas invalido/expirado",
+          "(hasSessionCookie:", hasSessionCookie,
+          "| cookies:", entries.map((c) => c.name).join(","), ")"
+        )
+      }
       return null
     }
 
