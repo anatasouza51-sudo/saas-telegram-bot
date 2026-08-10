@@ -10,8 +10,9 @@ import { pool } from "./index"
  * as tabelas de auth continuam existindo e o cadastro funciona.
  */
 export async function ensureDbStructure() {
-  if (!process.env.DATABASE_URL) {
-    console.warn("[db/migrate] DATABASE_URL não configurada. Pulando migração.")
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL
+  if (!connectionString) {
+    console.warn("[db/migrate] Nenhuma variável de conexão (DATABASE_URL, POSTGRES_URL) configurada. Pulando migração.")
     return
   }
 

@@ -30,6 +30,10 @@ async function sendVerificationEmail({ user, url }: { user: { email: string; nam
 }
 
 function getBaseURL() {
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return "https://ghostsbot.vercel.app"
 }
 
@@ -134,6 +138,12 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60,
+    },
+    // Garante que o SameSite seja configurado corretamente para evitar bloqueios de cookies em cross-origin redirects
+    defaultCookieAttributes: {
+      sameSite: "lax" as const,
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
     },
   },
 })
