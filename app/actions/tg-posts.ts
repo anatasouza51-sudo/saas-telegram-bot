@@ -264,7 +264,9 @@ export async function schedulePost(
   await db
     .update(telegramPosts)
     .set({ status: "scheduled", updatedAt: new Date() })
-    .where(eq(telegramPosts.id, id))
+    .where(
+      and(eq(telegramPosts.id, id), eq(telegramPosts.ownerId, user.storeId)),
+    )
 
   await logActivity({
     storeId: user.storeId,

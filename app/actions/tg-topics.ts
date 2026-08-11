@@ -112,7 +112,12 @@ export async function addTopic(input: {
     await db
       .update(telegramChats)
       .set({ isForum: true, updatedAt: now })
-      .where(eq(telegramChats.id, chat.id))
+      .where(
+        and(
+          eq(telegramChats.id, chat.id),
+          eq(telegramChats.ownerId, user.storeId),
+        ),
+      )
 
     await logActivity({
       storeId: user.storeId,
@@ -168,6 +173,18 @@ export async function testTopic(
   threadId: number,
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await requireCapability("posts.manage")
+  const [chat] = await db
+    .select({ id: telegramChats.id })
+    .from(telegramChats)
+    .where(
+      and(
+        eq(telegramChats.chatId, chatId),
+        eq(telegramChats.ownerId, user.storeId),
+      ),
+    )
+    .limit(1)
+  if (!chat) return { ok: false, error: "Grupo não encontrado." }
+
   const { client } = await getStoreTelegram(user.storeId)
   if (!client) return { ok: false, error: "Bot não configurado." }
 

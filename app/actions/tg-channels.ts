@@ -414,38 +414,37 @@ export async function removeChat(id: number): Promise<{
 }> {
   const user = await requireCapability("posts.manage")
 
-  const [chat] = await db
-    .select()
-    .from(telegramChats)
+  // Delete atomically with the tenant predicate and return only the deleted
+  // row. This prevents a stale pre-check from authorizing a later mutation.
+  const [deletedChat] = await db
+    .delete(telegramChats)
     .where(
       and(eq(telegramChats.id, id), eq(telegramChats.ownerId, user.storeId)),
     )
-    .limit(1)
+    .returning({ title: telegramChats.title, purpose: telegramChats.purpose })
 
-  if (!chat) {
+  if (!deletedChat) {
     return { ok: false, error: "Grupo/canal não encontrado." }
   }
 
   // If this chat held an exclusive purpose (cdn, management, backups),
   // clear the corresponding setting so stale references don't linger.
-  if (isExclusivePurpose(chat.purpose)) {
+  if (isExclusivePurpose(deletedChat.purpose)) {
     const keyMap: Record<string, string> = {
       cdn: TG_KEYS.cdnChatId,
       management: TG_KEYS.managementChatId,
       backups: TG_KEYS.backupChatId,
     }
-    const settingKey = keyMap[chat.purpose]
+    const settingKey = keyMap[deletedChat.purpose]
     if (settingKey) {
       await saveSetting(user.storeId, settingKey, "")
     }
   }
 
-  await db.delete(telegramChats).where(eq(telegramChats.id, id))
-
   await logActivity({
     storeId: user.storeId,
     actor: user,
-    action: `Removeu "${chat.title}" da lista de grupos/canais`,
+    action: `Removeu "${deletedChat.title}" da lista de grupos/canais`,
     category: "settings",
   })
 

@@ -125,7 +125,10 @@ export async function updateAdminRole(userId: string, role: Role) {
     }
   }
 
-  await db.update(user).set({ role }).where(eq(user.id, userId))
+  await db
+    .update(user)
+    .set({ role })
+    .where(and(eq(user.id, userId), storeMembers(actor.storeId)))
   await logActivity({
     storeId: actor.storeId,
     action: `Permissão alterada para ${role}`,
@@ -156,7 +159,9 @@ export async function deleteAdmin(userId: string) {
     }
   }
 
-  await db.delete(user).where(eq(user.id, userId))
+  await db
+    .delete(user)
+    .where(and(eq(user.id, userId), storeMembers(actor.storeId)))
   await logActivity({
     storeId: actor.storeId,
     action: `Administrador removido: ${target.email ?? userId}`,

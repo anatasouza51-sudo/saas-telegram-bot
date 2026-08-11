@@ -168,7 +168,12 @@ export async function syncGroupToAudience(groupId: number): Promise<{
     await db
       .update(telegramChats)
       .set({ purpose: "audience", updatedAt: new Date() })
-      .where(eq(telegramChats.id, groupId))
+      .where(
+        and(
+          eq(telegramChats.id, groupId),
+          eq(telegramChats.ownerId, user.storeId),
+        ),
+      )
 
     await logActivity({
       storeId: user.storeId,
