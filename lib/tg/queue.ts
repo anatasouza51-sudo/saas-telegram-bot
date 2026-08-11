@@ -1,5 +1,6 @@
 import "server-only"
 import { db } from "@/lib/db"
+import { setTenantLocal, withTenantTx, type TenantTx } from "@/lib/db/tenant-tx"
 import {
   telegramChats,
   telegramMedia,
@@ -20,6 +21,8 @@ const BATCH_SIZE = 20
 const BACKOFF_BASE_MS = 30_000
 const STALE_PROCESSING_MS = 10 * 60_000
 
+type TenantDb = TenantTx | typeof db
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export type TargetSpec = string[]
@@ -27,7 +30,7 @@ export type TargetSpec = string[]
 export async function resolveTargets(
   storeId: string,
   targets: TargetSpec,
-  dctx: any = db, // Aceita db ou tx (transação)
+  dctx: TenantDb = db,
 ): Promise<Destination[]> {
   const rows = await dctx
     .select({
@@ -41,9 +44,9 @@ export async function resolveTargets(
     .where(eq(telegramChats.ownerId, storeId))
 
   const usable = rows.filter(
-    (r: any) => r.status === "active" && r.purpose === "audience",
+    (r) => r.status === "active" && r.purpose === "audience",
   )
-  const usableChatIds = new Set(usable.map((r: any) => r.chatId))
+  const usableChatIds = new Set(usable.map((r) => r.chatId))
 
   const wantAll = (targets || []).includes("all")
   const wantGroups = wantAll || (targets || []).includes("all_groups")
@@ -70,46 +73,56 @@ export async function resolveTargets(
   return Array.from(out.values())
 }
 
-export async function enqueuePost(params: {
-  storeId: string
-  postId: string
-  targets: TargetSpec
-  scheduleId?: number | null
-  scheduledFor?: Date
-}): Promise<number> {
-  const destinations = await resolveTargets(params.storeId, params.targets)
-  if (destinations.length === 0) return 0
-  await db.insert(telegramQueue).values(
-    destinations.map((dest) => ({
-      ownerId: params.storeId,
-      postId: params.postId,
-      scheduleId: params.scheduleId ?? null,
-      chatId: dest.chatId,
-      messageThreadId: null, // Sempre nulo para garantir envio ao chat geral
-      scheduledFor: params.scheduledFor ?? new Date(),
-      status: "pending" as const,
-    })),
-  )
-  await db
-    .update(telegramPosts)
-    .set({ status: "queued", updatedAt: new Date() })
-    .where(
-      and(
-        eq(telegramPosts.id, params.postId),
-        eq(telegramPosts.ownerId, params.storeId),
-      ),
+export async function enqueuePost(
+  params: {
+    storeId: string
+    postId: string
+    targets: TargetSpec
+    scheduleId?: number | null
+    scheduledFor?: Date
+  },
+  tx?: TenantTx,
+): Promise<number> {
+  const enqueue = async (dctx: TenantDb) => {
+    const destinations = await resolveTargets(params.storeId, params.targets, dctx)
+    if (destinations.length === 0) return 0
+    await dctx.insert(telegramQueue).values(
+      destinations.map((dest) => ({
+        ownerId: params.storeId,
+        postId: params.postId,
+        scheduleId: params.scheduleId ?? null,
+        chatId: dest.chatId,
+        messageThreadId: null, // Sempre nulo para garantir envio ao chat geral
+        scheduledFor: params.scheduledFor ?? new Date(),
+        status: "pending" as const,
+      })),
     )
-  return destinations.length
+    await dctx
+      .update(telegramPosts)
+      .set({ status: "queued", updatedAt: new Date() })
+      .where(
+        and(
+          eq(telegramPosts.id, params.postId),
+          eq(telegramPosts.ownerId, params.storeId),
+        ),
+      )
+    return destinations.length
+  }
+
+  return tx
+    ? enqueue(tx)
+    : withTenantTx(params.storeId, enqueue)
 }
 
 async function resolveMedia(
   storeId: string,
   mediaIdsJson: string | null,
+  dctx: TenantDb = db,
 ): Promise<ResolvedMedia[]> {
   if (!mediaIdsJson) return []
   const ids = parseMediaIds(mediaIdsJson)
   if (ids.length === 0) return []
-  const rows = await db
+  const rows = await dctx
     .select({
       id: telegramMedia.id,
       fileId: telegramMedia.fileId,
@@ -129,93 +142,131 @@ async function resolveMedia(
     .map((r) => ({ fileId: decrypt(r!.fileId) ?? r!.fileId, type: r!.type as TelegramMediaKind }))
 }
 
+async function claimPendingItems(
+  now: Date,
+  limit: number,
+  specificIds?: number[],
+) {
+  return db.transaction(async (tx) => {
+    // Discovery is intentionally multi-tenant because the worker has no
+    // session. The trusted ownerId is read from each selected row before the
+    // tenant-local setting is applied to its claim update.
+    const conds = [eq(telegramQueue.status, "pending")]
+    if (specificIds && specificIds.length > 0) {
+      conds.push(inArray(telegramQueue.id, specificIds))
+    } else {
+      conds.push(lte(telegramQueue.scheduledFor, now))
+    }
+
+    const candidates = await tx
+      .select()
+      .from(telegramQueue)
+      .where(and(...conds))
+      .orderBy(asc(telegramQueue.scheduledFor))
+      .limit(limit)
+      .for("update", { skipLocked: true })
+
+    const claimed = []
+    for (const item of candidates) {
+      await setTenantLocal(tx, item.ownerId)
+      const [claimedItem] = await tx
+        .update(telegramQueue)
+        .set({ status: "processing", updatedAt: new Date() })
+        .where(
+          and(
+            eq(telegramQueue.id, item.id),
+            eq(telegramQueue.ownerId, item.ownerId),
+            eq(telegramQueue.status, "pending"),
+          ),
+        )
+        .returning()
+      if (claimedItem) claimed.push(claimedItem)
+    }
+
+    return claimed
+  })
+}
+
 export async function processQueue(
   limit = BATCH_SIZE,
   specificIds?: number[],
 ): Promise<{ processed: number; sent: number; failed: number }> {
   const now = new Date()
   await requeueStaleItems(now)
-  
-  // Build conditions: either specific IDs (immediate publish) or due items (cron).
-  const conds = [eq(telegramQueue.status, "pending")]
-  if (specificIds && specificIds.length > 0) {
-    conds.push(inArray(telegramQueue.id, specificIds))
-  } else {
-    conds.push(lte(telegramQueue.scheduledFor, now))
-  }
-
-  // Use FOR UPDATE SKIP LOCKED to prevent duplicate processing across
-  // concurrent cron instances or immediate publish clicks.
-  const items = await db
-    .select()
-    .from(telegramQueue)
-    .where(and(...conds))
-    .orderBy(asc(telegramQueue.scheduledFor))
-    .limit(limit)
-    .for("update", { skipLocked: true })
+  const items = await claimPendingItems(now, limit, specificIds)
 
   if (items.length === 0) return { processed: 0, sent: 0, failed: 0 }
 
   const clients = new Map<string, Awaited<ReturnType<typeof getStoreTelegram>>>()
   const posts = new Map<string, Awaited<ReturnType<typeof loadPost>>>()
+  const postOwners = new Map<string, string>()
 
   let sent = 0
   let failed = 0
 
   for (const item of items) {
+    postOwners.set(item.postId, item.ownerId)
     try {
-      await db
-        .update(telegramQueue)
-        .set({ status: "processing", updatedAt: new Date() })
-        .where(eq(telegramQueue.id, item.id))
+      const context = await withTenantTx(item.ownerId, async (tx) => {
+        let cfg = clients.get(item.ownerId)
+        if (!cfg) {
+          cfg = await getStoreTelegram(item.ownerId, tx)
+          clients.set(item.ownerId, cfg)
+        }
 
-      let cfg = clients.get(item.ownerId)
-      if (!cfg) {
-        cfg = await getStoreTelegram(item.ownerId)
-        clients.set(item.ownerId, cfg)
-      }
+        let post = posts.get(item.postId)
+        if (post === undefined) {
+          post = await loadPost(item.ownerId, item.postId, tx)
+          posts.set(item.postId, post)
+        }
 
-      if (!cfg.client) {
+        return { cfg, post }
+      })
+
+      if (!context.cfg.client) {
         console.error(`[Queue] Item ${item.id} failed: Bot not configured for store ${item.ownerId}`)
-        await failItem(item.id, item.attempts, item.maxAttempts, "Bot não configurado")
+        await withTenantTx(item.ownerId, async (tx) => {
+          await failItem(item.id, item.attempts, item.maxAttempts, "Bot não configurado", tx)
+        })
         failed++
         continue
       }
 
-      let post = posts.get(item.postId)
-      if (post === undefined) {
-        post = await loadPost(item.ownerId, item.postId)
-        posts.set(item.postId, post)
-      }
-      if (!post) {
+      if (!context.post) {
         console.error(`[Queue] Item ${item.id} failed: Post ${item.postId} not found`)
-        await failItem(item.id, item.attempts, item.maxAttempts, "Postagem não encontrada")
+        await withTenantTx(item.ownerId, async (tx) => {
+          await failItem(item.id, item.attempts, item.maxAttempts, "Postagem não encontrada", tx)
+        })
         failed++
         continue
       }
 
       console.log(`[Queue] Sending post ${item.postId} to chat ${item.chatId} (Attempt ${item.attempts + 1})`)
       const res = await sendPost(
-        cfg.client,
+        context.cfg.client,
         item.chatId,
-        post.renderable,
+        context.post.renderable,
         null, // Força threadId nulo no envio real
       )
 
       if (res.ok) {
         console.log(`[Queue] Item ${item.id} sent successfully. MessageId: ${res.messageId}`)
-        await db
-          .update(telegramQueue)
-          .set({
-            status: "sent",
-            sentMessageId: res.messageId ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(telegramQueue.id, item.id))
+        await withTenantTx(item.ownerId, async (tx) => {
+          await tx
+            .update(telegramQueue)
+            .set({
+              status: "sent",
+              sentMessageId: res.messageId ?? null,
+              updatedAt: new Date(),
+            })
+            .where(eq(telegramQueue.id, item.id))
+        })
         sent++
       } else {
         console.error(`[Queue] Item ${item.id} failed to send to ${item.chatId}: ${res.error}`)
-        await failItem(item.id, item.attempts, item.maxAttempts, res.error ?? "Erro")
+        await withTenantTx(item.ownerId, async (tx) => {
+          await failItem(item.id, item.attempts, item.maxAttempts, res.error ?? "Erro", tx)
+        })
         failed++
       }
     } catch (err) {
@@ -223,7 +274,9 @@ export async function processQueue(
       console.error(`[tg/queue] item ${item.id} failed:`, err)
       failed++
       try {
-        await failItem(item.id, item.attempts, item.maxAttempts, message)
+        await withTenantTx(item.ownerId, async (tx) => {
+          await failItem(item.id, item.attempts, item.maxAttempts, message, tx)
+        })
       } catch (persistErr) {
         console.error("[tg/queue] could not persist failure:", persistErr)
         throw err
@@ -233,7 +286,9 @@ export async function processQueue(
     await sleep(SEND_DELAY_MS)
   }
 
-  await finalizePosts(Array.from(posts.keys()))
+  await finalizePosts(
+    Array.from(postOwners, ([postId, ownerId]) => ({ postId, ownerId })),
+  )
 
   return { processed: items.length, sent, failed }
 }
@@ -255,14 +310,18 @@ async function requeueStaleItems(now: Date) {
     )
 }
 
-async function loadPost(storeId: string, postId: string) {
-  const [row] = await db
+async function loadPost(
+  storeId: string,
+  postId: string,
+  dctx: TenantDb = db,
+) {
+  const [row] = await dctx
     .select()
     .from(telegramPosts)
     .where(and(eq(telegramPosts.id, postId), eq(telegramPosts.ownerId, storeId)))
     .limit(1)
   if (!row) return null
-  const media = await resolveMedia(storeId, row.mediaIds)
+  const media = await resolveMedia(storeId, row.mediaIds, dctx)
   return {
     row,
     renderable: {
@@ -279,16 +338,17 @@ async function failItem(
   attempts: number,
   maxAttempts: number,
   error: string,
+  dctx: TenantDb = db,
 ) {
   const next = attempts + 1
   if (next >= maxAttempts) {
-    await db
+    await dctx
       .update(telegramQueue)
       .set({ status: "failed", attempts: next, lastError: error, updatedAt: new Date() })
       .where(eq(telegramQueue.id, id))
   } else {
     const delay = BACKOFF_BASE_MS * Math.pow(2, attempts)
-    await db
+    await dctx
       .update(telegramQueue)
       .set({
         status: "pending",
@@ -301,57 +361,94 @@ async function failItem(
   }
 }
 
-async function finalizePosts(postIds: string[]) {
-  for (const postId of postIds) {
+type FinalizationNotice = {
+  ownerId: string
+  level: "success" | "error"
+  title: string
+  details: string
+}
+
+async function finalizePosts(
+  posts: Array<{ postId: string; ownerId: string }>,
+) {
+  for (const { postId, ownerId } of posts) {
     try {
-      await finalizePost(postId)
+      const notice = await withTenantTx(ownerId, async (tx) =>
+        finalizePost(postId, ownerId, tx),
+      )
+      if (notice) {
+        await notifyManagement(
+          notice.ownerId,
+          notice.level,
+          notice.title,
+          notice.details,
+        )
+      }
     } catch (err) {
       console.error(`[tg/queue] could not finalize post ${postId}:`, err)
     }
   }
 }
 
-async function finalizePost(postId: string) {
-  const [counts] = await db
-      .select({
-        pending: sql<number>`COUNT(*) FILTER (WHERE status IN ('pending','processing'))::int`,
-        sent: sql<number>`COUNT(*) FILTER (WHERE status = 'sent')::int`,
-        failed: sql<number>`COUNT(*) FILTER (WHERE status = 'failed')::int`,
-      })
-      .from(telegramQueue)
-    .where(eq(telegramQueue.postId, postId))
+async function finalizePost(
+  postId: string,
+  ownerId: string,
+  dctx: TenantDb = db,
+): Promise<FinalizationNotice | null> {
+  const [counts] = await dctx
+    .select({
+      pending: sql<number>`COUNT(*) FILTER (WHERE status IN ('pending','processing'))::int`,
+      sent: sql<number>`COUNT(*) FILTER (WHERE status = 'sent')::int`,
+      failed: sql<number>`COUNT(*) FILTER (WHERE status = 'failed')::int`,
+    })
+    .from(telegramQueue)
+    .where(
+      and(
+        eq(telegramQueue.postId, postId),
+        eq(telegramQueue.ownerId, ownerId),
+      ),
+    )
 
-  if (!counts || counts.pending > 0) return 
+  if (!counts || counts.pending > 0) return null
 
-  const [post] = await db
+  const [post] = await dctx
     .select()
     .from(telegramPosts)
-    .where(eq(telegramPosts.id, postId))
+    .where(
+      and(eq(telegramPosts.id, postId), eq(telegramPosts.ownerId, ownerId)),
+    )
     .limit(1)
-  if (!post || post.status === "sent" || post.status === "failed") return
+  if (!post || post.status === "sent" || post.status === "failed") return null
 
   const status = counts.sent > 0 ? "sent" : "failed"
-  await db
+  await dctx
     .update(telegramPosts)
     .set({ status, sentAt: new Date(), updatedAt: new Date() })
-    .where(eq(telegramPosts.id, postId))
+    .where(
+      and(eq(telegramPosts.id, postId), eq(telegramPosts.ownerId, ownerId)),
+    )
 
   if (post.mediaIds) {
     const ids = parseMediaIds(post.mediaIds)
     if (ids.length) {
-      await db
+      await dctx
         .update(telegramMedia)
         .set({ usageCount: sql`${telegramMedia.usageCount} + 1` })
-        .where(inArray(telegramMedia.id, ids))
+        .where(
+          and(
+            eq(telegramMedia.ownerId, ownerId),
+            inArray(telegramMedia.id, ids),
+          ),
+        )
     }
   }
 
-  await notifyManagement(
-    post.ownerId,
-    status === "sent" ? "success" : "error",
-    `Postagem "${post.title ?? `#${post.id}`}" ${status === "sent" ? "publicada" : "falhou"}`,
-    `Enviadas: ${counts.sent} • Falhas: ${counts.failed}`,
-  )
+  return {
+    ownerId,
+    level: status === "sent" ? "success" : "error",
+    title: `Postagem "${post.title ?? `#${post.id}`}" ${status === "sent" ? "publicada" : "falhou"}`,
+    details: `Enviadas: ${counts.sent} • Falhas: ${counts.failed}`,
+  }
 }
 
 function parseMediaIds(raw: string): number[] {

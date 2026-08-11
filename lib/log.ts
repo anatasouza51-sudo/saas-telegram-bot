@@ -1,5 +1,6 @@
 import "server-only"
 import { db } from "@/lib/db"
+import type { TenantDb } from "@/lib/db/tenant-tx"
 import { activityLogs } from "@/lib/db/schema"
 
 type LogCategory =
@@ -24,9 +25,11 @@ export async function logActivity(params: {
   actorId?: string | null
   actorName?: string | null
   details?: string | null
-}) {
+},
+  dctx: TenantDb = db,
+) {
   try {
-    await db.insert(activityLogs).values({
+    await dctx.insert(activityLogs).values({
       ownerId: params.storeId,
       action: params.action,
       category: params.category,

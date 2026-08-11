@@ -1,6 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
+import { withTenantTx } from "@/lib/db/tenant-tx"
 import { user, activityLogs } from "@/lib/db/schema"
 import { auth } from "@/lib/auth"
 import { requireCapability } from "@/lib/session"
@@ -63,7 +64,7 @@ export async function createAdmin(input: {
 
     // 2. Corrigido (A-2): Executamos o vínculo à loja dentro de transação e
     // garantimos consistência atômica. Se falhar, fazemos compensação removendo o usuário criado.
-    await db.transaction(async (tx) => {
+    await withTenantTx(actor.storeId, async (tx) => {
       await tx
         .update(user)
         .set({ 

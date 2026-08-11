@@ -1,6 +1,7 @@
 import "server-only"
 import { TelegramClient } from "@/lib/telegram"
 import { getSettings } from "@/lib/settings"
+import type { TenantDb } from "@/lib/db/tenant-tx"
 
 export const TG_KEYS = {
   botToken: "telegram.botToken",
@@ -30,13 +31,16 @@ export function botIdFromToken(token: string): number | null {
  * Loads a store's Telegram config and a client bound to its bot token.
  * Returns { client: null } when the store hasn't configured a bot yet.
  */
-export async function getStoreTelegram(storeId: string) {
+export async function getStoreTelegram(
+  storeId: string,
+  dctx?: TenantDb,
+) {
   const map = await getSettings(storeId, [
     TG_KEYS.botToken,
     TG_KEYS.cdnChatId,
     TG_KEYS.managementChatId,
     TG_KEYS.backupChatId,
-  ])
+  ], dctx)
   const token = map[TG_KEYS.botToken] || ""
   return {
     token,

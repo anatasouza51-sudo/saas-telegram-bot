@@ -1,13 +1,14 @@
 "use server"
 
 import { db } from "@/lib/db"
+import { withTenantTx, type TenantDb } from "@/lib/db/tenant-tx"
 import {
   telegramPosts,
   telegramSchedules,
   telegramQueue,
 } from "@/lib/db/schema"
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
-import { requireCapability } from "@/lib/session"
+import { requireCapability, type SessionUser } from "@/lib/session"
 import { logActivity } from "@/lib/log"
 import { enqueuePost, processQueue, resolveTargets, type TargetSpec } from "@/lib/tg/queue"
 import { nextRun, parseRecurrence, type Recurrence } from "@/lib/tg/recurrence"
@@ -25,64 +26,77 @@ export type PostInput = {
 }
 
 // Persists a post as a draft (create or update). Returns the row id.
-export async function savePost(input: PostInput, revalidate = true): Promise<string> {
+async function savePostForUser(
+  input: PostInput,
+  user: SessionUser,
+  revalidate: boolean,
+  dctx: TenantDb,
+): Promise<string> {
+  // Validation: prevent XSS, HTML injection, protocol bypass AND oversized payloads.
+  const title = validatePostTitle(input.title)
+  const parseMode = input.parseMode ?? "HTML"
+  const rawText = parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : validateTelegramText(input.text)
+  const text = rawText ?? input.text  // fallback for Markdown mode (Telegram will reject oversized messages)
+
+  // Validate buttons: enforce max rows, buttons per row, text/value lengths, callback_data 64-byte cap.
+  const validatedButtons = input.buttons ? validateButtonRows(input.buttons, "Botões") : "[]"
+
+  const values = {
+    ownerId: user.storeId,
+    title: title || null,
+    text: text ?? null,
+    parseMode,
+    mediaIds: validateSerializedJson(input.mediaIds ?? [], "IDs de mídia"),
+    buttons: validatedButtons,
+    updatedAt: new Date(),
+  }
+
+  if (input.id) {
+    const [existing] = await dctx
+      .select({ status: telegramPosts.status })
+      .from(telegramPosts)
+      .where(
+        and(
+          eq(telegramPosts.id, input.id),
+          eq(telegramPosts.ownerId, user.storeId),
+        ),
+      )
+      .limit(1)
+    if (!existing) throw new Error("Postagem não encontrada.")
+    await dctx
+      .update(telegramPosts)
+      .set(values)
+      .where(
+        and(
+          eq(telegramPosts.id, input.id),
+          eq(telegramPosts.ownerId, user.storeId),
+        ),
+      )
+    if (revalidate) revalidatePath("/posts")
+    return input.id
+  }
+
+  const [row] = await dctx
+    .insert(telegramPosts)
+    .values({
+      ...values,
+      status: "draft",
+      createdBy: user.id,
+      createdByName: user.name,
+    })
+    .returning({ id: telegramPosts.id })
+  if (revalidate) revalidatePath("/posts")
+  return row.id
+}
+
+export async function savePost(
+  input: PostInput,
+  revalidate = true,
+  dctx: TenantDb = db,
+): Promise<string> {
   try {
     const user = await requireCapability("posts.manage")
-    // Validation: prevent XSS, HTML injection, protocol bypass AND oversized payloads.
-    const title = validatePostTitle(input.title)
-    const parseMode = input.parseMode ?? "HTML"
-    const rawText = parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : validateTelegramText(input.text)
-    const text = rawText ?? input.text  // fallback for Markdown mode (Telegram will reject oversized messages)
-    
-    // Validate buttons: enforce max rows, buttons per row, text/value lengths, callback_data 64-byte cap.
-    const validatedButtons = input.buttons ? validateButtonRows(input.buttons, "Botões") : "[]"
-
-    const values = {
-      ownerId: user.storeId,
-      title: title || null,
-      text: text ?? null,
-      parseMode,
-      mediaIds: validateSerializedJson(input.mediaIds ?? [], "IDs de mídia"),
-      buttons: validatedButtons,
-      updatedAt: new Date(),
-    }
-
-    if (input.id) {
-      const [existing] = await db
-        .select({ status: telegramPosts.status })
-        .from(telegramPosts)
-        .where(
-          and(
-            eq(telegramPosts.id, input.id),
-            eq(telegramPosts.ownerId, user.storeId),
-          ),
-        )
-        .limit(1)
-      if (!existing) throw new Error("Postagem não encontrada.")
-      await db
-        .update(telegramPosts)
-        .set(values)
-        .where(
-          and(
-            eq(telegramPosts.id, input.id),
-            eq(telegramPosts.ownerId, user.storeId),
-          ),
-        )
-      if (revalidate) revalidatePath("/posts")
-      return input.id
-    }
-
-    const [row] = await db
-      .insert(telegramPosts)
-      .values({
-        ...values,
-        status: "draft",
-        createdBy: user.id,
-        createdByName: user.name,
-      })
-      .returning({ id: telegramPosts.id })
-    if (revalidate) revalidatePath("/posts")
-    return row.id
+    return await savePostForUser(input, user, revalidate, dctx)
   } catch (err) {
     console.error("[tg/posts] savePost failed:", err)
     throw new Error(err instanceof Error ? err.message : "Erro ao salvar postagem.")
@@ -116,48 +130,64 @@ export async function publishNow(
     if (validatedTargets.length === 0) {
       throw new Error("Selecione ao menos um destino.")
     }
-    const id = await savePost(input, false)
-    const [post] = await db
-      .select()
-      .from(telegramPosts)
-      .where(and(eq(telegramPosts.id, id), eq(telegramPosts.ownerId, user.storeId)))
-      .limit(1)
-    
-    if (!post) throw new Error("Falha ao recuperar postagem salva.")
-    assertSendable(post.text, post.mediaIds)
+    // Keep the draft save, reread, target resolution, enqueue and status update
+    // in one tenant-local transaction. savePost still defaults to db for its
+    // existing callers, but this path passes the active tx explicitly.
+    const { id, post, enqueued, queueIds } = await withTenantTx(
+      user.storeId,
+      async (tx) => {
+        const id = await savePostForUser(input, user, false, tx)
+        const [post] = await tx
+          .select()
+          .from(telegramPosts)
+          .where(
+            and(
+              eq(telegramPosts.id, id),
+              eq(telegramPosts.ownerId, user.storeId),
+            ),
+          )
+          .limit(1)
 
-    // Use a transaction to ensure atomic enqueueing and status update.
-    const { enqueued, queueIds } = await db.transaction(async (tx) => {
-      // Passamos o contexto da transação 'tx' para garantir atomicidade e evitar deadlock
-      const destinations = await resolveTargets(user.storeId, validatedTargets, tx)
-      if (destinations.length === 0) return { enqueued: 0, queueIds: [] }
+        if (!post) throw new Error("Falha ao recuperar postagem salva.")
+        assertSendable(post.text, post.mediaIds)
 
-      const rows = await tx
-        .insert(telegramQueue)
-        .values(
-          destinations.map((dest) => ({
-            ownerId: user.storeId,
-            postId: id,
-            chatId: dest.chatId,
-            messageThreadId: null,
-            scheduledFor: new Date(),
-            status: "pending" as const,
-          })),
-        )
-        .returning({ id: telegramQueue.id })
+        const destinations = await resolveTargets(user.storeId, validatedTargets, tx)
+        if (destinations.length === 0) {
+          return { id, post, enqueued: 0, queueIds: [] as number[] }
+        }
 
-      await tx
-        .update(telegramPosts)
-        .set({ status: "queued", updatedAt: new Date() })
-        .where(
-          and(
-            eq(telegramPosts.id, id),
-            eq(telegramPosts.ownerId, user.storeId),
-          ),
-        )
+        const rows = await tx
+          .insert(telegramQueue)
+          .values(
+            destinations.map((dest) => ({
+              ownerId: user.storeId,
+              postId: id,
+              chatId: dest.chatId,
+              messageThreadId: null,
+              scheduledFor: new Date(),
+              status: "pending" as const,
+            })),
+          )
+          .returning({ id: telegramQueue.id })
 
-      return { enqueued: destinations.length, queueIds: rows.map((r) => r.id) }
-    })
+        await tx
+          .update(telegramPosts)
+          .set({ status: "queued", updatedAt: new Date() })
+          .where(
+            and(
+              eq(telegramPosts.id, id),
+              eq(telegramPosts.ownerId, user.storeId),
+            ),
+          )
+
+        return {
+          id,
+          post,
+          enqueued: destinations.length,
+          queueIds: rows.map((r) => r.id),
+        }
+      },
+    )
 
     if (enqueued === 0) {
       throw new Error(
@@ -180,25 +210,40 @@ export async function publishNow(
       
       console.log(`[tg/posts] publishNow success: ${sent} sent, ${failed} failed out of ${enqueued}`)
       
-      // If all failed, we want to know why from the first item
+      // If all failed, we want to know why from the first item. The read is
+      // intentionally deferred to the same tenant-local boundary as the log.
       if (failed === enqueued && enqueued > 0) {
-        const [firstItem] = await db
-          .select({ lastError: telegramQueue.lastError })
-          .from(telegramQueue)
-          .where(inArray(telegramQueue.id, queueIds))
-          .limit(1)
-        queueError = firstItem?.lastError || "Falha desconhecida no envio."
+        queueError = "Falha desconhecida no envio."
       }
     } catch (err) {
       queueError = err instanceof Error ? err.message : "Erro no processamento da fila."
       console.error("[tg/posts] publishNow queue processing failed:", err)
     }
 
-    await logActivity({
-      storeId: user.storeId,
-      actor: { id: user.id, name: user.name },
-      action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s) — ${sent} enviados, ${failed} falhas`,
-      category: "posts",
+    queueError = await withTenantTx(user.storeId, async (tx) => {
+      let resolvedError = queueError
+      if (failed === enqueued && enqueued > 0) {
+        const [firstItem] = await tx
+          .select({ lastError: telegramQueue.lastError })
+          .from(telegramQueue)
+          .where(
+            and(
+              inArray(telegramQueue.id, queueIds),
+              eq(telegramQueue.ownerId, user.storeId),
+            ),
+          )
+          .limit(1)
+        resolvedError = firstItem?.lastError || resolvedError
+      }
+
+      await logActivity({
+        storeId: user.storeId,
+        actor: { id: user.id, name: user.name },
+        action: `Publicou a postagem "${post.title ?? `#${id}`}" em ${enqueued} destino(s) — ${sent} enviados, ${failed} falhas`,
+        category: "posts",
+      }, tx)
+
+      return resolvedError
     })
 
     // Revalidate the posts page to refresh the UI after publishing.

@@ -1,5 +1,6 @@
 import "server-only"
 import { db } from "@/lib/db"
+import type { TenantDb } from "@/lib/db/tenant-tx"
 import { settings } from "@/lib/db/schema"
 import { and, eq, inArray } from "drizzle-orm"
 import { encrypt, decrypt, isEncrypted } from "./crypto"
@@ -21,9 +22,13 @@ const SENSITIVE_KEYS = [
  * Internal, server-only settings helpers.
  */
 
-export async function getSettings(storeId: string, keys: string[]) {
+export async function getSettings(
+  storeId: string,
+  keys: string[],
+  dctx: TenantDb = db,
+) {
   if (keys.length === 0) return {}
-  const rows = await db
+  const rows = await dctx
     .select()
     .from(settings)
     .where(and(eq(settings.ownerId, storeId), inArray(settings.key, keys)))
