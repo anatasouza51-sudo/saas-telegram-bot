@@ -11,7 +11,6 @@ import { PixSettingsForm } from "@/components/settings/pix-settings-form"
 import { getSettings } from "@/lib/settings"
 import { parsePixConfig } from "@/lib/pix-config"
 import { getAppBaseUrl } from "@/lib/urls"
-import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
 
@@ -59,13 +58,6 @@ export default async function GatewayPage() {
           {await Promise.all(gatewayProviders.map(async (provider) => {
             const hasSecretKey = Boolean(saved[`${provider.id}.secretKey`])
             
-            const webhookSecret = await safeLoad(
-              `getOrCreateWebhookSecret-${provider.id}`,
-              () => getOrCreateWebhookSecret(user.storeId, provider.id),
-              "error_fallback"
-            )
-            
-            const webhookUrl = `${getAppBaseUrl()}/api/${provider.id}/webhook/${user.storeId}/${webhookSecret}`
             const maskedWebhookUrl = `${getAppBaseUrl()}/api/${provider.id}/webhook/${user.storeId}/••••••••`
 
             return (
@@ -78,7 +70,6 @@ export default async function GatewayPage() {
                   publicKey: saved[`${provider.id}.publicKey`] ?? "",
                   hasSecretKey,
                 }}
-                webhookUrl={webhookUrl}
                 maskedWebhookUrl={maskedWebhookUrl}
               />
             )

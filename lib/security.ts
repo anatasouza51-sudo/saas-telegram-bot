@@ -178,11 +178,11 @@ export function clientIpFrom(req: Request): string {
  * Gera um hash do IP para privacidade em logs persistentes ou rate limiting.
  * Usa um segredo do servidor para evitar rainbow tables.
  */
-const IP_SALT =
-  process.env.RATE_LIMIT_SECRET ||
-  process.env.BETTER_AUTH_SECRET ||
-  "vercel-build-fallback-secret-at-least-32-chars-long"
-const DYNAMIC_SALT = IP_SALT || randomBytes(32).toString("hex")
+const IP_SALT = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET
+if (!IP_SALT) {
+  throw new Error("[security] RATE_LIMIT_SECRET or BETTER_AUTH_SECRET must be configured")
+}
+const DYNAMIC_SALT = IP_SALT
 
 export function hashIp(ip: string): string {
   return createHmac("sha256", DYNAMIC_SALT).update(ip).digest("hex").slice(0, 16)

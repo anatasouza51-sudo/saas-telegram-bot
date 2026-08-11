@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { saveGatewaySettings } from "@/app/actions/settings"
 import { toast } from "sonner"
-import { Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import Image from "next/image"
 
 export function GatewayForm({
@@ -14,21 +14,17 @@ export function GatewayForm({
   providerName,
   logoUrl,
   initial,
-  webhookUrl,
   maskedWebhookUrl,
 }: {
   provider: string
   providerName: string
   logoUrl: string
   initial: { publicKey: string; hasSecretKey: boolean }
-  webhookUrl: string
   maskedWebhookUrl: string
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
   const [pending, startTransition] = useTransition()
-  const [copied, setCopied] = useState(false)
-  const [showRealUrl, setShowRealUrl] = useState(false)
   const [isExpanded, setIsExpanded] = useState(provider === "veopag")
 
   function submit() {
@@ -45,12 +41,6 @@ export function GatewayForm({
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
       }
     })
-  }
-
-  function copyUrl() {
-    navigator.clipboard.writeText(webhookUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -116,28 +106,15 @@ export function GatewayForm({
           </div>
 
           <div className="grid gap-2">
-            <Label className="text-xs font-bold text-dashboard-text-muted uppercase tracking-wider">Webhook URL da sua loja</Label>
-            <div className="flex items-center gap-2">
-              <Input 
-                readOnly 
-                value={showRealUrl ? webhookUrl : maskedWebhookUrl} 
-                className="font-mono text-[10px] md:text-xs bg-dashboard-bg/50 border-dashboard-border/30" 
-                onFocus={() => setShowRealUrl(true)}
-                onBlur={() => setShowRealUrl(false)}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={copyUrl}
-                className="border-dashboard-border/30 hover:bg-white/5"
-                aria-label="Copiar URL"
-              >
-                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
+            <Label className="text-xs font-bold text-dashboard-text-muted uppercase tracking-wider">Endpoint de webhook</Label>
+            <Input
+              readOnly
+              value={maskedWebhookUrl}
+              aria-label={`Endpoint de webhook da ${providerName}`}
+              className="font-mono text-[10px] md:text-xs bg-dashboard-bg/50 border-dashboard-border/30"
+            />
             <p className="text-[10px] md:text-xs text-dashboard-text-muted leading-relaxed">
-              Configure esta URL no painel da {providerName} para receber notificações.
+              O webhook é configurado pelo servidor. O segredo de autenticação não é exibido no navegador.
             </p>
           </div>
 

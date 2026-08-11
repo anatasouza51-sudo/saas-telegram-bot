@@ -50,15 +50,11 @@ const trustedOrigins = [
   "https://*.v0.app",
 ].filter(Boolean) as string[]
 
-// PROTEÇÃO DE SEGURANÇA (C-2): Fail-closed para Better Auth secret.
-// Se BETTER_AUTH_SECRET não estiver definido, usamos um fallback para permitir build.
-// Em produção, configure BETTER_AUTH_SECRET nas variáveis de ambiente do Vercel.
-const authSecret =
-  process.env.BETTER_AUTH_SECRET || "vercel-build-fallback-secret-at-least-32-chars-long"
-if (process.env.NODE_ENV === "production") {
-  console.warn(
-    "[auth] AVISO: BETTER_AUTH_SECRET não configurado. Configure a variável de ambiente no Vercel para produção."
-  )
+// PROTEÇÃO DE SEGURANÇA (C-2): Better Auth exige um segredo configurado.
+// O segredo deve ser fornecido pelo secret management do ambiente de execução.
+const authSecret = process.env.BETTER_AUTH_SECRET
+if (!authSecret) {
+  throw new Error("[auth] BETTER_AUTH_SECRET must be configured")
 }
 
 export const auth = betterAuth({
