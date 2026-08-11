@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { twoFactor } from "better-auth/plugins"
 import { pool } from "@/lib/db"
+import { renderVerificationEmail } from "@/lib/email"
 
 // SECURITY: Email verification via Resend (gratuito até 100 emails/dia).
 // Configure RESEND_API_KEY e EMAIL_FROM no painel do Vercel para ativar.
@@ -20,7 +21,7 @@ async function sendVerificationEmail({ user, url }: { user: { email: string; nam
       from: EMAIL_FROM,
       to: [user.email],
       subject: "Confirme seu email — SaaS Telegram Bot",
-      html: `<p>Olá ${user.name || ""},</p><p>Clique para confirmar seu email:</p><p><a href="${url}">${url}</a></p>`,
+      html: renderVerificationEmail({ name: user.name, url }),
     }),
   })
   if (!resp.ok) {

@@ -8,6 +8,7 @@ import type { ButtonRows } from "@/lib/tg/buttons"
 import { revalidatePath } from "next/cache"
 import {
   validateTitle,
+  sanitizeTelegramHtml,
   validateTelegramText,
   validateButtonRows,
   validateSerializedJson,
@@ -47,7 +48,10 @@ export async function saveTemplate(input: TemplateInput): Promise<number> {
   // Validation: enforce size limits on every persisted field.
   const name = validateTitle(input.name, "Nome do template")
   const category = input.category?.trim()?.slice(0, 128) || "geral"
-  const text = validateTelegramText(input.text)
+  const parseMode = input.parseMode ?? "HTML"
+  const text = parseMode === "HTML"
+    ? (input.text ? sanitizeTelegramHtml(input.text) || null : null)
+    : validateTelegramText(input.text)
   const mediaIds = validateSerializedJson(input.mediaIds ?? [], "IDs de mídia")
   const buttons = input.buttons ? validateButtonRows(input.buttons, "Botões") : "[]"
   const defaultTargets = validateTargets(input.defaultTargets ?? [])
@@ -56,7 +60,7 @@ export async function saveTemplate(input: TemplateInput): Promise<number> {
     name,
     category,
     text,
-    parseMode: input.parseMode ?? "HTML",
+    parseMode,
     mediaIds,
     buttons,
     defaultTargets: JSON.stringify(defaultTargets),

@@ -30,7 +30,8 @@ export async function savePost(input: PostInput, revalidate = true): Promise<str
     const user = await requireCapability("posts.manage")
     // Validation: prevent XSS, HTML injection, protocol bypass AND oversized payloads.
     const title = validatePostTitle(input.title)
-    const rawText = input.parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : validateTelegramText(input.text)
+    const parseMode = input.parseMode ?? "HTML"
+    const rawText = parseMode === "HTML" ? sanitizeTelegramHtml(input.text) : validateTelegramText(input.text)
     const text = rawText ?? input.text  // fallback for Markdown mode (Telegram will reject oversized messages)
     
     // Validate buttons: enforce max rows, buttons per row, text/value lengths, callback_data 64-byte cap.
@@ -40,7 +41,7 @@ export async function savePost(input: PostInput, revalidate = true): Promise<str
       ownerId: user.storeId,
       title: title || null,
       text: text ?? null,
-      parseMode: input.parseMode ?? "HTML",
+      parseMode,
       mediaIds: validateSerializedJson(input.mediaIds ?? [], "IDs de mídia"),
       buttons: validatedButtons,
       updatedAt: new Date(),
@@ -357,13 +358,19 @@ export async function duplicatePost(id: string): Promise<{ newId: string }> {
     .limit(1)
   if (!original) throw new Error("Postagem não encontrada.")
 
+  const parseMode = original.parseMode ?? "HTML"
+  const rawText = parseMode === "HTML"
+    ? sanitizeTelegramHtml(original.text)
+    : validateTelegramText(original.text)
+  const text = rawText ?? original.text
+
   const [row] = await db
     .insert(telegramPosts)
     .values({
       ownerId: user.storeId,
       title: original.title ? `Cópia: ${original.title}` : null,
-      text: original.text,
-      parseMode: original.parseMode,
+      text,
+      parseMode,
       mediaIds: original.mediaIds,
       buttons: original.buttons,
       status: "draft",

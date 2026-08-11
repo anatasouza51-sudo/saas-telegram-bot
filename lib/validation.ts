@@ -1,4 +1,5 @@
 import "server-only"
+import { sanitizeTelegramHtml as sanitizeSafeTelegramHtml } from "./html-safety"
 
 /**
  * Centralized input validation utilities.
@@ -210,27 +211,8 @@ export const VALID_DELIVERY_TYPE = new Set(["stock", "manual"])
 export const VALID_PAYMENT_STATUS = new Set(["pending", "approved", "refused", "cancelled"])
 export const VALID_DELIVERY_STATUS = new Set(["pending", "delivered", "cancelled"])
 
-/**
- * Validates and sanitizes a URL for general use (buttons, support links).
- * Only allows safe protocols to prevent javascript:/data: injections.
- */
-export function validateSafeUrl(url: unknown, label = "URL"): string {
-  if (typeof url !== "string") return ""
-  const trimmed = url.trim()
-  if (trimmed.length === 0) return ""
-  if (trimmed.length > MAX_URL_LENGTH) throw new Error(`${label} muito longa`)
-  
-  try {
-    const u = new URL(trimmed)
-    if (!["http:", "https:", "mailto:", "tel:"].includes(u.protocol)) {
-      throw new Error(`Protocolo da ${label} não permitido. Use http, https, mailto ou tel.`)
-    }
-    return u.toString()
-  } catch (err) {
-    if (err instanceof Error && err.message.includes("Protocolo")) throw err
-    throw new Error(`${label} inválida.`)
-  }
-}
+/** Centralized safe URL policy shared by server actions, editor and renderers. */
+export { validateSafeUrl } from "./html-safety"
 
 // ---------------------------------------------------------------------------
 // Bounded sanitizers — wrappers that enforce max length before returning
@@ -241,11 +223,7 @@ export function validateSafeUrl(url: unknown, label = "URL"): string {
  * messages that could break the Telegram Bot API.
  */
 export function sanitizeTelegramHtml(html: unknown): string {
-  if (typeof html !== "string") return ""
-  return html
-    .replace(/<(?!\/?(b|i|u|s|code|pre|a|em|strong|ins|strike|del|span|tg-emoji|tg-spoiler)\b)[^>]+>/gi, "")
-    .trim()
-    .slice(0, MAX_TELEGRAM_MESSAGE_LENGTH)
+  return sanitizeSafeTelegramHtml(html)
 }
 
 /**

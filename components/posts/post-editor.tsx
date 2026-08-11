@@ -38,6 +38,7 @@ import type { Recurrence } from "@/lib/tg/recurrence"
 import { publishNow, savePost, schedulePost } from "@/app/actions/tg-posts"
 import { saveTemplate } from "@/app/actions/tg-templates"
 import { cn } from "@/lib/utils"
+import { validateSafeUrl } from "@/lib/html-safety"
 
 type Channel = {
   id: number
@@ -138,10 +139,17 @@ export function PostEditor({
     wrapSelection(parseMode === "HTML" ? "<code>" : "`", parseMode === "HTML" ? "</code>" : "`")
   }
   function formatLink() {
-    const url = window.prompt("URL do link:")
-    if (!url) return
-    if (parseMode === "HTML") wrapSelection(`<a href="${url}">`, "</a>")
-    else wrapSelection("[", `](${url})`)
+    const rawUrl = window.prompt("URL do link:")
+    if (!rawUrl) return
+
+    try {
+      const url = validateSafeUrl(rawUrl, "URL do link")
+      if (!url) return
+      if (parseMode === "HTML") wrapSelection(`<a href="${url}">`, "</a>")
+      else wrapSelection("[", `](${url})`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "URL do link inválida.")
+    }
   }
 
   function toggleTarget(id: string) {

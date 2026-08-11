@@ -2,42 +2,8 @@
 
 import { MediaThumb, type MediaItem } from "@/components/media/media-thumb"
 import { type ButtonRows, resolveButtonUrl } from "@/lib/tg/buttons"
+import { renderTelegramHtml, renderTelegramMarkdown } from "@/lib/post-preview"
 
-// Minimal, safe HTML renderer for the subset Telegram supports (b, i, u, s,
-// code, pre, a). Everything else is escaped so the preview can never inject
-// arbitrary markup.
-function renderTelegramHtml(input: string): string {
-  const escaped = input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-
-  return escaped
-    .replace(/&lt;(\/?(?:b|strong|i|em|u|s|code|pre))&gt;/g, "<$1>")
-    .replace(
-      /&lt;a href=(?:"|&quot;)(.*?)(?:"|&quot;)&gt;(.*?)&lt;\/a&gt;/g,
-      '<a href="$1" class="text-primary underline" target="_blank" rel="noreferrer">$2</a>',
-    )
-    .replace(/\n/g, "<br/>")
-}
-
-// Minimal Markdown: *bold*, _italic_, `code`, [text](url).
-function renderTelegramMarkdown(input: string): string {
-  const escaped = input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-
-  return escaped
-    .replace(/\*(.+?)\*/g, "<b>$1</b>")
-    .replace(/_(.+?)_/g, "<i>$1</i>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(
-      /\[(.+?)\]\((.+?)\)/g,
-      '<a href="$2" class="text-primary underline" target="_blank" rel="noreferrer">$1</a>',
-    )
-    .replace(/\n/g, "<br/>")
-}
 
 export function PostPreview({
   text,
