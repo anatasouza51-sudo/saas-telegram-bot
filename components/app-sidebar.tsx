@@ -20,9 +20,10 @@ interface SidebarProps {
   userRole: Role
   className?: string
   onItemClick?: () => void
+  alwaysExpanded?: boolean
 }
 
-export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarProps) => {
+export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpanded = false }: SidebarProps) => {
   const pathname = usePathname()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     // Default: expand sections that have the current page active
@@ -43,6 +44,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarPro
   }
 
   const toggleSection = (title: string) => {
+    if (alwaysExpanded) return
     setExpandedSections((prev) => ({ ...prev, [title]: !prev[title] }))
   }
 
@@ -118,25 +120,32 @@ export const AppSidebar = memo(({ userRole, className, onItemClick }: SidebarPro
                 return (
                   <div key={idx} className="space-y-1">
                     <button
-                      onClick={() => toggleSection(node.title)}
+                      type="button"
+                      onClick={alwaysExpanded ? undefined : () => toggleSection(node.title)}
+                      disabled={alwaysExpanded}
+                      aria-expanded={alwaysExpanded || isExpanded}
                       className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm font-semibold transition-all duration-200 rounded-lg hover:bg-white/5",
-                        sectionActive ? "text-dashboard-text" : "text-dashboard-text-muted/80"
+                        "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm font-semibold transition-all duration-200 rounded-lg",
+                        !alwaysExpanded && "hover:bg-white/5",
+                        sectionActive ? "text-dashboard-text" : "text-dashboard-text-muted/80",
+                        alwaysExpanded && "cursor-default"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         {renderIcon(node.icon, sectionActive)}
                         <span>{node.title}</span>
                       </div>
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronRight className="w-3.5 h-3.5 text-dashboard-text-muted/50" />
-                      </motion.div>
+                      {!alwaysExpanded && (
+                        <motion.div
+                          animate={{ rotate: isExpanded ? 90 : 0 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                        >
+                          <ChevronRight className="w-3.5 h-3.5 text-dashboard-text-muted/50" />
+                        </motion.div>
+                      )}
                     </button>
                     <AnimatePresence initial={false}>
-                      {isExpanded && (
+                      {(alwaysExpanded || isExpanded) && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
