@@ -60,11 +60,11 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.08 }}
             className={cn(
-              "group relative overflow-hidden rounded-2xl border bg-dashboard-surface p-5 transition-all duration-300",
+              "group relative overflow-hidden rounded-xl border bg-dashboard-surface p-4 transition-all duration-300 sm:p-5",
               colors.border,
               colors.borderHover,
               colors.glow,
-              "hover:shadow-xl"
+              "hover:bg-dashboard-surface-elevated"
             )}
           >
             {/* Ambient glow */}
@@ -75,7 +75,7 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
 
             <div className="relative flex items-start justify-between mb-4">
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110",
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105",
                 colors.iconBg
               )}>
                 <div className={cn("flex items-center justify-center w-5 h-5", colors.iconText)}>
@@ -85,10 +85,10 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
             </div>
 
             <div className="relative space-y-1">
-              <p className="text-[11px] font-semibold text-dashboard-text-muted uppercase tracking-wider">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">
                 {metric.label}
               </p>
-              <h3 className="text-2xl font-black text-dashboard-text tracking-tight tabular-nums">
+              <h3 className="font-space text-2xl font-bold tracking-tight text-dashboard-text tabular-nums">
                 {metric.value}
               </h3>
             </div>

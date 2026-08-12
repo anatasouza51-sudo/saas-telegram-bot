@@ -136,20 +136,28 @@ export default function DashboardPage() {
     : []
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-      {/* Botão de Sincronização Discreto */}
-      <div className="flex justify-end">
+    <div className="space-y-5 pb-12 animate-in fade-in duration-500">
+      {/* Cabeçalho do dashboard inspirado no shell operacional do SharkBot */}
+      <div className="flex flex-col gap-4 border-b border-dashboard-border/60 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-dashboard-accent">Visão geral</p>
+          <h2 className="font-space text-2xl font-bold tracking-tight text-dashboard-text md:text-3xl">
+            Olá, {user?.name?.split(" ")[0] || "bem-vindo"}
+          </h2>
+          <p className="mt-1 text-sm text-dashboard-text-muted">Acompanhe vendas, clientes e pagamentos em um só lugar.</p>
+        </div>
+
         <Button
           variant="ghost"
           size="sm"
           onClick={fetchData}
           disabled={loading}
           className={cn(
-            "h-8 px-3 text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5 rounded-lg gap-2 transition-all",
-            loading && "opacity-50 cursor-not-allowed"
+            "h-9 self-start rounded-lg border border-dashboard-border px-3 text-dashboard-text-muted transition-all hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated hover:text-dashboard-text sm:self-auto",
+            loading && "cursor-not-allowed opacity-50"
           )}
         >
-          <RefreshCcw className={cn("w-3 h-3", loading && "animate-spin")} />
+          <RefreshCcw className={cn("mr-2 h-3.5 w-3.5", loading && "animate-spin")} />
           <span className="text-[10px] font-bold uppercase tracking-widest">Sincronizar</span>
         </Button>
       </div>
@@ -191,12 +199,9 @@ export default function DashboardPage() {
       />
 
       {/* Pedidos Recentes */}
-      <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface transition-all duration-300 hover:border-dashboard-border-active">
-        {/* Ambient glow */}
-        <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-gradient-to-br from-pink-500/[0.04] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
+      <div className="group relative overflow-hidden rounded-xl border border-dashboard-border bg-dashboard-surface transition-all duration-300 hover:border-dashboard-border-active">
         {/* Header */}
-        <div className="relative flex items-center justify-between p-5 border-b border-dashboard-border/50">
+        <div className="relative flex items-center justify-between border-b border-dashboard-border/50 p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
               <ShoppingCart className="w-4 h-4 text-pink-400" />
