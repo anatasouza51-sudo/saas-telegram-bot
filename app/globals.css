@@ -79,22 +79,6 @@
   50% { transform: translateY(-3px); }
 }
 
-@keyframes auth-border-orbit {
-  to { stroke-dashoffset: -100; }
-}
-
-.auth-border-orbit {
-  animation: auth-border-orbit 6s linear infinite;
-  filter: drop-shadow(0 0 2px rgba(232, 121, 249, 0.5));
-  vector-effect: non-scaling-stroke;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auth-border-orbit {
-    animation: none;
-  }
-}
-
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.8; transform: scale(0.98); }
