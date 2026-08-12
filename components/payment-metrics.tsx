@@ -1,3 +1,5 @@
+"use client"
+
 import { memo } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -7,7 +9,7 @@ interface PaymentMetric {
   label: string
   value: number
   unit?: string
-  color: "pink" | "green" | "yellow" | "purple"
+  color: "blue" | "emerald" | "amber" | "rose"
 }
 
 interface PaymentMetricsProps {
@@ -17,106 +19,50 @@ interface PaymentMetricsProps {
 }
 
 const colorClasses = {
-  pink: { stroke: "#EC4899", light: "text-pink-400", bg: "bg-pink-500/10", glow: "shadow-pink-500/[0.06]" },
-  green: { stroke: "#34D399", light: "text-emerald-400", bg: "bg-emerald-500/10", glow: "shadow-emerald-500/[0.06]" },
-  yellow: { stroke: "#FBBF24", light: "text-amber-400", bg: "bg-amber-500/10", glow: "shadow-amber-500/[0.06]" },
-  purple: { stroke: "#A855F7", light: "text-purple-400", bg: "bg-purple-500/10", glow: "shadow-purple-500/[0.06]" },
+  blue: { stroke: "#60A5FA", light: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-400/20" },
+  emerald: { stroke: "#34D399", light: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-400/20" },
+  amber: { stroke: "#FBBF24", light: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-400/20" },
+  rose: { stroke: "#FB7185", light: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-400/20" },
 }
 
-const CircularProgress = memo(({
-  value,
-  color,
-  size = 88,
-}: {
-  value: number
-  color: "pink" | "green" | "yellow" | "purple"
-  size?: number
-}) => {
+const CircularProgress = memo(({ value, color, size = 82 }: { value: number; color: PaymentMetric["color"]; size?: number }) => {
   const radius = (size - 10) / 2
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (value / 100) * circumference
+  const offset = circumference - (Math.min(value, 100) / 100) * circumference
   const colors = colorClasses[color]
 
   return (
     <div className="relative flex items-center justify-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="2.5"
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={colors.stroke}
-          strokeWidth="2.5"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
-          strokeLinecap="round"
-        />
+      <svg width={size} height={size} className="-rotate-90 transform">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+        <motion.circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.stroke} strokeWidth="3" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: offset }} transition={{ duration: 0.9, ease: "easeInOut" }} strokeLinecap="round" />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center">
-        <span className={cn("text-lg font-black", colors.light)}>
-          {value}%
-        </span>
-      </div>
+      <div className="absolute flex flex-col items-center justify-center"><span className={cn("font-space text-lg font-bold", colors.light)}>{value}%</span></div>
     </div>
   )
 })
 
 CircularProgress.displayName = "CircularProgress"
 
-export const PaymentMetrics = memo(({
-  metrics,
-  title = "Métricas de Pagamento",
-  subtitle = "Taxa de conversão e status",
-}: PaymentMetricsProps) => {
+export const PaymentMetrics = memo(({ metrics, title = "Saúde dos pagamentos", subtitle = "Acompanhe aprovação, pendências e recusas" }: PaymentMetricsProps) => {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300 hover:border-dashboard-border-active">
-      {/* Ambient glow */}
-      <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-gradient-to-br from-purple-500/[0.05] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-      {/* Header */}
-      <div className="relative flex items-center gap-2 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-          <Percent className="w-4 h-4 text-purple-400" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">{title}</h3>
-          <p className="text-xs text-dashboard-text-muted">{subtitle}</p>
-        </div>
+    <section className="rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10"><Percent className="h-4 w-4 text-violet-400" /></div>
+        <div><h3 className="text-sm font-bold text-dashboard-text">{title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{subtitle}</p></div>
       </div>
-
-      <div className="relative grid grid-cols-2 md:grid-cols-3 gap-5">
-        {metrics.map((metric, index) => {
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {metrics.map((metric) => {
           const colors = colorClasses[metric.color]
           return (
-            <motion.div
-              key={metric.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              className="flex flex-col items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
-            >
-              <CircularProgress value={metric.value} color={metric.color} size={88} />
-              <div className="text-center space-y-0.5">
-                <p className="text-xs font-bold text-dashboard-text">{metric.label}</p>
-                {metric.unit && (
-                  <p className="text-[10px] text-dashboard-text-muted">{metric.unit}</p>
-                )}
-              </div>
-            </motion.div>
+            <div key={metric.label} className="flex items-center gap-4 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3.5 sm:flex-col sm:justify-center sm:gap-2 sm:p-4">
+              <CircularProgress value={metric.value} color={metric.color} />
+              <div className="min-w-0 sm:text-center"><p className="text-xs font-bold text-dashboard-text">{metric.label}</p>{metric.unit && <p className={cn("mt-1 truncate text-[10px]", colors.light)}>{metric.unit}</p>}</div>
+            </div>
           )
         })}
       </div>
-    </div>
+    </section>
   )
 })
 

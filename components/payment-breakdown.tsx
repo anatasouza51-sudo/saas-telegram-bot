@@ -1,3 +1,5 @@
+"use client"
+
 import { memo } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { CreditCard } from "lucide-react"
@@ -9,106 +11,77 @@ interface PaymentBreakdownProps {
 }
 
 const COLORS = ["#34D399", "#FBBF24", "#FB7185"]
-const LABELS = ["Aprovado", "Pendente", "Recusado"]
 
 export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBreakdownProps) => {
   const data = [
     { name: "Aprovado", value: approved },
     { name: "Pendente", value: pending },
     { name: "Recusado", value: refused },
-  ].filter(d => d.value > 0)
-
-  const total = data.reduce((sum, d) => sum + d.value, 0)
-
-  if (data.length === 0) {
-    return (
-      <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-12 h-12 rounded-xl bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center mb-3">
-            <CreditCard className="w-5 h-5 text-dashboard-text-muted/30" />
-          </div>
-          <h4 className="text-xs font-bold text-dashboard-text uppercase tracking-wider">Status de Pagamentos</h4>
-          <p className="text-[11px] text-dashboard-text-muted mt-1">Sem dados de pagamento</p>
-        </div>
-      </div>
-    )
-  }
+  ].filter((item) => item.value > 0)
+  const total = data.reduce((sum, item) => sum + item.value, 0)
+  const conversion = total > 0 ? Math.round((approved / total) * 100) : 0
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300 hover:border-dashboard-border-active">
-      {/* Ambient glow */}
-      <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-gradient-to-br from-emerald-500/[0.05] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-      {/* Header */}
-      <div className="relative mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <CreditCard className="w-4 h-4 text-emerald-400" />
-          </div>
-          <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
-            Status de Pagamentos
-          </h3>
+    <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10">
+          <CreditCard className="h-4 w-4 text-emerald-400" />
         </div>
-        <p className="text-xs text-dashboard-text-muted ml-10">{total} total de pagamentos</p>
+        <div>
+          <h3 className="text-sm font-bold text-dashboard-text">Conversão</h3>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">Status dos pagamentos</p>
+        </div>
       </div>
 
-      <div className="relative flex items-center gap-6">
-        {/* Donut */}
-        <div className="w-28 h-28 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={32}
-                outerRadius={50}
-                paddingAngle={2}
-                dataKey="value"
-                strokeWidth={0}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index]} />
-                ))}
-              </Pie>
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const pct = ((payload[0].value / total) * 100).toFixed(1)
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="font-space text-4xl font-bold text-dashboard-text">0%</p>
+          <p className="mt-2 text-xs text-dashboard-text-muted">Aguardando os primeiros pagamentos</p>
+        </div>
+      ) : (
+        <>
+          <div className="relative mx-auto h-44 w-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={data} cx="50%" cy="50%" innerRadius={53} outerRadius={74} paddingAngle={2} dataKey="value" strokeWidth={0}>
+                  {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}
+                </Pie>
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const value = Number(payload[0].value || 0)
                     return (
-                      <div className="bg-dashboard-surface-elevated border border-dashboard-border rounded-xl px-3 py-2 shadow-2xl backdrop-blur-xl">
+                      <div className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated px-3 py-2 shadow-xl">
                         <p className="text-xs font-bold text-dashboard-text">{payload[0].name}</p>
-                        <p className="text-[10px] text-dashboard-text-muted">{payload[0].value} ({pct}%)</p>
+                        <p className="text-[10px] text-dashboard-text-muted">{value} ({total ? ((value / total) * 100).toFixed(1) : 0}%)</p>
                       </div>
                     )
-                  }
-                  return null
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Legend */}
-        <div className="space-y-3 flex-1">
-          {data.map((entry, index) => {
-            const pct = total > 0 ? ((entry.value / total) * 100).toFixed(1) : "0"
-            return (
-              <div key={entry.name} className="flex items-center justify-between">
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="font-space text-3xl font-bold text-dashboard-text">{conversion}%</span>
+              <span className="text-[10px] uppercase tracking-wider text-dashboard-text-muted">aprovados</span>
+            </div>
+          </div>
+          <div className="mt-5 space-y-2.5">
+            {data.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[index] }} />
                   <span className="text-xs text-dashboard-text-muted">{entry.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-dashboard-text tabular-nums">{entry.value}</span>
-                  <span className="text-[10px] text-dashboard-text-muted">{pct}%</span>
+                  <span className="text-xs font-bold tabular-nums text-dashboard-text">{entry.value}</span>
+                  <span className="text-[10px] text-dashboard-text-muted">{total ? Math.round((entry.value / total) * 100) : 0}%</span>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   )
 })
 

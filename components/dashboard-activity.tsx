@@ -1,5 +1,7 @@
+"use client"
+
 import { memo } from "react"
-import { ShoppingCart, ArrowRight, Activity } from "lucide-react"
+import { ShoppingCart, ArrowRight, Activity, Clock3 } from "lucide-react"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { formatCurrency, formatDateTime } from "@/lib/format"
@@ -17,60 +19,27 @@ interface RecentOrder {
 
 interface DashboardActivityProps {
   recentOrders: RecentOrder[]
-  stats: {
-    salesToday?: number
-    totalProducts?: number
-    totalCustomers?: number
-  }
+  stats: { salesToday?: number }
 }
 
 export const DashboardActivity = memo(({ recentOrders, stats }: DashboardActivityProps) => {
-  const recentActions = [
-    ...(recentOrders?.slice(0, 5) || []).map((order) => ({
-      id: `order-${order.id}`,
-      icon: ShoppingCart,
-      title: order.customerName || order.customerUsername || "Cliente",
-      description: `${order.productName || "Produto"} — ${formatCurrency(order.amount || 0)}`,
-      time: order.createdAt ? formatDateTime(order.createdAt) : "Recente",
-    })),
-  ]
-
-  if (recentActions.length === 0) {
-    return (
-      <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300">
-        <div className="flex items-center gap-2 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Activity className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">Atividade Recente</h3>
-            <p className="text-xs text-dashboard-text-muted">Últimas ações na loja</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="w-10 h-10 rounded-xl bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center mb-3">
-            <Activity className="w-4 h-4 text-dashboard-text-muted/30" />
-          </div>
-          <p className="text-xs text-dashboard-text-muted">Nenhuma atividade recente</p>
-        </div>
-      </div>
-    )
-  }
+  const recentActions = (recentOrders?.slice(0, 5) || []).map((order) => ({
+    id: `order-${order.id}`,
+    title: order.customerName || order.customerUsername || "Cliente",
+    description: `${order.productName || "Produto"} — ${formatCurrency(order.amount || 0)}`,
+    time: order.createdAt ? formatDateTime(order.createdAt) : "Recente",
+  }))
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300 hover:border-dashboard-border-active">
-      {/* Ambient glow */}
-      <div className="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500/[0.05] to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-      {/* Header */}
-      <div className="relative flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Activity className="w-4 h-4 text-indigo-400" />
+    <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+            <Activity className="h-4 w-4 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">Atividade Recente</h3>
-            <p className="text-xs text-dashboard-text-muted">Últimas ações na loja</p>
+            <h3 className="text-sm font-bold text-dashboard-text">Log de atividades</h3>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">Tempo real · {stats?.salesToday || 0} vendas hoje</p>
           </div>
         </div>
         <Link
@@ -78,42 +47,39 @@ export const DashboardActivity = memo(({ recentOrders, stats }: DashboardActivit
           className={buttonVariants({
             variant: "ghost",
             size: "sm",
-            className: "text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold",
+            className: "h-8 gap-1 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider text-dashboard-accent hover:bg-dashboard-accent/10 hover:text-dashboard-accent",
           })}
         >
           Ver logs
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
 
-      {/* Timeline */}
-      <div className="relative space-y-1">
-        {recentActions.map((action, index) => (
-          <div
-            key={action.id}
-            className="relative flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.02] transition-colors"
-          >
-            {/* Timeline dot */}
-            <div className="relative flex items-center">
-              <div className="w-8 h-8 rounded-lg bg-dashboard-surface-elevated border border-dashboard-border flex items-center justify-center shrink-0">
-                <action.icon className="w-3.5 h-3.5 text-dashboard-accent" />
+      {recentActions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-12 text-center">
+          <Activity className="mb-3 h-6 w-6 text-dashboard-text-muted/40" />
+          <p className="text-xs text-dashboard-text-muted">Nenhuma atividade recente</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {recentActions.map((action) => (
+            <div key={action.id} className="flex items-center gap-3 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3 transition-colors hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated/60 sm:p-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+                <ShoppingCart className="h-4 w-4 text-blue-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-dashboard-text">{action.title}</p>
+                <p className="mt-1 truncate text-[11px] text-dashboard-text-muted">{action.description}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase text-dashboard-text-muted">
+                <Clock3 className="h-3 w-3" />
+                <span className="hidden sm:inline">{action.time}</span>
               </div>
             </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-dashboard-text truncate">{action.title}</p>
-              <p className="text-[11px] text-dashboard-text-muted truncate">{action.description}</p>
-            </div>
-
-            {/* Time */}
-            <span className="text-[10px] font-semibold text-dashboard-text-muted uppercase whitespace-nowrap">
-              {action.time}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 })
 
