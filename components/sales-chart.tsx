@@ -44,6 +44,7 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
   )
   const totalRevenue = useMemo(() => data.reduce((sum, d) => sum + d.revenue, 0), [data])
   const avgRevenue = data.length > 0 ? totalRevenue / data.length : 0
+  const hasRevenue = data.some((point) => point.revenue > 0)
 
   return (
     <section className="group relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
@@ -70,32 +71,39 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
       </div>
 
       <div className="relative h-[250px] sm:h-[285px]">
-        <ChartContainer config={chartConfig} className="h-full w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={formatted} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--dashboard-accent)" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="var(--dashboard-accent)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={12} minTickGap={20} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
-              <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(v) => compactCurrency.format(v as number)} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
-              <ChartTooltip
-                cursor={{ stroke: "rgba(59, 130, 246, 0.35)", strokeWidth: 1.5 }}
-                content={
-                  <ChartTooltipContent
-                    className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated shadow-xl"
-                    labelFormatter={(v) => `Dia ${v}`}
-                    formatter={(value) => [fullCurrency.format(value as number), " Receita"]}
-                  />
-                }
-              />
-              <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive animationDuration={900} animationEasing="ease-out" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+        {hasRevenue ? (
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={formatted} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--dashboard-accent)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="var(--dashboard-accent)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={12} minTickGap={20} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
+                <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(v) => compactCurrency.format(v as number)} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
+                <ChartTooltip
+                  cursor={{ stroke: "rgba(59, 130, 246, 0.35)", strokeWidth: 1.5 }}
+                  content={
+                    <ChartTooltipContent
+                      className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated shadow-xl"
+                      labelFormatter={(v) => `Dia ${v}`}
+                      formatter={(value) => [fullCurrency.format(value as number), " Receita"]}
+                    />
+                  }
+                />
+                <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border/70 bg-dashboard-bg/30 px-6 text-center">
+            <p className="text-sm font-bold text-dashboard-text">Nenhuma receita no período</p>
+            <p className="mt-2 max-w-xs text-xs leading-5 text-dashboard-text-muted">Os valores aparecerão aqui após um pagamento aprovado.</p>
+          </div>
+        )}
       </div>
     </section>
   )

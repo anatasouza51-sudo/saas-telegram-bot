@@ -216,11 +216,20 @@ html:not(.dark) body {
 @layer base {
   * { @apply border-border outline-ring/50; }
 
-  /* Recharts focuses its SVG surface after pointer interaction; keep the chart accessible without a browser frame. */
+  /* Recharts focuses its chart surface after pointer interaction; keep it accessible without a browser frame. */
+  .recharts-wrapper,
+  .recharts-wrapper:focus,
+  .recharts-wrapper:focus-visible,
+  .recharts-responsive-container,
+  .recharts-responsive-container:focus,
+  .recharts-responsive-container:focus-visible,
   .recharts-surface,
   .recharts-surface:focus,
   .recharts-surface:focus-visible {
-    outline: none !important;
+    outline: 0 !important;
+    outline-width: 0 !important;
+    outline-color: transparent !important;
+    box-shadow: none !important;
   }
 
   body { 
