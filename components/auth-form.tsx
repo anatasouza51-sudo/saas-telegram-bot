@@ -135,36 +135,36 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const togglePassword = useCallback(() => setShowPassword((prev) => !prev), [])
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] lg:gap-16">
-      <section className="hidden max-w-xl px-4 lg:block">
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-100/80 backdrop-blur">
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 sm:gap-10">
+      <section className="w-full max-w-2xl px-2 text-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-100/80 backdrop-blur">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
           Operação Ghost online
         </div>
-        <div className="mb-7 flex flex-col items-center gap-3 text-center">
+        <div className="mb-6 flex flex-col items-center gap-3">
           <GhostLogo className="h-16 w-16" />
           <div>
             <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
-            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white xl:text-5xl">
+            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
               GHOST <span className="text-fuchsia-300 drop-shadow-[0_0_22px_rgba(232,121,249,0.45)]">BOT</span>
             </h1>
           </div>
         </div>
-        <p className="max-w-lg text-lg leading-8 text-white/65">
+        <p className="mx-auto max-w-2xl text-base leading-7 text-white/65 sm:text-lg sm:leading-8">
           Automatize suas vendas no Telegram com um painel rápido, seguro e feito para escalar sua operação.
         </p>
-        <div className="mt-10 grid max-w-lg gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
+        <div className="mx-auto mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
             <Bot className="mb-4 h-5 w-5 text-fuchsia-200" />
             <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Bot 24/7</p>
             <p className="mt-1 text-xs leading-5 text-white/40">Operação sempre ativa</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
             <Zap className="mb-4 h-5 w-5 text-violet-200" />
             <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Velocidade</p>
             <p className="mt-1 text-xs leading-5 text-white/40">Fluxos sem fricção</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
             <ShieldCheck className="mb-4 h-5 w-5 text-emerald-200" />
             <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Protegido</p>
             <p className="mt-1 text-xs leading-5 text-white/40">Acesso controlado</p>
@@ -172,16 +172,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         </div>
       </section>
 
-      <section className="w-full max-w-[440px] justify-self-center">
-        <div className="mb-5 flex flex-col items-center gap-2 px-1 text-center lg:hidden">
-          <GhostLogo className="h-11 w-11" />
-          <div>
-            <p className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Central de comando</p>
-            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-2xl font-black tracking-[-0.04em] text-white">
-              GHOST <span className="text-fuchsia-300">BOT</span>
-            </h1>
-          </div>
-        </div>
+      <section className="w-full max-w-[440px]">
         <div className="auth-panel-shell relative rounded-[2rem] p-px">
           <svg
             aria-hidden="true"
