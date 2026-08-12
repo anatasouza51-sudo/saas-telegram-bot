@@ -1,9 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -51,18 +49,7 @@ export const EpicsSection = memo(({
           <CardTitle className="text-sm font-bold text-dashboard-text uppercase tracking-wider">
             {title}
           </CardTitle>
-          <CardDescription className="text-xs text-dashboard-text-muted mt-1">
-            Ver todos
-          </CardDescription>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold"
-        >
-          Ver todos
-          <ArrowRight className="w-3 h-3" />
-        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y divide-dashboard-border/30">

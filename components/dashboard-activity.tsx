@@ -1,6 +1,7 @@
 import { memo } from "react"
 import { ShoppingCart, ArrowRight, Activity } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import { formatCurrency, formatDateTime } from "@/lib/format"
 
 interface RecentOrder {
@@ -72,10 +73,17 @@ export const DashboardActivity = memo(({ recentOrders, stats }: DashboardActivit
             <p className="text-xs text-dashboard-text-muted">Últimas ações na loja</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold">
+        <Link
+          href="/logs"
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold",
+          })}
+        >
           Ver logs
           <ArrowRight className="w-3 h-3" />
-        </Button>
+        </Link>
       </div>
 
       {/* Timeline */}

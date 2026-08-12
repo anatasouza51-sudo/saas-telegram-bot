@@ -23,7 +23,8 @@ import {
   PaymentStatusBadge,
   DeliveryStatusBadge,
 } from "@/components/status-badge"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -205,10 +206,17 @@ export default function DashboardPage() {
               <p className="text-xs text-dashboard-text-muted">Histórico real de vendas via Telegram</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold">
+          <Link
+            href="/orders"
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: "text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold",
+            })}
+          >
             Ver todos
             <ArrowRight className="w-3 h-3" />
-          </Button>
+          </Link>
         </div>
 
         <div className="relative p-0">

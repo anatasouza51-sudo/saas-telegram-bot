@@ -1,5 +1,6 @@
 import { memo } from "react"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import { ArrowRight, Package } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -69,14 +70,17 @@ export const TopProductsSection = memo(({
             <p className="text-xs text-dashboard-text-muted">{products.length} produto{products.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold"
+        <Link
+          href="/products"
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "text-dashboard-accent hover:text-dashboard-accent hover:bg-dashboard-accent/10 gap-2 text-xs font-bold",
+          })}
         >
           Ver todos
           <ArrowRight className="w-3 h-3" />
-        </Button>
+        </Link>
       </div>
 
       <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
