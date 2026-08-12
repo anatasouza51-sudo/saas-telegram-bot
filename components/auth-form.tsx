@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   ArrowRight,
-  Bot,
   Eye,
   EyeOff,
   Loader2,
@@ -17,7 +16,6 @@ import {
   Mail,
   ShieldCheck,
   User,
-  Zap,
 } from "lucide-react"
 import { GhostLogo } from "@/components/ghost-logo"
 
@@ -153,23 +151,6 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         <p className="mx-auto max-w-2xl text-base leading-7 text-white/65 sm:text-lg sm:leading-8">
           Automatize suas vendas no Telegram com um painel rápido, seguro e feito para escalar sua operação.
         </p>
-        <div className="mx-auto mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
-            <Bot className="mb-4 h-5 w-5 text-fuchsia-200" />
-            <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Bot 24/7</p>
-            <p className="mt-1 text-xs leading-5 text-white/40">Operação sempre ativa</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
-            <Zap className="mb-4 h-5 w-5 text-violet-200" />
-            <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Velocidade</p>
-            <p className="mt-1 text-xs leading-5 text-white/40">Fluxos sem fricção</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-left backdrop-blur-md">
-            <ShieldCheck className="mb-4 h-5 w-5 text-emerald-200" />
-            <p className="font-space text-xs font-bold uppercase tracking-wider text-white/80">Protegido</p>
-            <p className="mt-1 text-xs leading-5 text-white/40">Acesso controlado</p>
-          </div>
-        </div>
       </section>
 
       <section className="w-full max-w-[440px]">
@@ -187,15 +168,31 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                 <stop offset="100%" stopColor="#c084fc" stopOpacity="0.45" />
               </linearGradient>
             </defs>
-            <path
-              className="auth-border-orbit"
-              d="M9 1 H91 Q99 1 99 9 V91 Q99 99 91 99 H9 Q1 99 1 91 V9 Q1 1 9 1 M9 1 H91 Q99 1 99 9 V91 Q99 99 91 99 H9 Q1 99 1 91 V9 Q1 1 9 1"
+            <rect
+              x="1"
+              y="1"
+              width="98"
+              height="98"
+              rx="8"
               fill="none"
-              pathLength={200}
-              stroke="url(#auth-border-gradient)"
-              strokeDasharray="10 190"
-              strokeLinecap="butt"
+              pathLength={100}
+              stroke="#e9d5ff"
+              strokeOpacity="0.18"
               strokeWidth="0.7"
+            />
+            <rect
+              className="auth-border-orbit"
+              x="1"
+              y="1"
+              width="98"
+              height="98"
+              rx="8"
+              fill="none"
+              pathLength={100}
+              stroke="url(#auth-border-gradient)"
+              strokeDasharray="10 90"
+              strokeLinecap="butt"
+              strokeWidth="0.8"
             />
           </svg>
           <form
