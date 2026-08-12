@@ -196,17 +196,13 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                 <stop offset="100%" stopColor="#c084fc" stopOpacity="0.45" />
               </linearGradient>
             </defs>
-            <rect
+            <path
               className="auth-border-orbit"
-              x="1"
-              y="1"
-              width="98"
-              height="98"
-              rx="8"
+              d="M9 1 H91 Q99 1 99 9 V91 Q99 99 91 99 H9 Q1 99 1 91 V9 Q1 1 9 1 M9 1 H91 Q99 1 99 9 V91 Q99 99 91 99 H9 Q1 99 1 91 V9 Q1 1 9 1"
               fill="none"
-              pathLength={100}
+              pathLength={200}
               stroke="url(#auth-border-gradient)"
-              strokeDasharray="10 90"
+              strokeDasharray="10 190"
               strokeLinecap="butt"
               strokeWidth="0.7"
             />
