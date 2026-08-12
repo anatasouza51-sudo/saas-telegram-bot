@@ -215,6 +215,14 @@ html:not(.dark) body {
 
 @layer base {
   * { @apply border-border outline-ring/50; }
+
+  /* Recharts focuses its SVG surface after pointer interaction; keep the chart accessible without a browser frame. */
+  .recharts-surface,
+  .recharts-surface:focus,
+  .recharts-surface:focus-visible {
+    outline: none !important;
+  }
+
   body { 
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
     background-attachment: fixed;
