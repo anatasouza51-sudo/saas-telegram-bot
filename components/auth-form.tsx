@@ -183,6 +183,34 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           </div>
         </div>
         <div className="auth-panel-shell relative rounded-[2rem] p-px">
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[2] h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="auth-border-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f0abfc" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#c084fc" stopOpacity="0.45" />
+              </linearGradient>
+            </defs>
+            <rect
+              className="auth-border-orbit"
+              x="1"
+              y="1"
+              width="98"
+              height="98"
+              rx="8"
+              fill="none"
+              pathLength={100}
+              stroke="url(#auth-border-gradient)"
+              strokeDasharray="10 90"
+              strokeLinecap="butt"
+              strokeWidth="0.7"
+            />
+          </svg>
           <form
             onSubmit={handleSubmit}
             className="relative z-[1] overflow-hidden rounded-[2rem] border border-fuchsia-200/25 bg-[#160c28]/70 p-6 shadow-[0_24px_90px_-28px_rgba(168,85,247,0.75)] backdrop-blur-2xl sm:p-8"

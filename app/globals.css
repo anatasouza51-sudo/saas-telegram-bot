@@ -58,7 +58,6 @@
   --animate-glow-pulse: glow-pulse 2.5s ease-in-out infinite;
   --animate-slide-in-from-top: slide-in-from-top 0.3s ease-out forwards;
   --animate-scale-in: scale-in 0.2s ease-out forwards;
-  --animate-border-sweep: border-sweep 10s linear infinite;
 
   /* Dashboard specific tokens */
   --color-dashboard-bg: var(--dashboard-bg);
@@ -80,36 +79,18 @@
   50% { transform: translateY(-3px); }
 }
 
-@keyframes border-sweep {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes auth-border-orbit {
+  to { stroke-dashoffset: -100; }
 }
 
-.auth-panel-shell {
-  isolation: isolate;
-}
-
-.auth-panel-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg 250deg,
-    rgba(232, 121, 249, 0.1) 270deg,
-    rgba(232, 121, 249, 0.7) 292deg,
-    rgba(255, 255, 255, 0.8) 304deg,
-    rgba(168, 85, 247, 0.45) 318deg,
-    transparent 340deg 360deg
-  );
-  animation: var(--animate-border-sweep);
-  pointer-events: none;
+.auth-border-orbit {
+  animation: auth-border-orbit 6s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(232, 121, 249, 0.5));
+  vector-effect: non-scaling-stroke;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-panel-shell::before {
+  .auth-border-orbit {
     animation: none;
   }
 }
