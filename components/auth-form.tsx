@@ -182,10 +182,11 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             </h1>
           </div>
         </div>
-        <form
-          onSubmit={handleSubmit}
-          className="relative overflow-hidden rounded-[2rem] border border-fuchsia-200/25 bg-[#160c28]/70 p-6 shadow-[0_24px_90px_-28px_rgba(168,85,247,0.75)] backdrop-blur-2xl sm:p-8"
-        >
+        <div className="auth-panel-shell relative rounded-[2rem] p-px">
+          <form
+            onSubmit={handleSubmit}
+            className="relative z-[1] overflow-hidden rounded-[2rem] border border-fuchsia-200/25 bg-[#160c28]/70 p-6 shadow-[0_24px_90px_-28px_rgba(168,85,247,0.75)] backdrop-blur-2xl sm:p-8"
+          >
           <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl" />
           <div className="relative">
@@ -261,7 +262,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               )}
             </div>
           </div>
-        </form>
+          </form>
+        </div>
         <p className="mt-4 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Seu dinheiro vai direto pro gateway — sem retenção.</p>
       </section>
     </div>
