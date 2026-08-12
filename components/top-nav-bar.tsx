@@ -7,8 +7,6 @@ import Image from "next/image"
 import { authClient } from "@/lib/auth-client"
 import {
   Settings,
-  Menu,
-  X,
   LogOut,
   Bell
 } from "lucide-react"
@@ -28,7 +26,7 @@ export const TopNavBar = memo(({
 }) => {
   const pathname = usePathname()
   const router = useRouter()
-  const { mobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useMobileMenu()
+  const { mobileMenuOpen, setMobileMenuOpen } = useMobileMenu()
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const handleSignOut = useCallback(async () => {
@@ -80,19 +78,6 @@ export const TopNavBar = memo(({
     <>
       <header className="h-16 md:h-20 border-b border-dashboard-border/30 bg-dashboard-bg/80 backdrop-blur-xl sticky top-0 z-40 w-full px-4 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Mobile Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-dashboard-text-muted hover:text-dashboard-text hover:bg-black/5 dark:hover:bg-white/5"
-            onClick={toggleMobileMenu}
-            aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-sidebar"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
-
           {/* Breadcrumb / Title */}
           <div className="flex flex-col">
             <h1 className="text-sm md:text-base font-bold text-dashboard-text tracking-tight">
@@ -180,8 +165,8 @@ export const TopNavBar = memo(({
         {/* Sidebar Content */}
         <div 
           className={cn(
-            "absolute top-0 left-0 bottom-0 w-[280px] bg-dashboard-sidebar transition-transform duration-300 ease-in-out shadow-2xl flex flex-col",
-            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            "absolute top-0 right-0 bottom-0 w-[280px] border-l border-dashboard-border/40 bg-dashboard-sidebar transition-transform duration-300 ease-in-out shadow-2xl flex flex-col",
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
           )}
         >
           <div className="flex-1 overflow-y-auto scrollbar-hide">

@@ -6,6 +6,7 @@ import { PageTransition } from "@/components/page-transition"
 import { ErrorView } from "@/components/error-view"
 import OnboardingTutorial from "@/components/onboarding-tutorial"
 import { MobileMenuProvider } from "@/components/mobile-menu-context"
+import { MobilePanelNav } from "@/components/mobile-panel-nav"
 
 export const dynamic = "force-dynamic"
 
@@ -50,10 +51,12 @@ export default async function PanelLayout({
 
         {/* Conteúdo Principal com Scroll */}
         <main className="flex-1 overflow-y-auto scroll-smooth relative bg-grain">
-          <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+          <div className="container mx-auto p-4 pb-32 md:p-8 md:pb-32 max-w-7xl lg:pb-8">
             <PageTransition>{children}</PageTransition>
           </div>
         </main>
+
+        <MobilePanelNav />
       </div>
 
       {/* Tutorial de Onboarding */}

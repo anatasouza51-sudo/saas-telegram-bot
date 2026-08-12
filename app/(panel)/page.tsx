@@ -4,16 +4,12 @@ import { useCallback, useEffect, useState } from "react"
 import {
   AlertCircle,
   ArrowRight,
-  Boxes,
-  Bot,
   CreditCard,
-  LayoutDashboard,
   Package,
   RefreshCcw,
   ShoppingCart,
   Users,
   Wallet,
-  Zap,
 } from "lucide-react"
 import Link from "next/link"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -27,7 +23,6 @@ import { TopCustomers } from "@/components/top-customers"
 import { PaymentStatusBadge, DeliveryStatusBadge } from "@/components/status-badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { useMobileMenu } from "@/components/mobile-menu-context"
 
 const periodOptions = ["Hoje", "Ontem", "7d", "30d", "Total"]
 
@@ -281,47 +276,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <MobileDashboardNav />
     </div>
-  )
-}
-
-function MobileDashboardNav() {
-  const { mobileMenuOpen, toggleMobileMenu } = useMobileMenu()
-  const items = [
-    { label: "Início", href: "/", icon: LayoutDashboard },
-    { label: "Bot", href: "/telegram", icon: Bot },
-    { label: "Fluxos", href: "/automations", icon: Zap },
-    { label: "Gateway", href: "/gateway", icon: Wallet },
-  ]
-
-  return (
-    <nav className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-[20px] border border-dashboard-border bg-dashboard-sidebar/95 px-1.5 py-2 shadow-2xl shadow-black/30 backdrop-blur-xl lg:hidden" aria-label="Navegação rápida">
-      {items.map(({ label, href, icon: Icon }, index) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-semibold transition-colors",
-            index === 0 ? "text-dashboard-accent" : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
-          )}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-          <span>{label}</span>
-        </Link>
-      ))}
-      <button
-        type="button"
-        onClick={toggleMobileMenu}
-        className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-semibold text-dashboard-text-muted transition-colors hover:bg-dashboard-surface-elevated hover:text-dashboard-text"
-        aria-label="Abrir todas as sessões"
-        aria-haspopup="dialog"
-        aria-expanded={mobileMenuOpen}
-      >
-        <Boxes className="h-[18px] w-[18px]" />
-        <span>Mais</span>
-      </button>
-    </nav>
   )
 }
 
