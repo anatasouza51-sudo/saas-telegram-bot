@@ -38,7 +38,7 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
                 {metric.helper && <p className={cn("mt-3 text-[11px] font-medium", colors.accent)}>{metric.helper}</p>}
               </div>
               <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.05]", colors.iconBg, colors.icon)}>
-                <span className="h-5 w-5">{metric.icon}</span>
+                <span className="flex size-5 shrink-0 items-center justify-center [&>svg]:size-4">{metric.icon}</span>
               </div>
             </div>
           </article>

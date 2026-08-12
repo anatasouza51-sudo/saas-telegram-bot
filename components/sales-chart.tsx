@@ -50,8 +50,8 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-              <Activity className="h-4 w-4 text-blue-400" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+              <Activity className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
             </div>
             <div>
               <h3 className="text-sm font-bold text-dashboard-text">Seu desempenho</h3>

@@ -41,7 +41,9 @@ export function MobilePanelNav() {
                 : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
             )}
           >
-            <Icon className="h-[19px] w-[19px]" />
+            <span className="flex size-5 items-center justify-center" aria-hidden="true">
+              <Icon className="size-[19px] shrink-0" strokeWidth={1.8} />
+            </span>
             <span>{label}</span>
           </Link>
         )
@@ -60,7 +62,9 @@ export function MobilePanelNav() {
         aria-haspopup="dialog"
         aria-expanded={mobileMenuOpen}
       >
-        <Boxes className="h-[19px] w-[19px]" />
+        <span className="flex size-5 items-center justify-center" aria-hidden="true">
+          <Boxes className="size-[19px] shrink-0" strokeWidth={1.8} />
+        </span>
         <span>Mais</span>
       </button>
     </nav>

@@ -35,8 +35,8 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-            <Activity className="h-4 w-4 text-blue-400" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+            <Activity className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
           </div>
           <div>
             <h3 className="text-sm font-bold text-dashboard-text">Log de atividades</h3>
@@ -52,28 +52,28 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
           })}
         >
           Ver logs
-          <ArrowRight className="h-3 w-3" />
+          <ArrowRight className="size-3 shrink-0" strokeWidth={1.8} />
         </Link>
       </div>
 
       {recentActions.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-12 text-center">
-          <Activity className="mb-3 h-6 w-6 text-dashboard-text-muted/40" />
+          <Activity className="mb-3 size-6 shrink-0 text-dashboard-text-muted/40" strokeWidth={1.8} />
           <p className="text-xs text-dashboard-text-muted">Nenhuma atividade recente</p>
         </div>
       ) : (
         <div className="space-y-2">
           {recentActions.map((action) => (
             <div key={action.id} className="flex items-center gap-3 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3 transition-colors hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated/60 sm:p-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-                <ShoppingCart className="h-4 w-4 text-blue-400" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
+                <ShoppingCart className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-bold text-dashboard-text">{action.title}</p>
                 <p className="mt-1 truncate text-[11px] text-dashboard-text-muted">{action.description}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase text-dashboard-text-muted">
-                <Clock3 className="h-3 w-3" />
+                <Clock3 className="size-3 shrink-0" strokeWidth={1.8} />
                 <span className="hidden sm:inline">{action.time}</span>
               </div>
             </div>
