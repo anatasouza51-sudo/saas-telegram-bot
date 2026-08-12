@@ -19,6 +19,7 @@ import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AppSidebar } from "@/components/app-sidebar"
 import { cn } from "@/lib/utils"
+import { useMobileMenu } from "@/components/mobile-menu-context"
 
 export const TopNavBar = memo(({
   user,
@@ -27,10 +28,8 @@ export const TopNavBar = memo(({
 }) => {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { mobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useMobileMenu()
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
-
-  const toggleMobileMenu = useCallback(() => setMobileMenuOpen(prev => !prev), [])
 
   const handleSignOut = useCallback(async () => {
     await authClient.signOut()

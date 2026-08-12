@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { PageTransition } from "@/components/page-transition"
 import { ErrorView } from "@/components/error-view"
 import OnboardingTutorial from "@/components/onboarding-tutorial"
+import { MobileMenuProvider } from "@/components/mobile-menu-context"
 
 export const dynamic = "force-dynamic"
 
@@ -34,7 +35,8 @@ export default async function PanelLayout({
   }
 
   return (
-    <div className="min-h-screen bg-dashboard-bg text-dashboard-text flex overflow-hidden">
+    <MobileMenuProvider>
+      <div className="min-h-screen bg-dashboard-bg text-dashboard-text flex overflow-hidden">
       {/* Sidebar Fixa Desktop */}
       <AppSidebar 
         userRole={user.role} 
@@ -55,7 +57,8 @@ export default async function PanelLayout({
       </div>
 
       {/* Tutorial de Onboarding */}
-      <OnboardingTutorial />
-    </div>
+        <OnboardingTutorial />
+      </div>
+    </MobileMenuProvider>
   )
 }

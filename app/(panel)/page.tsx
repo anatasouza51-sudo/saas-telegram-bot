@@ -27,6 +27,7 @@ import { TopCustomers } from "@/components/top-customers"
 import { PaymentStatusBadge, DeliveryStatusBadge } from "@/components/status-badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { useMobileMenu } from "@/components/mobile-menu-context"
 
 const periodOptions = ["Hoje", "Ontem", "7d", "30d", "Total"]
 
@@ -286,12 +287,12 @@ export default function DashboardPage() {
 }
 
 function MobileDashboardNav() {
+  const { mobileMenuOpen, toggleMobileMenu } = useMobileMenu()
   const items = [
     { label: "Início", href: "/", icon: LayoutDashboard },
     { label: "Bot", href: "/telegram", icon: Bot },
     { label: "Fluxos", href: "/automations", icon: Zap },
     { label: "Gateway", href: "/gateway", icon: Wallet },
-    { label: "Mais", href: "/products", icon: Boxes },
   ]
 
   return (
@@ -309,6 +310,17 @@ function MobileDashboardNav() {
           <span>{label}</span>
         </Link>
       ))}
+      <button
+        type="button"
+        onClick={toggleMobileMenu}
+        className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-semibold text-dashboard-text-muted transition-colors hover:bg-dashboard-surface-elevated hover:text-dashboard-text"
+        aria-label="Abrir todas as sessões"
+        aria-haspopup="dialog"
+        aria-expanded={mobileMenuOpen}
+      >
+        <Boxes className="h-[18px] w-[18px]" />
+        <span>Mais</span>
+      </button>
     </nav>
   )
 }
