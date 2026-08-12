@@ -262,7 +262,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             </div>
           </div>
         </form>
-        <p className="mt-4 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Acesso seguro • Ghost Bot SaaS</p>
+        <p className="mt-4 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Seu dinheiro vai direto pro gateway — sem retenção.</p>
       </section>
     </div>
   )
