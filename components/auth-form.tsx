@@ -133,7 +133,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const togglePassword = useCallback(() => setShowPassword((prev) => !prev), [])
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 sm:gap-10">
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 sm:gap-10">
       <section className="w-full max-w-2xl px-2 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-100/80 backdrop-blur">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
