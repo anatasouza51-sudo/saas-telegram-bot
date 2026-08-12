@@ -30,7 +30,7 @@ const fullCurrency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 })
 
-export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
+export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; periodLabel: string }) => {
   const gradientId = useId()
   const formatted = useMemo(
     () => data.map((d) => ({
@@ -55,7 +55,7 @@ export const SalesChart = memo(({ data }: { data: SalesPoint[] }) => {
             </div>
             <div>
               <h3 className="text-sm font-bold text-dashboard-text">Seu desempenho</h3>
-              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">Últimos 30 dias</p>
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{periodLabel}</p>
             </div>
           </div>
           <div className="mt-5 flex items-center gap-2 text-xs text-dashboard-text-muted">

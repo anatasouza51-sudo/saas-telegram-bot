@@ -24,7 +24,15 @@ import { PaymentStatusBadge, DeliveryStatusBadge } from "@/components/status-bad
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-const periodOptions = ["Hoje", "Ontem", "7d", "30d", "Total"]
+const periodOptions = [
+  { value: "today", label: "Hoje", chartLabel: "Hoje" },
+  { value: "yesterday", label: "Ontem", chartLabel: "Ontem" },
+  { value: "7d", label: "7d", chartLabel: "Últimos 7 dias" },
+  { value: "30d", label: "30d", chartLabel: "Últimos 30 dias" },
+  { value: "total", label: "Total", chartLabel: "Todo o período" },
+] as const
+
+type DashboardPeriod = (typeof periodOptions)[number]["value"]
 
 export default function DashboardPage() {
   const [data, setData] = useState<{
@@ -34,31 +42,35 @@ export default function DashboardPage() {
     salesData: any[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<DashboardPeriod>("today")
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (selectedPeriod: DashboardPeriod) => {
+    setIsRefreshing(true)
     setError(null)
     try {
-      const res = await fetch("/api/dashboard")
+      const res = await fetch(`/api/dashboard?period=${selectedPeriod}`, { cache: "no-store" })
       if (!res.ok) throw new Error("Falha ao carregar dados do dashboard")
       setData(await res.json())
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    void fetchData(period)
+  }, [fetchData, period])
 
-  if (loading) return <DashboardSkeleton />
-  if (error) return <DashboardError error={error} retry={fetchData} />
+  if (loading && !data) return <DashboardSkeleton />
+  if (error && !data) return <DashboardError error={error} retry={() => fetchData(period)} />
   if (!data) return null
 
   const { stats, recentOrders, salesData } = data
+  const selectedPeriodLabel = periodOptions.find((option) => option.value === period)?.chartLabel ?? "Hoje"
   const totalPayments = Math.max(
     (stats?.pendingPayments || 0) + (stats?.approvedPayments || 0) + (stats?.refusedPayments || 0),
     1,
@@ -73,11 +85,11 @@ export default function DashboardPage() {
       helper: "vendas aprovadas",
     },
     {
-      label: "Vendas hoje",
-      value: formatNumber(stats?.salesToday || 0),
+      label: period === "today" ? "Vendas hoje" : period === "yesterday" ? "Vendas ontem" : "Vendas no período",
+      value: formatNumber(stats?.totalSales || 0),
       icon: <ShoppingCart className="h-full w-full" />,
       color: "green" as const,
-      helper: "pedidos recebidos",
+      helper: selectedPeriodLabel.toLowerCase(),
     },
     {
       label: "Clientes",
@@ -136,25 +148,27 @@ export default function DashboardPage() {
 
   return (
     <div className="relative space-y-4 pb-28 pt-1 sm:space-y-5 lg:pb-12">
-      <section className="rounded-[18px] border border-dashboard-border bg-dashboard-surface p-2.5 sm:p-3">
+      <section aria-busy={isRefreshing} className="rounded-[18px] border border-dashboard-border bg-dashboard-surface p-2.5 sm:p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="px-2 sm:px-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-text-muted">Período</p>
             <p className="mt-0.5 text-xs text-dashboard-text">Resumo de vendas e pagamentos</p>
           </div>
           <div className="grid grid-cols-5 gap-1 rounded-[13px] border border-dashboard-border bg-dashboard-bg/70 p-1">
-            {periodOptions.map((period, index) => (
+            {periodOptions.map((option) => (
               <button
-                key={period}
+                key={option.value}
                 type="button"
+                aria-pressed={period === option.value}
+                onClick={() => setPeriod(option.value)}
                 className={cn(
                   "rounded-[10px] px-2 py-2 text-[11px] font-semibold transition-colors sm:px-4",
-                  index === 0
+                  period === option.value
                     ? "bg-dashboard-surface-elevated text-dashboard-text shadow-sm"
                     : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
                 )}
               >
-                {period}
+                {option.label}
               </button>
             ))}
           </div>
@@ -164,7 +178,7 @@ export default function DashboardPage() {
       <SalesOverview metrics={salesMetrics} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
-        <SalesChart data={salesData} />
+        <SalesChart data={salesData} periodLabel={selectedPeriodLabel} />
         <PaymentBreakdown
           approved={stats?.approvedPayments || 0}
           pending={stats?.pendingPayments || 0}
@@ -179,7 +193,7 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <DashboardActivity recentOrders={recentOrders || []} stats={stats || {}} />
+        <DashboardActivity recentOrders={recentOrders || []} stats={stats || {}} periodLabel={selectedPeriodLabel} />
         <TopCustomers customers={topCustomersFromOrders} title="Principais clientes" />
       </div>
 

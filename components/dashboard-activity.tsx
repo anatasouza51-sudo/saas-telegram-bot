@@ -19,10 +19,11 @@ interface RecentOrder {
 
 interface DashboardActivityProps {
   recentOrders: RecentOrder[]
-  stats: { salesToday?: number }
+  stats: { totalSales?: number }
+  periodLabel: string
 }
 
-export const DashboardActivity = memo(({ recentOrders, stats }: DashboardActivityProps) => {
+export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: DashboardActivityProps) => {
   const recentActions = (recentOrders?.slice(0, 5) || []).map((order) => ({
     id: `order-${order.id}`,
     title: order.customerName || order.customerUsername || "Cliente",
@@ -39,7 +40,7 @@ export const DashboardActivity = memo(({ recentOrders, stats }: DashboardActivit
           </div>
           <div>
             <h3 className="text-sm font-bold text-dashboard-text">Log de atividades</h3>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">Tempo real · {stats?.salesToday || 0} vendas hoje</p>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{periodLabel} · {stats?.totalSales || 0} vendas</p>
           </div>
         </div>
         <Link
