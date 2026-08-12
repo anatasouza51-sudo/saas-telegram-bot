@@ -16,7 +16,6 @@ import {
   Zap,
 } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SalesChart } from "@/components/sales-chart"
@@ -63,7 +62,7 @@ export default function DashboardPage() {
   if (error) return <DashboardError error={error} retry={fetchData} />
   if (!data) return null
 
-  const { stats, recentOrders, salesData, user } = data
+  const { stats, recentOrders, salesData } = data
   const totalPayments = Math.max(
     (stats?.pendingPayments || 0) + (stats?.approvedPayments || 0) + (stats?.refusedPayments || 0),
     1,
@@ -141,36 +140,6 @@ export default function DashboardPage() {
 
   return (
     <div className="relative space-y-4 pb-28 pt-1 sm:space-y-5 lg:pb-12">
-      <div className="mb-1 flex items-center justify-between px-1 sm:hidden">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="GHOST BOT — início">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashboard-border bg-dashboard-surface">
-            <Image src="/ghostbot-final-logo.png" alt="GHOST BOT" width={24} height={24} className="object-contain" priority />
-          </span>
-          <span className="font-space text-sm font-black tracking-tight text-dashboard-text">GHOST <span className="text-dashboard-accent">BOT</span></span>
-        </Link>
-        <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-dashboard-text-muted"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Online</span>
-      </div>
-      <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface px-4 py-5 sm:px-6 sm:py-6">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent/[0.08] blur-3xl" />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-dashboard-text-muted">Central de comando</span>
-            </div>
-            <h2 className="font-space text-2xl font-bold tracking-tight text-dashboard-text sm:text-3xl">
-              Olá, {user?.name?.split(" ")[0] || "bem-vindo"}
-            </h2>
-            <p className="mt-1.5 max-w-xl text-sm leading-6 text-dashboard-text-muted">
-              Acompanhe a saúde da sua operação, vendas e pagamentos em um só lugar.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-accent">
-            <span className="rounded-full border border-dashboard-accent/20 bg-dashboard-accent/10 px-3 py-1.5">Painel ativo</span>
-          </div>
-        </div>
-      </section>
-
       <section className="rounded-[18px] border border-dashboard-border bg-dashboard-surface p-2.5 sm:p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="px-2 sm:px-3">
