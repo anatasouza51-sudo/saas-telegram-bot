@@ -141,11 +141,11 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
           Operação Ghost online
         </div>
-        <div className="mb-7 flex items-center gap-4">
+        <div className="mb-7 flex flex-col items-center gap-3 text-center">
           <GhostLogo className="h-16 w-16" />
           <div>
             <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
-            <h1 className="font-space text-4xl font-black tracking-[-0.05em] text-white xl:text-5xl">
+            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white xl:text-5xl">
               GHOST <span className="text-fuchsia-300 drop-shadow-[0_0_22px_rgba(232,121,249,0.45)]">BOT</span>
             </h1>
           </div>
@@ -173,11 +173,11 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       </section>
 
       <section className="w-full max-w-[440px] justify-self-center">
-        <div className="mb-5 flex items-center gap-3 px-1 lg:hidden">
+        <div className="mb-5 flex flex-col items-center gap-2 px-1 text-center lg:hidden">
           <GhostLogo className="h-11 w-11" />
           <div>
             <p className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Central de comando</p>
-            <h1 className="font-space text-2xl font-black tracking-[-0.04em] text-white">
+            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-2xl font-black tracking-[-0.04em] text-white">
               GHOST <span className="text-fuchsia-300">BOT</span>
             </h1>
           </div>
