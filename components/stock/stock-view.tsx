@@ -61,7 +61,7 @@ export function StockView({ summary }: { summary: Summary[] }) {
         </div>
       </div>
 
-      <div className="grid gap-0 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] to-card p-4 shadow-none">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Disponíveis</p>
