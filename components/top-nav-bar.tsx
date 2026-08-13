@@ -48,7 +48,7 @@ export const TopNavBar = memo(({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex min-h-24 w-full items-center justify-between gap-4 border-b border-dashboard-border/20 bg-dashboard-bg/75 px-4 py-4 backdrop-blur-xl md:min-h-28 md:px-8 md:py-5">
+      <header className="relative z-40 flex w-full items-start justify-between gap-4 px-4 pb-2 pt-4 md:px-8 md:pb-3 md:pt-6">
         {/* Floating brand block, visually independent from the actions on the right. */}
         <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="GHOST BOT — Dashboard">
           <span className="relative flex size-12 items-center justify-center overflow-hidden rounded-2xl border border-dashboard-border/50 bg-dashboard-surface/90 shadow-lg shadow-black/10 transition-colors group-hover:border-dashboard-accent/60 md:size-14">
