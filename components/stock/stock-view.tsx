@@ -62,7 +62,7 @@ export function StockView({ summary }: { summary: Summary[] }) {
       </div>
 
       <div className="grid gap-0 sm:grid-cols-3">
-        <div className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] to-card p-4 shadow-sm">
+        <div className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] to-card p-4 shadow-none">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Disponíveis</p>
             <PackageCheck className="h-4 w-4 text-success" />
@@ -70,7 +70,7 @@ export function StockView({ summary }: { summary: Summary[] }) {
           <p className="mt-2 text-2xl font-semibold">{availableTotal}</p>
           <p className="mt-1 text-xs text-muted-foreground">Unidades prontas para venda</p>
         </div>
-        <div className="rounded-xl border border-warning/20 bg-warning/[0.06] p-4 shadow-sm">
+        <div className="rounded-xl border border-warning/20 bg-warning/[0.06] p-4 shadow-none">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Estoque baixo</p>
             <AlertTriangle className="h-4 w-4 text-warning" />
@@ -78,7 +78,7 @@ export function StockView({ summary }: { summary: Summary[] }) {
           <p className="mt-2 text-2xl font-semibold">{lowStockCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Produto(s) que precisam de reposição</p>
         </div>
-        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-none">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Reservados</p>
             <TrendingUp className="h-4 w-4 text-primary" />
