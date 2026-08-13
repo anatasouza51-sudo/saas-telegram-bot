@@ -58,7 +58,6 @@
   --animate-glow-pulse: glow-pulse 2.5s ease-in-out infinite;
   --animate-slide-in-from-top: slide-in-from-top 0.3s ease-out forwards;
   --animate-scale-in: scale-in 0.2s ease-out forwards;
-  --animate-dashboard-beam: dashboard-beam 5s cubic-bezier(0.4, 0, 0.2, 1) infinite 2s;
 
   /* Dashboard specific tokens */
   --color-dashboard-bg: var(--dashboard-bg);
@@ -111,19 +110,38 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes dashboard-beam {
-  0% { transform: translate3d(-50%, -120%, 0); opacity: 0; }
-  12% { opacity: 0.8; }
-  50% { opacity: 0.55; }
-  88% { opacity: 0.8; }
-  100% { transform: translate3d(-50%, 320%, 0); opacity: 0; }
+.dashboard-beam-border {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  padding: 1px;
+  opacity: 0.9;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 326deg,
+    rgba(139, 92, 246, 0.08) 334deg,
+    rgba(168, 85, 247, 0.95) 348deg,
+    rgba(216, 180, 254, 0.9) 355deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: dashboard-beam-border 7s linear infinite;
+}
+
+@keyframes dashboard-beam-border {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-dashboard-beam {
-    animation: none !important;
-    opacity: 0.18;
-    transform: translate3d(-50%, 70%, 0);
+  .dashboard-beam-border {
+    animation: none;
+    opacity: 0.28;
   }
 }
 
