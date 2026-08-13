@@ -51,9 +51,6 @@ export const UserMenu = memo(({
           <span className="truncate text-sm font-medium text-sidebar-foreground">
             {name}
           </span>
-          <span className="truncate text-xs text-muted-foreground">
-            {roleLabel}
-          </span>
         </div>
         <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
       </DropdownMenuTrigger>
