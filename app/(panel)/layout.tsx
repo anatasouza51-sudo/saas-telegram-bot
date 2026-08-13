@@ -61,7 +61,7 @@ export default async function PanelLayout({
       </div>
 
       {/* Tutorial de Onboarding */}
-        <OnboardingTutorial />
+        <OnboardingTutorial initialOnboardingSeen={user.onboardingSeen} />
       </div>
     </MobileMenuProvider>
   )

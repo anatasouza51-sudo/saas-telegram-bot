@@ -58,7 +58,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
 ];
 
-export default function OnboardingTutorial() {
+export default function OnboardingTutorial({ initialOnboardingSeen = true }: { initialOnboardingSeen?: boolean }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -72,26 +72,10 @@ export default function OnboardingTutorial() {
   }, []);
 
   useEffect(() => {
-    // Verifica no servidor se o usuário já viu o onboarding
-    // Contas antigas: onboardingSeen = TRUE (coluna criada com DEFAULT TRUE)
-    // Contas novas: onboardingSeen = FALSE (criadas pelo hook do Better Auth)
-    const checkOnboarding = async () => {
-      try {
-        const res = await fetch("/api/onboarding-check");
-        if (res.ok) {
-          const data = await res.json();
-          // Se o servidor diz que ja viu, não mostra
-          if (data?.onboardingSeen) return;
-        }
-        // Se não viu, mostra o tutorial
-        setIsVisible(true);
-      } catch {
-        // Se falhar a verificação, não mostra (segurança — não forçar)
-        setIsVisible(false);
-      }
-    };
-    checkOnboarding();
-  }, []);
+    // O layout já validou a sessão e carregou onboardingSeen junto com o usuário.
+    // Evitamos uma segunda chamada autenticada ao servidor em cada montagem.
+    if (!initialOnboardingSeen) setIsVisible(true);
+  }, [initialOnboardingSeen]);
 
   const handleContinue = async () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {

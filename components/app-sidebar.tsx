@@ -58,6 +58,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
   const NavLink = ({ item, active, isChild = false }: { item: NavItem; active: boolean; isChild?: boolean }) => (
     <Link
       href={item.href}
+      prefetch={false}
       onClick={onItemClick}
       aria-current={active ? "page" : undefined}
       className={cn(
