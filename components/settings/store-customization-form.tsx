@@ -34,7 +34,7 @@ export function StoreCustomizationForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 pl-3 sm:pl-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-400/20">
           <Store className={iconClass} />
         </div>
