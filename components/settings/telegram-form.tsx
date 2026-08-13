@@ -396,23 +396,23 @@ export function TelegramForm({
         </CardContent>
       </Card>
 
-      {/* Seção 2: Auto-detecção de Grupos */}
+      {/* Etapa 3: grupos, permissões e sincronização */}
       {botConfigured && (
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden border-primary/15">
+          <CardHeader className="border-b border-border/60 bg-primary/[0.03]">
             <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-500" />
-              Auto-detecção de Grupos
+              <Zap className="h-5 w-5 text-primary" />
+              Grupos e permissões
             </CardTitle>
             <CardDescription>
-              Detecte automaticamente todos os grupos onde o bot é administrador
+              Encontre os grupos onde o bot é administrador e escolha quais serão usados na divulgação.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5 pt-5">
             <Button
               onClick={detectGroups}
               disabled={detecting}
-              className="w-full"
+              className="w-full border-primary/30 text-primary hover:bg-primary/10"
               variant="outline"
             >
               {detecting ? (
@@ -430,14 +430,24 @@ export function TelegramForm({
 
             {detectedGroups.length > 0 && (
               <div className="space-y-3">
-                <div className="text-sm font-medium">
-                  {detectedGroups.length} grupo(s) encontrado(s)
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Grupos detectados</p>
+                    <p className="text-xs text-muted-foreground">
+                      {detectedGroups.length} grupo(s) encontrado(s)
+                    </p>
+                  </div>
+                  {selectedGroups.size > 0 && (
+                    <Badge className="bg-primary/15 text-primary hover:bg-primary/15">
+                      {selectedGroups.size} selecionado(s)
+                    </Badge>
+                  )}
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {detectedGroups.map((group) => (
                     <div
                       key={group.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-white/5 cursor-pointer transition-colors"
+                      className={`flex items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${selectedGroups.has(group.id) ? "border-primary/50 bg-primary/[0.06]" : "border-border hover:border-primary/30 hover:bg-primary/[0.03]"}`}
                       onClick={() => toggleGroupSelection(group.id)}
                     >
                       <input
@@ -453,8 +463,8 @@ export function TelegramForm({
                             {group.type}
                           </Badge>
                           {group.isAdmin && (
-                            <Badge className="text-xs shrink-0 bg-green-500/20 text-green-400">
-                              Admin
+                            <Badge className="text-xs shrink-0 bg-primary/15 text-primary hover:bg-primary/15">
+                              Administrador
                             </Badge>
                           )}
                         </div>
@@ -462,9 +472,12 @@ export function TelegramForm({
                           {group.memberCount ? `${group.memberCount} membros` : "Membros desconhecidos"}
                         </p>
                         {group.missingPermissions.length > 0 && (
-                          <p className="text-xs text-yellow-400">
-                            ⚠️ Faltam permissões: {group.missingPermissions.join(", ")}
+                          <p className="text-xs text-amber-400">
+                            Permissões pendentes: {group.missingPermissions.join(", ")}
                           </p>
+                        )}
+                        {group.missingPermissions.length === 0 && group.isAdmin && (
+                          <p className="text-xs text-primary">Permissões necessárias disponíveis</p>
                         )}
                       </div>
                     </div>
@@ -493,8 +506,7 @@ export function TelegramForm({
             )}
 
             <p className="text-xs text-muted-foreground">
-              💡 Dica: Adicione o bot aos grupos como administrador e ele detectará automaticamente.
-              Não é necessário inserir IDs manualmente!
+              Adicione o bot aos grupos como administrador para que a detecção e a sincronização funcionem corretamente. Não é necessário inserir IDs manualmente.
             </p>
           </CardContent>
         </Card>
