@@ -123,7 +123,6 @@ export const MAIN_NAV: NavNode[] = [
 export const SYSTEM_NAV: NavItem[] = [
   { title: "Telegram Bot", href: "/telegram", icon: "Send", capability: "telegram.manage" },
   { title: "Gateways", href: "/gateway", icon: "Wallet", capability: "gateway.manage" },
-  { title: "Administradores", href: "/admins", icon: "ShieldCheck", capability: "admins.manage" },
   { title: "Logs", href: "/logs", icon: "ScrollText", capability: "logs.view" },
 ]
 
