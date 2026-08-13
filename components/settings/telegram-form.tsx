@@ -276,18 +276,18 @@ export function TelegramForm({
           </Button>
         </div>
       )}
-      {/* Seção 1: Configuração do Token */}
+      {/* Etapa 2: identidade e acesso do bot */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5" />
-            Token do Bot
+            <Bot className="h-5 w-5 text-primary" />
+            Identidade e acesso
           </CardTitle>
           <CardDescription>
-            Insira o token gerado pelo @BotFather
+            Configure a conexão e confirme qual bot está vinculado a esta loja.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="grid gap-2">
             <Label htmlFor="tg-token">Token do Bot</Label>
             <div className="relative">
@@ -318,9 +318,9 @@ export function TelegramForm({
             </p>
           </div>
 
-          {/* Bot Preview Card */}
+          {/* Preview da identidade do bot */}
           {preview && (
-            <div className="flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 shadow-[0_0_20px_rgba(168,85,247,0.08)] animate-in fade-in slide-in-from-top-2">
               <Avatar className="h-12 w-12 border-2 border-primary/20">
                 <AvatarImage src={preview.photoUrl || ""} alt={preview.name} />
                 <AvatarFallback className="bg-primary/10 text-primary">
@@ -337,22 +337,24 @@ export function TelegramForm({
             </div>
           )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="tg-admins">IDs de administradores autorizados</Label>
+          <div className="border-t border-border/60 pt-5">
+            <div className="grid gap-2">
+              <Label htmlFor="tg-admins">Administradores autorizados</Label>
             <Input
               id="tg-admins"
               placeholder="123456789, 987654321"
               value={adminIds}
               onChange={(e) => setAdminIds(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Somente estes Telegram IDs poderão acessar o painel administrativo do
-              bot (separados por vírgula).
-            </p>
+              <p className="text-xs text-muted-foreground">
+                Informe os Telegram IDs autorizados a administrar este bot, separados por vírgula.
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Webhook URL da sua loja</Label>
+          <div className="border-t border-border/60 pt-5">
+            <div className="grid gap-2">
+              <Label>Webhook da loja</Label>
             <div className="flex items-center gap-2">
               <Input readOnly value={webhookUrl} className="font-mono text-xs" />
               <Button
@@ -369,9 +371,10 @@ export function TelegramForm({
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Endereço exclusivo desta loja que o Telegram chamará.
-            </p>
+              <p className="text-xs text-muted-foreground">
+                Endereço exclusivo que o Telegram chamará para entregar eventos desta loja.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
