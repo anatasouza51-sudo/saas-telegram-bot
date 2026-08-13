@@ -28,9 +28,8 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
         return (
           <article
             key={metric.label}
-            className="group relative overflow-hidden rounded-[20px] border border-dashboard-border bg-dashboard-surface p-4 transition-colors hover:border-dashboard-border-active sm:p-5"
+            className="group relative p-4 sm:p-5"
           >
-            <div className={cn("pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r to-transparent opacity-70", colors.line)} />
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{metric.label}</p>
