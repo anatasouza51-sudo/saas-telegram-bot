@@ -3,15 +3,13 @@
 import React, { memo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
+import {
   ChevronRight,
-  ChevronDown,
-  LayoutDashboard,
-  type LucideIcon
+  type LucideIcon,
 } from "lucide-react"
 import * as Icons from "lucide-react"
 import { cn } from "@/lib/utils"
-import { MAIN_NAV, SYSTEM_NAV, isSection, type NavItem, type NavSection } from "@/lib/nav"
+import { MAIN_NAV, SYSTEM_NAV, isSection, type NavItem } from "@/lib/nav"
 import { canSee, type Role } from "@/lib/roles"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -25,161 +23,150 @@ interface SidebarProps {
 export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpanded = false }: SidebarProps) => {
   const pathname = usePathname()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    // Default: expand sections that have the current page active
     const initial: Record<string, boolean> = {}
     MAIN_NAV.forEach((node) => {
       if (isSection(node)) {
-        const visible = node.children.filter((c) => canSee(userRole, c.capability))
-        const isActive = visible.some((c) => pathname.startsWith(c.href))
+        const visible = node.children.filter((child) => canSee(userRole, child.capability))
+        const isActive = visible.some((child) => pathname.startsWith(child.href))
         initial[node.title] = isActive || visible.length > 0
       }
     })
     return initial
   })
 
-  const isActive = (href: string) => {
-    if (href === "/" && pathname !== "/") return false
-    return pathname.startsWith(href)
-  }
+  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href)
 
   const toggleSection = (title: string) => {
     if (alwaysExpanded) return
-    setExpandedSections((prev) => ({ ...prev, [title]: !prev[title] }))
+    setExpandedSections((previous) => ({ ...previous, [title]: !previous[title] }))
   }
 
-  const renderIcon = (iconName: string, active: boolean) => {
-    const Icon = (Icons as any)[iconName] as LucideIcon
+  const renderIcon = (iconName: string, active: boolean, child = false) => {
+    const Icon = (Icons as unknown as Record<string, LucideIcon>)[iconName]
     if (!Icon) return null
     return (
-      <Icon 
-        className={cn(
-          "w-4 h-4 transition-colors duration-200 shrink-0",
-          active ? "text-white" : "text-dashboard-text-muted group-hover:text-dashboard-text"
-        )} 
-      />
+      <span className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+        child ? "size-8" : "size-9",
+        active ? "bg-dashboard-accent/15 text-dashboard-accent" : "text-dashboard-text-muted group-hover:text-dashboard-text",
+      )} aria-hidden="true">
+        <Icon className={cn(child ? "size-[17px]" : "size-[18px]")} strokeWidth={1.9} />
+      </span>
     )
   }
 
-  const NavLink = ({ item, active, isChild = false }: { item: NavItem, active: boolean, isChild?: boolean }) => (
+  const NavLink = ({ item, active, isChild = false }: { item: NavItem; active: boolean; isChild?: boolean }) => (
     <Link
       href={item.href}
       onClick={onItemClick}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
-        active 
-          ? "bg-gradient-to-r from-dashboard-accent to-dashboard-accent-secondary text-white shadow-lg shadow-dashboard-accent/20" 
-          : "text-dashboard-text-muted hover:text-dashboard-text hover:bg-white/5",
-        isChild && "ml-4"
+        "group relative flex min-w-0 w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent/60",
+        active
+          ? "bg-dashboard-accent/12 text-dashboard-text shadow-[inset_3px_0_0_theme(colors.dashboard.accent)]"
+          : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
+        isChild && "ml-3 w-[calc(100%-0.75rem)]",
       )}
     >
-      {renderIcon(item.icon, active)}
-      <span className="relative z-10">{item.title}</span>
-      {active && (
-        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-      )}
+      {renderIcon(item.icon, active, isChild)}
+      <span className="min-w-0 flex-1 truncate leading-5">{item.title}</span>
+      {active && <span className="size-1.5 shrink-0 rounded-full bg-dashboard-accent shadow-[0_0_10px_theme(colors.dashboard.accent)]" aria-hidden="true" />}
     </Link>
   )
 
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex min-h-7 items-center px-2.5 pb-2 pt-1">
+      <p className="truncate text-[10px] font-bold uppercase leading-4 tracking-[0.22em] text-dashboard-text-muted/60">
+        {children}
+      </p>
+    </div>
+  )
+
   return (
-    <aside className={cn("flex flex-col h-full bg-dashboard-sidebar border-r border-dashboard-border/50", className)}>
-      {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-6 overflow-y-auto scrollbar-hide pb-8">
-        {/* Operação Section */}
-        <div className="space-y-1">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-text-muted/50 mb-3">
-            Operação
-          </p>
-          <div className="space-y-1">
-            {MAIN_NAV.map((node, idx) => {
-              if (isSection(node)) {
-                const visibleChildren = node.children.filter(child => canSee(userRole, child.capability))
-                if (visibleChildren.length === 0) return null
-                
-                const sectionActive = visibleChildren.some(child => isActive(child.href))
-                const isExpanded = expandedSections[node.title] ?? true
-
-                return (
-                  <div key={idx} className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={alwaysExpanded ? undefined : () => toggleSection(node.title)}
-                      disabled={alwaysExpanded}
-                      aria-expanded={alwaysExpanded || isExpanded}
-                      className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm font-semibold transition-all duration-200 rounded-lg",
-                        !alwaysExpanded && "hover:bg-white/5",
-                        sectionActive ? "text-dashboard-text" : "text-dashboard-text-muted/80",
-                        alwaysExpanded && "cursor-default"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        {renderIcon(node.icon, sectionActive)}
-                        <span>{node.title}</span>
-                      </div>
-                      {!alwaysExpanded && (
-                        <motion.div
-                          animate={{ rotate: isExpanded ? 90 : 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                        >
-                          <ChevronRight className="w-3.5 h-3.5 text-dashboard-text-muted/50" />
-                        </motion.div>
-                      )}
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {(alwaysExpanded || isExpanded) && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-1 pt-1 pb-2">
-                            {visibleChildren.map((child, cIdx) => (
-                              <NavLink 
-                                key={cIdx} 
-                                item={child} 
-                                active={isActive(child.href)} 
-                                isChild 
-                              />
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )
-              }
-
-              if (!canSee(userRole, node.capability)) return null
-              return (
-                <NavLink 
-                  key={idx} 
-                  item={node} 
-                  active={isActive(node.href)} 
-                />
-              )
-            })}
+    <aside className={cn("flex min-h-0 h-full w-full min-w-0 flex-col bg-dashboard-sidebar text-dashboard-text", className)}>
+      <div className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] lg:px-5 lg:pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-bold uppercase tracking-[0.22em] text-dashboard-accent/80">Painel</p>
+            <p className="mt-1 truncate text-xs font-medium text-dashboard-text-muted">Navegação principal</p>
           </div>
+          <span className="size-2 shrink-0 rounded-full bg-dashboard-accent shadow-[0_0_12px_theme(colors.dashboard.accent)]" aria-hidden="true" />
         </div>
+      </div>
 
-        {/* Sistema Section */}
-        <div className="space-y-1">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-text-muted/50 mb-3">
-            Sistema
-          </p>
-          <div className="space-y-1">
-            {SYSTEM_NAV.map((item, idx) => {
-              if (!canSee(userRole, item.capability)) return null
-              return (
-                <NavLink 
-                  key={idx} 
-                  item={item} 
-                  active={isActive(item.href)} 
-                />
-              )
-            })}
-          </div>
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-5 lg:px-4" aria-label="Navegação do painel">
+        <div className="space-y-6">
+          <section aria-labelledby="sidebar-operation-label" className="space-y-1">
+            <div id="sidebar-operation-label"><SectionLabel>Operação</SectionLabel></div>
+            <div className="space-y-1">
+              {MAIN_NAV.map((node, index) => {
+                if (isSection(node)) {
+                  const visibleChildren = node.children.filter((child) => canSee(userRole, child.capability))
+                  if (visibleChildren.length === 0) return null
+                  const sectionActive = visibleChildren.some((child) => isActive(child.href))
+                  const isExpanded = expandedSections[node.title] ?? true
+
+                  return (
+                    <div key={node.title} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={alwaysExpanded ? undefined : () => toggleSection(node.title)}
+                        disabled={alwaysExpanded}
+                        aria-expanded={alwaysExpanded || isExpanded}
+                        className={cn(
+                          "group flex min-w-0 w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent/60",
+                          sectionActive ? "text-dashboard-text" : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
+                          alwaysExpanded && "cursor-default",
+                        )}
+                      >
+                        {renderIcon(node.icon, sectionActive)}
+                        <span className="min-w-0 flex-1 truncate text-left leading-5">{node.title}</span>
+                        {!alwaysExpanded && (
+                          <motion.span
+                            animate={{ rotate: isExpanded ? 90 : 0 }}
+                            transition={{ duration: 0.18, ease: "easeOut" }}
+                            className="flex size-6 shrink-0 items-center justify-center text-dashboard-text-muted/60"
+                          >
+                            <ChevronRight className="size-4" />
+                          </motion.span>
+                        )}
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {(alwaysExpanded || isExpanded) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.18, ease: "easeOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="space-y-1 pb-1 pt-0.5">
+                              {visibleChildren.map((child) => (
+                                <NavLink key={child.href} item={child} active={isActive(child.href)} isChild />
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )
+                }
+                if (!canSee(userRole, node.capability)) return null
+                return <NavLink key={node.href || index} item={node} active={isActive(node.href)} />
+              })}
+            </div>
+          </section>
+
+          <section aria-labelledby="sidebar-system-label" className="space-y-1 border-t border-dashboard-border/40 pt-4">
+            <div id="sidebar-system-label"><SectionLabel>Sistema</SectionLabel></div>
+            <div className="space-y-1">
+              {SYSTEM_NAV.map((item) => canSee(userRole, item.capability) && (
+                <NavLink key={item.href} item={item} active={isActive(item.href)} />
+              ))}
+            </div>
+          </section>
         </div>
       </nav>
     </aside>
