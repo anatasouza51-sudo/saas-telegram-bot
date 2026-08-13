@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertCircle,
   ArrowRight,
@@ -45,24 +45,36 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<DashboardPeriod>("today")
+  const requestControllerRef = useRef<AbortController | null>(null)
 
   const fetchData = useCallback(async (selectedPeriod: DashboardPeriod) => {
+    requestControllerRef.current?.abort()
+    const controller = new AbortController()
+    requestControllerRef.current = controller
     setIsRefreshing(true)
     setError(null)
     try {
-      const res = await fetch(`/api/dashboard?period=${selectedPeriod}`, { cache: "no-store" })
+      const res = await fetch(`/api/dashboard?period=${selectedPeriod}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      })
       if (!res.ok) throw new Error("Falha ao carregar dados do dashboard")
       setData(await res.json())
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     } finally {
-      setLoading(false)
-      setIsRefreshing(false)
+      if (requestControllerRef.current === controller) {
+        setLoading(false)
+        setIsRefreshing(false)
+        requestControllerRef.current = null
+      }
     }
   }, [])
 
   useEffect(() => {
     void fetchData(period)
+    return () => requestControllerRef.current?.abort()
   }, [fetchData, period])
 
   if (loading && !data) return <DashboardSkeleton />
@@ -76,7 +88,7 @@ export default function DashboardPage() {
     1,
   )
 
-  const salesMetrics = [
+  const salesMetrics = useMemo(() => [
     {
       label: "Receita total",
       value: formatCurrency(stats?.totalRevenue || 0),
@@ -105,7 +117,7 @@ export default function DashboardPage() {
       color: "amber" as const,
       helper: "no catálogo",
     },
-  ]
+  ], [period, selectedPeriodLabel, stats])
 
   const paymentMetrics = [
     {
@@ -128,7 +140,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const topCustomersFromOrders = recentOrders && recentOrders.length > 0
+  const topCustomersFromOrders = useMemo(() => recentOrders && recentOrders.length > 0
     ? Array.from(
         new Map(
           recentOrders
@@ -144,7 +156,7 @@ export default function DashboardPage() {
             ]),
         ).values(),
       ).slice(0, 5)
-    : []
+    : [], [recentOrders])
 
   return (
     <div className="relative mx-auto w-full max-w-7xl space-y-4 px-2 pb-28 pt-1 sm:space-y-5 md:px-4 lg:pb-12">
