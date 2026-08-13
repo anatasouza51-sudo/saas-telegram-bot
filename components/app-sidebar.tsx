@@ -2,7 +2,6 @@
 
 import React, { memo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { 
   ChevronRight,
@@ -83,24 +82,6 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
 
   return (
     <aside className={cn("flex flex-col h-full bg-dashboard-sidebar border-r border-dashboard-border/50", className)}>
-      {/* Logo Section */}
-      <div className="p-6 mb-2">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-8 h-8 flex items-center justify-center bg-dashboard-surface rounded-xl border border-dashboard-border/30 group-hover:border-dashboard-accent/50 transition-colors duration-300 shadow-inner">
-            <Image
-              src="/ghostbot-final-logo.png"
-              alt="GHOST BOT"
-              width={24}
-              height={24}
-              className="object-contain"
-            />
-          </div>
-          <span className="font-black text-base tracking-tight text-dashboard-text">
-            GHOST <span className="text-dashboard-accent">BOT</span>
-          </span>
-        </Link>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-6 overflow-y-auto scrollbar-hide pb-8">
         {/* Operação Section */}

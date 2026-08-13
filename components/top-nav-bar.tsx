@@ -77,13 +77,32 @@ export const TopNavBar = memo(({
   return (
     <>
       <header className="h-16 md:h-20 border-b border-dashboard-border/30 bg-dashboard-bg/80 backdrop-blur-xl sticky top-0 z-40 w-full px-4 md:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Breadcrumb / Title */}
-          <div className="flex flex-col">
-            <h1 className="text-sm md:text-base font-bold text-dashboard-text tracking-tight">
+        <div className="flex min-w-0 items-center gap-3 md:gap-5">
+          {/* Global brand: stays fixed in the top-left across every panel session. */}
+          <Link href="/" className="group flex shrink-0 items-center gap-2.5" aria-label="GHOST BOT — Dashboard">
+            <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-xl border border-dashboard-border/40 bg-dashboard-surface shadow-inner transition-colors group-hover:border-dashboard-accent/50 md:size-10">
+              <Image
+                src="/ghostbot-final-logo.png"
+                alt="GHOST BOT"
+                width={32}
+                height={32}
+                className="size-7 object-contain md:size-8"
+                priority
+              />
+            </span>
+            <span className="whitespace-nowrap text-sm font-black tracking-tight text-dashboard-text md:text-base">
+              GHOST <span className="text-dashboard-accent">BOT</span>
+            </span>
+          </Link>
+
+          <div className="hidden h-8 w-px bg-dashboard-border/40 md:block" />
+
+          {/* Current session title */}
+          <div className="hidden min-w-0 flex-col md:flex">
+            <h1 className="truncate text-sm font-bold tracking-tight text-dashboard-text md:text-base">
               {getPageTitle()}
             </h1>
-            <p className="hidden md:block text-[10px] text-dashboard-text-muted font-medium uppercase tracking-widest">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-dashboard-text-muted">
               {ROLE_LABELS[user.role]}
             </p>
           </div>
