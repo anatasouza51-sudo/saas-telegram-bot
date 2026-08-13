@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart"
 import { Activity } from "lucide-react"
 import type { SalesPoint } from "@/lib/queries/dashboard"
+import { DashboardBeam } from "@/components/dashboard-beam"
 
 const chartConfig = {
   revenue: {
@@ -48,7 +49,8 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
 
   return (
     <section className="group relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <DashboardBeam />
+      <div className="relative z-10 mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10 shadow-[0_0_14px_rgba(139,92,246,0.18)]">
@@ -70,7 +72,7 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
         </div>
       </div>
 
-      <div className="relative h-[250px] sm:h-[285px]">
+      <div className="relative z-10 h-[250px] sm:h-[285px]">
         {hasRevenue ? (
           <ChartContainer config={chartConfig} className="h-full w-full">
             <ResponsiveContainer width="100%" height="100%">

@@ -5,6 +5,7 @@ import { ShoppingCart, ArrowRight, Activity, Clock3 } from "lucide-react"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { formatCurrency, formatDateTime } from "@/lib/format"
+import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface RecentOrder {
   id: string
@@ -33,7 +34,8 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <div className="mb-5 flex items-center justify-between gap-3">
+      <DashboardBeam />
+      <div className="relative z-10 mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
             <Activity className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
@@ -62,7 +64,7 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
           <p className="text-xs text-dashboard-text-muted">Nenhuma atividade recente</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="relative z-10 space-y-2">
           {recentActions.map((action) => (
             <div key={action.id} className="flex items-center gap-3 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3 transition-colors hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated/60 sm:p-3.5">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">

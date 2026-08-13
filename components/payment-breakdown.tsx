@@ -3,6 +3,7 @@
 import { memo } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { CreditCard } from "lucide-react"
+import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface PaymentBreakdownProps {
   approved: number
@@ -23,7 +24,8 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <div className="mb-5 flex items-center gap-3">
+      <DashboardBeam />
+      <div className="relative z-10 mb-5 flex items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10">
           <CreditCard className="size-4 shrink-0 text-emerald-400" strokeWidth={1.8} />
         </div>
@@ -40,7 +42,7 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
         </div>
       ) : (
         <>
-          <div className="relative mx-auto h-44 w-44 [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none">
+          <div className="relative z-10 mx-auto h-44 w-44 [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie rootTabIndex={-1} data={data} cx="50%" cy="50%" innerRadius={53} outerRadius={74} paddingAngle={2} dataKey="value" strokeWidth={0}>
@@ -65,7 +67,7 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
               <span className="text-[10px] uppercase tracking-wider text-dashboard-text-muted">aprovados</span>
             </div>
           </div>
-          <div className="mt-5 space-y-2.5">
+          <div className="relative z-10 mt-5 space-y-2.5">
             {data.map((entry, index) => (
               <div key={entry.name} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">

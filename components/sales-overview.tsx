@@ -1,5 +1,6 @@
 import { memo } from "react"
 import { cn } from "@/lib/utils"
+import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface SalesMetric {
   label: string
@@ -30,8 +31,9 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
             key={metric.label}
             className="group relative overflow-hidden rounded-none border-0 bg-transparent p-4 sm:rounded-[20px] sm:border sm:border-dashboard-border sm:bg-dashboard-surface sm:p-5 sm:transition-colors sm:hover:border-dashboard-border-active"
           >
+            <DashboardBeam />
             <div className={cn("pointer-events-none absolute inset-x-0 bottom-0 hidden h-px bg-gradient-to-r to-transparent opacity-70 sm:block", colors.line)} />
-            <div className="flex items-start justify-between gap-3">
+            <div className="relative z-10 flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{metric.label}</p>
                 <p className="mt-5 font-space text-[2rem] font-bold leading-none tracking-tight text-dashboard-text sm:text-[2.15rem]">{metric.value}</p>
