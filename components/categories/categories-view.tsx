@@ -34,7 +34,6 @@ import {
   ArrowUp,
   ArrowDown,
   FolderTree,
-  Sparkles,
   Layers3,
 } from "lucide-react"
 
@@ -80,10 +79,6 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            Catálogo
-          </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Categorias</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Organize a navegação do catálogo e defina a ordem exibida no bot.
