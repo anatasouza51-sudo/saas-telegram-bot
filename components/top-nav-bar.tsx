@@ -51,7 +51,7 @@ export const TopNavBar = memo(({
       <header className="absolute inset-x-0 top-0 z-40 flex w-full items-start justify-between gap-4 border-0 bg-transparent p-0 px-4 pb-2 pt-4 shadow-none outline-none before:hidden after:hidden md:relative md:inset-auto md:px-8 md:pb-3 md:pt-6">
         {/* Floating brand block, visually independent from the actions on the right. */}
         <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="GHOST BOT — Dashboard">
-          <span className="relative flex size-12 items-center justify-center overflow-hidden rounded-2xl border border-dashboard-border/50 bg-dashboard-surface/90 shadow-lg shadow-black/10 transition-colors group-hover:border-dashboard-accent/60 md:size-14">
+          <span className="relative flex size-12 items-center justify-center overflow-hidden md:size-14">
             <Image
               src="/ghostbot-final-logo.png"
               alt="GHOST BOT"
