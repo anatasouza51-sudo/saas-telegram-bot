@@ -272,7 +272,19 @@ export function ChannelsView({
 
   return (
     <>
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Audiência</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Grupos & Canais</h1>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">Organize os destinos do Telegram e defina como o bot deve operar em cada espaço.</p>
+        </div>
+        <div className="flex items-center gap-2 self-start rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary sm:self-auto">
+          <Radio className="h-4 w-4" />
+          <span>{channels.length} destino(s)</span>
+        </div>
+      </div>
+
       {!botConfigured && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -309,7 +321,7 @@ export function ChannelsView({
               setPage(1)
             }}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -333,7 +345,7 @@ export function ChannelsView({
               setPage(1)
             }}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -344,7 +356,7 @@ export function ChannelsView({
               <SelectItem value="removed">Removido</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleSync} disabled={syncing || !botConfigured}>
+          <Button className="w-full sm:w-auto" onClick={handleSync} disabled={syncing || !botConfigured}>
             <RefreshCw
               className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`}
             />
@@ -352,6 +364,7 @@ export function ChannelsView({
           </Button>
           <Button
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={handleRestart}
             disabled={syncing || !botConfigured}
           >
@@ -361,7 +374,60 @@ export function ChannelsView({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="grid gap-3 md:hidden">
+        {paginated.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+            <Radio className="mx-auto mb-3 h-8 w-8 opacity-40" />
+            <p className="font-medium">Nenhum grupo ou canal detectado ainda.</p>
+            <p className="mt-1 text-xs">Adicione o bot como administrador para detectar este destino.</p>
+          </div>
+        ) : (
+          paginated.map((c) => {
+            const st = deriveStatus(c)
+            return (
+              <article key={c.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                <div className="flex items-start justify-between gap-3 border-b border-border/70 p-4">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold">{c.title}</h3>
+                    <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                      {c.type === "channel" ? <Megaphone className="h-3.5 w-3.5 shrink-0" /> : <Users className="h-3.5 w-3.5 shrink-0" />}
+                      <span>{typeLabel(c.type)}</span>
+                    </div>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center gap-1.5 text-sm font-medium ${st.text}`}>
+                    <span className={`h-2 w-2 rounded-full ${st.dot}`} aria-hidden />
+                    <span className="max-w-[9rem] text-right">{st.label}</span>
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 p-4">
+                  <div className="rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Membros</span>
+                    <p className="mt-1 font-semibold">{typeof c.memberCount === "number" ? c.memberCount.toLocaleString("pt-BR") : "—"}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Identificação</span>
+                    <p className="mt-1 truncate text-sm font-medium">{c.username ? `@${c.username.replace(/^@/, "")}` : c.chatId}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="mb-1.5 block text-xs text-muted-foreground">Função no bot</span>
+                    <Select items={purposeItems} value={c.purpose} onValueChange={(v) => handlePurpose(c.id, v as string)}>
+                      <SelectTrigger className="w-full" disabled={pending}><SelectValue /></SelectTrigger>
+                      <SelectContent>{PURPOSES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end border-t border-border/70 px-4 py-3">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={() => handleRemoveClick(c.id, c.title)} disabled={pending}>
+                    <Trash2 className="mr-2 h-4 w-4" />Remover
+                  </Button>
+                </div>
+              </article>
+            )
+          })
+        )}
+      </div>
+
+      <div className="hidden rounded-lg border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
