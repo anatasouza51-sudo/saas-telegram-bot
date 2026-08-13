@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -11,7 +11,7 @@ import {
   Bell
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ROLE_LABELS, type Role } from "@/lib/roles"
+import type { Role } from "@/lib/roles"
 import { NotificationsConnected } from "@/components/notifications-connected"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -24,7 +24,6 @@ export const TopNavBar = memo(({
 }: {
   user: { name: string; email: string; role: Role; id: string; storeId: string; image?: string | null }
 }) => {
-  const pathname = usePathname()
   const router = useRouter()
   const { mobileMenuOpen, setMobileMenuOpen } = useMobileMenu()
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
@@ -47,69 +46,28 @@ export const TopNavBar = memo(({
     }
   }, [mobileMenuOpen])
 
-  // Get current page title from pathname
-  const getPageTitle = () => {
-    if (pathname === "/") return "Dashboard"
-    const segments = pathname.split("/").filter(Boolean)
-    if (segments.length === 0) return "Dashboard"
-    
-    // Simple mapping for common routes
-    const titles: Record<string, string> = {
-      products: "Produtos",
-      categories: "Categorias",
-      stock: "Estoque",
-      orders: "Pedidos",
-      customers: "Clientes",
-      payments: "Pagamentos",
-      deliveries: "Entregas",
-      posts: "Postagens",
-      channels: "Grupos & Canais",
-      automations: "Automações",
-      telegram: "Telegram Bot",
-      gateway: "Gateways",
-      admins: "Administradores",
-      logs: "Logs"
-    }
-    
-    return titles[segments[0]] || segments[0].charAt(0).toUpperCase() + segments[0].slice(1)
-  }
-
   return (
     <>
-      <header className="h-16 md:h-20 border-b border-dashboard-border/30 bg-dashboard-bg/80 backdrop-blur-xl sticky top-0 z-40 w-full px-4 md:px-8 flex items-center justify-between">
-        <div className="flex min-w-0 items-center gap-3 md:gap-5">
-          {/* Global brand: stays fixed in the top-left across every panel session. */}
-          <Link href="/" className="group flex shrink-0 items-center gap-2.5" aria-label="GHOST BOT — Dashboard">
-            <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-xl border border-dashboard-border/40 bg-dashboard-surface shadow-inner transition-colors group-hover:border-dashboard-accent/50 md:size-10">
-              <Image
-                src="/ghostbot-final-logo.png"
-                alt="GHOST BOT"
-                width={32}
-                height={32}
-                className="size-7 object-contain md:size-8"
-                priority
-              />
-            </span>
-            <span className="whitespace-nowrap text-sm font-black tracking-tight text-dashboard-text md:text-base">
-              GHOST <span className="text-dashboard-accent">BOT</span>
-            </span>
-          </Link>
+      <header className="sticky top-0 z-40 flex min-h-24 w-full items-center justify-between gap-4 border-b border-dashboard-border/20 bg-dashboard-bg/75 px-4 py-4 backdrop-blur-xl md:min-h-28 md:px-8 md:py-5">
+        {/* Floating brand block, visually independent from the actions on the right. */}
+        <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="GHOST BOT — Dashboard">
+          <span className="relative flex size-12 items-center justify-center overflow-hidden rounded-2xl border border-dashboard-border/50 bg-dashboard-surface/90 shadow-lg shadow-black/10 transition-colors group-hover:border-dashboard-accent/60 md:size-14">
+            <Image
+              src="/ghostbot-final-logo.png"
+              alt="GHOST BOT"
+              width={48}
+              height={48}
+              className="size-10 object-contain md:size-12"
+              priority
+            />
+          </span>
+          <span className="whitespace-nowrap text-xl font-black tracking-[-0.04em] text-dashboard-text md:text-2xl">
+            GHOST <span className="text-dashboard-accent">BOT</span>
+          </span>
+        </Link>
 
-          <div className="hidden h-8 w-px bg-dashboard-border/40 md:block" />
-
-          {/* Current session title */}
-          <div className="hidden min-w-0 flex-col md:flex">
-            <h1 className="truncate text-sm font-bold tracking-tight text-dashboard-text md:text-base">
-              {getPageTitle()}
-            </h1>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-dashboard-text-muted">
-              {ROLE_LABELS[user.role]}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        {/* Floating actions block, kept separate from the brand like the SharkBot reference. */}
+        <div className="flex items-center gap-1.5 rounded-full border border-dashboard-border/50 bg-dashboard-surface/80 p-1.5 shadow-lg shadow-black/10 backdrop-blur-xl md:gap-2 md:p-2">
           <NotificationsConnected />
 
           <ThemeToggle />
