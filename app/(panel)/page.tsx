@@ -75,6 +75,57 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const selectedPeriodLabel = periodOptions.find((option) => option.value === period)?.chartLabel ?? "Hoje"
+
+  const salesMetrics = useMemo(() => [
+    {
+      label: "Receita total",
+      value: formatCurrency(data?.stats?.totalRevenue || 0),
+      icon: <Wallet className="size-4 shrink-0" strokeWidth={1.8} />,
+      color: "blue" as const,
+      helper: "vendas aprovadas",
+    },
+    {
+      label: period === "today" ? "Vendas hoje" : period === "yesterday" ? "Vendas ontem" : "Vendas no período",
+      value: formatNumber(data?.stats?.totalSales || 0),
+      icon: <ShoppingCart className="size-4 shrink-0" strokeWidth={1.8} />,
+      color: "green" as const,
+      helper: selectedPeriodLabel.toLowerCase(),
+    },
+    {
+      label: "Clientes",
+      value: formatNumber(data?.stats?.totalCustomers || 0),
+      icon: <Users className="size-4 shrink-0" strokeWidth={1.8} />,
+      color: "violet" as const,
+      helper: "na sua operação",
+    },
+    {
+      label: "Produtos ativos",
+      value: formatNumber(data?.stats?.totalProducts || 0),
+      icon: <Package className="size-4 shrink-0" strokeWidth={1.8} />,
+      color: "amber" as const,
+      helper: "no catálogo",
+    },
+  ], [data?.stats, period, selectedPeriodLabel])
+
+  const topCustomersFromOrders = useMemo(() => data?.recentOrders && data.recentOrders.length > 0
+    ? Array.from(
+        new Map(
+          data.recentOrders
+            .filter((order: any) => order.customerName || order.customerUsername)
+            .map((order: any) => [
+              order.customerId || order.customerUsername,
+              {
+                id: order.customerId || order.customerUsername,
+                name: order.customerName || order.customerUsername || "Cliente",
+                totalSpent: order.amount || 0,
+                orderCount: 1,
+              },
+            ]),
+        ).values(),
+      ).slice(0, 5)
+    : [], [data?.recentOrders])
+
   useEffect(() => {
     void fetchData(period)
     return () => requestControllerRef.current?.abort()
@@ -85,42 +136,10 @@ export default function DashboardPage() {
   if (!data) return null
 
   const { stats, recentOrders, salesData } = data
-  const selectedPeriodLabel = periodOptions.find((option) => option.value === period)?.chartLabel ?? "Hoje"
   const totalPayments = Math.max(
     (stats?.pendingPayments || 0) + (stats?.approvedPayments || 0) + (stats?.refusedPayments || 0),
     1,
   )
-
-  const salesMetrics = useMemo(() => [
-    {
-      label: "Receita total",
-      value: formatCurrency(stats?.totalRevenue || 0),
-      icon: <Wallet className="size-4 shrink-0" strokeWidth={1.8} />,
-      color: "blue" as const,
-      helper: "vendas aprovadas",
-    },
-    {
-      label: period === "today" ? "Vendas hoje" : period === "yesterday" ? "Vendas ontem" : "Vendas no período",
-      value: formatNumber(stats?.totalSales || 0),
-      icon: <ShoppingCart className="size-4 shrink-0" strokeWidth={1.8} />,
-      color: "green" as const,
-      helper: selectedPeriodLabel.toLowerCase(),
-    },
-    {
-      label: "Clientes",
-      value: formatNumber(stats?.totalCustomers || 0),
-      icon: <Users className="size-4 shrink-0" strokeWidth={1.8} />,
-      color: "violet" as const,
-      helper: "na sua operação",
-    },
-    {
-      label: "Produtos ativos",
-      value: formatNumber(stats?.totalProducts || 0),
-      icon: <Package className="size-4 shrink-0" strokeWidth={1.8} />,
-      color: "amber" as const,
-      helper: "no catálogo",
-    },
-  ], [period, selectedPeriodLabel, stats])
 
   const paymentMetrics = [
     {
@@ -142,24 +161,6 @@ export default function DashboardPage() {
       color: "rose" as const,
     },
   ]
-
-  const topCustomersFromOrders = useMemo(() => recentOrders && recentOrders.length > 0
-    ? Array.from(
-        new Map(
-          recentOrders
-            .filter((order: any) => order.customerName || order.customerUsername)
-            .map((order: any) => [
-              order.customerId || order.customerUsername,
-              {
-                id: order.customerId || order.customerUsername,
-                name: order.customerName || order.customerUsername || "Cliente",
-                totalSpent: order.amount || 0,
-                orderCount: 1,
-              },
-            ]),
-        ).values(),
-      ).slice(0, 5)
-    : [], [recentOrders])
 
   return (
     <div className="relative mx-auto w-full max-w-7xl space-y-4 px-2 pb-28 pt-1 sm:space-y-5 md:px-4 lg:pb-12">
