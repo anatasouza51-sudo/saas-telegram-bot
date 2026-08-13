@@ -192,14 +192,14 @@ export function TelegramForm({
 
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-hidden">
-      <Card className="overflow-hidden border-primary/20 bg-primary/[0.03]">
+      <Card className="w-full min-w-0 max-w-full overflow-hidden border-primary/20 bg-primary/[0.03]">
         <CardContent className="p-5 md:p-6">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
+            <div className="flex min-w-0 max-w-full items-start gap-3 sm:items-center sm:gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(168,85,247,0.18)]">
                 <Bot className="h-7 w-7" aria-hidden="true" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate text-lg font-semibold">Meu bot do Telegram</h2>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
