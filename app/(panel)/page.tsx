@@ -46,10 +46,12 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<DashboardPeriod>("today")
   const requestControllerRef = useRef<AbortController | null>(null)
+  const requestIdRef = useRef(0)
 
   const fetchData = useCallback(async (selectedPeriod: DashboardPeriod) => {
     requestControllerRef.current?.abort()
     const controller = new AbortController()
+    const requestId = ++requestIdRef.current
     requestControllerRef.current = controller
     setIsRefreshing(true)
     setError(null)
@@ -61,10 +63,11 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Falha ao carregar dados do dashboard")
       setData(await res.json())
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return
+      const wasAborted = controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")
+      if (wasAborted || requestId !== requestIdRef.current) return
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     } finally {
-      if (requestControllerRef.current === controller) {
+      if (requestControllerRef.current === controller && requestId === requestIdRef.current) {
         setLoading(false)
         setIsRefreshing(false)
         requestControllerRef.current = null
