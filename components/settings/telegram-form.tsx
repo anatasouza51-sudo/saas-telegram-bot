@@ -9,7 +9,7 @@ import { checkWebhookRegistration } from "@/app/actions/check-webhook"
 import { getBotPreview, type BotPreview } from "@/app/actions/tg-preview"
 import { autoDetectTelegramGroups, syncGroupToAudience } from "@/app/actions/tg-auto-detect"
 import { toast } from "sonner"
-import { Copy, Check, Bot, Loader2, Zap, Users } from "lucide-react"
+import { Copy, Check, Bot, Loader2, Zap, Users, CircleCheck, AlertTriangle, RefreshCw } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Card,
@@ -192,6 +192,55 @@ export function TelegramForm({
 
   return (
     <div className="flex flex-col gap-6">
+      <Card className="overflow-hidden border-primary/20 bg-primary/[0.03]">
+        <CardContent className="p-5 md:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(168,85,247,0.18)]">
+                <Bot className="h-7 w-7" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-lg font-semibold">Meu bot do Telegram</h2>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                    webhookMatches === false
+                      ? "bg-destructive/10 text-destructive"
+                      : botConfigured
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                  }`}>
+                    {webhookMatches === false ? (
+                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : botConfigured ? (
+                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : null}
+                    {webhookMatches === false ? "Webhook precisa de atenção" : botConfigured ? "Bot configurado" : "Bot não configurado"}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {webhookMatches === false
+                    ? "O Telegram está apontando para outra URL. Corrija a conexão abaixo."
+                    : botConfigured
+                      ? "A integração está pronta para receber atualizações do Telegram."
+                      : "Conecte um bot para começar a receber pedidos e mensagens."}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {botConfigured && (
+                <Button type="button" variant="outline" size="sm" onClick={refreshWebhookStatus} disabled={checkingWebhook}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${checkingWebhook ? "animate-spin" : ""}`} aria-hidden="true" />
+                  {checkingWebhook ? "Verificando..." : "Verificar conexão"}
+                </Button>
+              )}
+              <Button type="button" size="sm" onClick={connect} disabled={registering || !botConfigured}>
+                {registering ? "Conectando..." : "Registrar webhook"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Mismatch warning: the silent failure where Telegram keeps an old
           webhook registration pointing at another store's URL. */}
       {botConfigured && checkingWebhook && (
