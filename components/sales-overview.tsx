@@ -29,7 +29,7 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
         return (
           <article
             key={metric.label}
-            className="group relative overflow-hidden rounded-none border-0 bg-transparent p-4 sm:rounded-[20px] sm:border sm:border-dashboard-border sm:bg-dashboard-surface sm:p-5 sm:transition-colors sm:hover:border-dashboard-border-active"
+            className="group relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 transition-colors hover:border-dashboard-border-active sm:rounded-[20px] sm:p-5"
           >
             <DashboardBeam />
             <div className={cn("pointer-events-none absolute inset-x-0 bottom-0 hidden h-px bg-gradient-to-r to-transparent opacity-70 sm:block", colors.line)} />
