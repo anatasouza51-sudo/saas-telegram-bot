@@ -66,8 +66,8 @@ export const TopNavBar = memo(({
           </span>
         </Link>
 
-        {/* Floating actions block, kept separate from the brand like the SharkBot reference. */}
-        <div className="flex items-center gap-1.5 rounded-full border border-dashboard-border/50 bg-dashboard-surface/80 p-1.5 shadow-lg shadow-black/10 backdrop-blur-xl md:gap-2 md:p-2">
+        {/* Individual floating actions, without a surrounding pill or card. */}
+        <div className="flex items-center gap-1 md:gap-2">
           <NotificationsConnected />
 
           <ThemeToggle />
