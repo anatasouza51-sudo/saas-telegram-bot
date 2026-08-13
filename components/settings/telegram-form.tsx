@@ -422,7 +422,7 @@ export function TelegramForm({
               Grupos e permissões
             </CardTitle>
             <CardDescription>
-              Encontre os grupos onde o bot é administrador e escolha quais serão usados na divulgação.
+              Sincronize grupos conhecidos pelo webhook, confira as permissões do bot e escolha quais serão usados na divulgação.
             </CardDescription>
           </CardHeader>
           <CardContent className="min-w-0 space-y-4 pt-3">
@@ -440,7 +440,7 @@ export function TelegramForm({
               ) : (
                 <>
                   <Users className="mr-2 h-4 w-4" />
-                  Detectar Grupos
+                  Sincronizar grupos conhecidos
                 </>
               )}
             </Button>
@@ -532,7 +532,7 @@ export function TelegramForm({
             )}
 
             <p className="text-xs text-muted-foreground">
-              Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo webhook criará o registro automaticamente; depois, clique em Detectar Grupos para revalidar permissões e membros.
+              Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo webhook criará o registro automaticamente; depois, use esta ação para revalidar permissões e membros dos grupos conhecidos.
             </p>
           </CardContent>
         </Card>

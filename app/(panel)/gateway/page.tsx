@@ -23,13 +23,15 @@ export default async function GatewayPage() {
     return <ErrorView retryHref="/gateway" />
   }
 
-  // Lista de gateways suportados e futuros
+  // Apenas o VeoPag está integrado ao fluxo de cobrança atual.
   const gatewayProviders = [
-    { id: "veopag", name: "VeoPag", logo: "/assets/logos/veopag.webp" },
-    { id: "gateway2", name: "Gateway Futuro 1", logo: "/assets/logos/placeholder.svg" },
-    { id: "gateway3", name: "Gateway Futuro 2", logo: "/assets/logos/placeholder.svg" },
-    { id: "gateway4", name: "Gateway Futuro 3", logo: "/assets/logos/placeholder.svg" },
-    { id: "gateway5", name: "Gateway Futuro 4", logo: "/assets/logos/placeholder.svg" },
+    { id: "veopag", name: "VeoPag", logo: "/assets/logos/veopag.webp", enabled: true },
+  ]
+
+  const futureGateways = [
+    "Mercado Pago",
+    "Stripe",
+    "Asaas",
   ]
 
   const keysToLoad = [
@@ -51,7 +53,7 @@ export default async function GatewayPage() {
         <CardHeader className="px-4 py-5 md:px-6">
           <CardTitle className="text-xl md:text-2xl font-black tracking-tight">Gateways</CardTitle>
           <CardDescription className="text-xs md:text-sm text-dashboard-text-muted">
-            Gerencie suas integrações de pagamento. Configure as chaves e URLs de webhook para cada provedor.
+            Configure o gateway conectado à sua operação e personalize a experiência de pagamento PIX.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-3 pb-6 md:px-6 flex flex-col gap-1">
@@ -74,6 +76,22 @@ export default async function GatewayPage() {
               />
             )
           }))}
+          </CardContent>
+      </Card>
+
+      <Card className="border-dashed border-dashboard-border/60 bg-dashboard-surface/40">
+        <CardHeader className="px-4 py-4 md:px-6">
+          <CardTitle className="text-base font-bold">Próximas integrações</CardTitle>
+          <CardDescription className="text-xs text-dashboard-text-muted">
+            Novos provedores poderão ser habilitados futuramente. Eles ainda não processam pagamentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 px-4 pb-5 md:px-6">
+          {futureGateways.map((name) => (
+            <span key={name} className="rounded-full border border-dashboard-border/60 bg-dashboard-bg/40 px-3 py-1.5 text-xs font-semibold text-dashboard-text-muted">
+              {name} · em breve
+            </span>
+          ))}
         </CardContent>
       </Card>
 
