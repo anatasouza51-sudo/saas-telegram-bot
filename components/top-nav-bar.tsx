@@ -48,7 +48,7 @@ export const TopNavBar = memo(({
 
   return (
     <>
-      <header className="absolute inset-x-0 top-0 z-40 flex w-full items-start justify-between gap-4 border-0 bg-transparent p-0 px-4 pb-2 pt-4 shadow-none outline-none before:hidden after:hidden md:relative md:inset-auto md:px-8 md:pb-3 md:pt-6">
+      <header className="absolute inset-x-0 top-0 z-40 flex w-full items-center justify-between gap-4 border-0 bg-transparent p-0 px-4 pb-2 pt-4 shadow-none outline-none before:hidden after:hidden md:relative md:inset-auto md:px-8 md:pb-3 md:pt-6">
         {/* Floating brand block, visually independent from the actions on the right. */}
         <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="GHOST BOT — Dashboard">
           <span className="relative flex size-12 items-center justify-center overflow-hidden md:size-14">
@@ -61,7 +61,7 @@ export const TopNavBar = memo(({
               priority
             />
           </span>
-          <span className="whitespace-nowrap text-xl font-black tracking-[-0.04em] text-dashboard-text md:text-2xl">
+          <span className="whitespace-nowrap text-xl font-black leading-none tracking-[-0.04em] text-dashboard-text md:text-2xl">
             GHOST <span className="text-dashboard-accent">BOT</span>
           </span>
         </Link>
@@ -75,7 +75,7 @@ export const TopNavBar = memo(({
           <Button
             variant="ghost"
             size="icon"
-            className="text-dashboard-text-muted hover:text-dashboard-text hover:bg-black/5 dark:hover:bg-white/5"
+            className="size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text"
             onClick={() => setProfileDialogOpen(true)}
             aria-label="Configurações de perfil"
           >
