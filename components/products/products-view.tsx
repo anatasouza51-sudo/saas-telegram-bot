@@ -54,6 +54,11 @@ import {
   AlertCircle,
   DollarSign,
   Boxes,
+  Filter,
+  ChevronDown,
+  CircleDollarSign,
+  Warehouse,
+  Sparkles,
 } from "lucide-react"
 import type { ProductWithStats, ProductStats, SortOption, FilterOption } from "@/app/actions/products-refactored"
 
@@ -97,6 +102,7 @@ export function ProductsView({
   const [sort, setSort] = useState<SortOption>("name-asc")
   const [filters, setFilters] = useState<FilterOption[]>(["all"])
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [showFilters, setShowFilters] = useState(false)
   const [page, setPage] = useState(1)
   const [, startTransition] = useTransition()
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -215,12 +221,30 @@ export function ProductsView({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            Catálogo
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Produtos</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Organize seus produtos, preços, entrega e disponibilidade em um só lugar.
+          </p>
+        </div>
+        <Button className="w-full sm:w-auto" onClick={() => setProductDialog({ open: true, product: null })}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo produto
+        </Button>
+      </div>
+
       {/* Estatísticas */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-primary/15 bg-gradient-to-br from-primary/[0.08] to-card shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de produtos</CardTitle>
+            <div className="rounded-lg bg-primary/10 p-2 text-primary"><Package className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalProducts}</div>
@@ -230,9 +254,10 @@ export function ProductsView({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Estoque</CardTitle>
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Estoque disponível</CardTitle>
+            <div className="rounded-lg bg-success/10 p-2 text-success"><Warehouse className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalInStock}</div>
@@ -242,9 +267,10 @@ export function ProductsView({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Preço Médio</CardTitle>
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Preço médio</CardTitle>
+            <div className="rounded-lg bg-secondary p-2 text-secondary-foreground"><CircleDollarSign className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.averagePrice)}</div>
@@ -254,9 +280,10 @@ export function ProductsView({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Alertas</CardTitle>
+        <Card className="border-warning/20 bg-warning/[0.04] shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Alertas de estoque</CardTitle>
+            <div className="rounded-lg bg-warning/10 p-2 text-warning"><AlertCircle className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-warning">{stats.lowStockProducts}</div>
@@ -270,7 +297,7 @@ export function ProductsView({
       {/* Controles */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -282,9 +309,9 @@ export function ProductsView({
               className="pl-9"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -303,7 +330,7 @@ export function ProductsView({
                 setPage(1)
               }}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -316,21 +343,26 @@ export function ProductsView({
               </SelectContent>
             </Select>
 
-            <Link href="/categories">
-              <Button variant="outline">
+            <Link href="/categories" className="col-span-2 sm:col-span-1">
+              <Button variant="outline" className="w-full">
                 <FolderTree className="mr-2 h-4 w-4" />
                 Categorias
               </Button>
             </Link>
-            <Button onClick={() => setProductDialog({ open: true, product: null })}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo
-            </Button>
           </div>
         </div>
 
+        <Button
+          variant="outline"
+          className="w-full justify-between sm:hidden"
+          onClick={() => setShowFilters((value) => !value)}
+        >
+          <span className="flex items-center gap-2"><Filter className="h-4 w-4" /> Filtros e segmentação</span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+        </Button>
+
         {/* Filtros */}
-        <div className="flex flex-wrap gap-2">
+        <div className={`${showFilters ? "flex" : "hidden sm:flex"} flex-wrap gap-2 rounded-xl border border-border/70 bg-muted/20 p-2`}>
           {FILTER_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
@@ -346,7 +378,8 @@ export function ProductsView({
 
       {/* Tabela Desktop */}
       {!isMobile && (
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -477,6 +510,7 @@ export function ProductsView({
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 
@@ -495,11 +529,19 @@ export function ProductsView({
             const lowStock =
               p.deliveryType === "stock" && p.stockAvailable <= p.lowStockThreshold
             return (
-              <Card key={p.id}>
-                <CardHeader className="pb-3">
+              <Card key={p.id} className="overflow-hidden border-border/80 shadow-sm">
+                <CardHeader className="bg-muted/20 pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <CardTitle className="text-base">{p.name}</CardTitle>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <CardTitle className="truncate text-base">{p.name}</CardTitle>
+                        <Badge
+                          variant="outline"
+                          className={p.status === "active" ? "border-success/30 bg-success/10 text-success" : "border-muted-foreground/30 bg-muted text-muted-foreground"}
+                        >
+                          {p.status === "active" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
                       {p.categoryName && (
                         <CardDescription>
                           {p.categoryEmoji && <span className="mr-1">{p.categoryEmoji}</span>}
@@ -560,39 +602,35 @@ export function ProductsView({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Preço</p>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="rounded-lg bg-muted/30 p-2">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço</p>
                       <p className="text-sm font-semibold">{formatCurrency(p.price)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Estoque</p>
+                    <div className="rounded-lg bg-muted/30 p-2">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estoque</p>
                       <p className={`text-sm font-semibold ${lowStock ? "text-warning" : ""}`}>
                         {p.deliveryType === "manual" ? "Manual" : p.stockAvailable}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Vendas</p>
+                    <div className="rounded-lg bg-muted/30 p-2">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vendas</p>
                       <p className="text-sm font-semibold">{p.salesCount}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Entrega</p>
+                    <div className="rounded-lg bg-muted/30 p-2">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Entrega</p>
                       <p className="text-sm font-semibold">
                         {p.deliveryType === "stock" ? "Automática" : "Manual"}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <Badge
-                      variant="outline"
-                      className={
-                        p.status === "active"
-                          ? "border-success/30 bg-success/10 text-success"
-                          : "border-muted-foreground/30 bg-muted text-muted-foreground"
-                      }
-                    >
-                      {p.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
+                  <div className="flex items-center justify-between border-t pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {lowStock ? "Requer reposição" : "Operação normal"}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {p.deliveryType === "stock" ? "Entrega automática" : "Entrega manual"}
+                    </span>
                   </div>
                 </CardContent>
               </Card>
