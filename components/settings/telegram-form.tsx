@@ -191,7 +191,7 @@ export function TelegramForm({
   }
 
   return (
-    <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-hidden">
+    <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-hidden pl-3 sm:pl-4">
       <Card className="w-full min-w-0 max-w-full overflow-hidden border-primary/20 bg-primary/[0.03]">
         <CardContent className="p-5 md:p-6">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
