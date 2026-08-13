@@ -40,9 +40,9 @@ export default async function TelegramPage() {
   const botConfigured = Boolean(saved["telegram.botToken"])
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      <Card>
-        <CardContent className="pt-6">
+    <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-clip p-4 md:p-6">
+      <Card className="min-w-0 max-w-full overflow-hidden">
+        <CardContent className="min-w-0 pt-6">
           <TelegramForm
             initial={{
               hasBotToken: botConfigured,
@@ -54,8 +54,8 @@ export default async function TelegramPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="min-w-0 max-w-full overflow-hidden">
+        <CardContent className="min-w-0 pt-6">
           <StoreCustomizationForm
             initial={{
               welcomeMessage: saved["store.welcomeMessage"] ?? "",
@@ -65,8 +65,8 @@ export default async function TelegramPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="min-w-0 max-w-full overflow-hidden">
+        <CardContent className="min-w-0 pt-6">
           <CatalogButtonsForm
             initial={parseCatalogConfig(saved["catalog.config"])}
           />

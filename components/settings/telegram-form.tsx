@@ -191,10 +191,10 @@ export function TelegramForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-hidden">
       <Card className="overflow-hidden border-primary/20 bg-primary/[0.03]">
         <CardContent className="p-5 md:p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(168,85,247,0.18)]">
                 <Bot className="h-7 w-7" aria-hidden="true" />
@@ -226,14 +226,14 @@ export function TelegramForm({
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
               {botConfigured && (
-                <Button type="button" variant="outline" size="sm" onClick={refreshWebhookStatus} disabled={checkingWebhook}>
+                <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={refreshWebhookStatus} disabled={checkingWebhook}>
                   <RefreshCw className={`mr-2 h-4 w-4 ${checkingWebhook ? "animate-spin" : ""}`} aria-hidden="true" />
                   {checkingWebhook ? "Verificando..." : "Verificar conexão"}
                 </Button>
               )}
-              <Button type="button" size="sm" onClick={connect} disabled={registering || !botConfigured}>
+              <Button type="button" size="sm" className="w-full sm:w-auto" onClick={connect} disabled={registering || !botConfigured}>
                 {registering ? "Conectando..." : "Registrar webhook"}
               </Button>
             </div>
@@ -270,7 +270,7 @@ export function TelegramForm({
             size="sm"
             onClick={fixMismatchedWebhook}
             disabled={registering}
-            className="bg-primary text-black font-bold hover:bg-primary/90"
+            className="w-full bg-primary text-black font-bold hover:bg-primary/90 sm:w-auto"
           >
             {registering ? "Corrigindo..." : "Corrigir webhook (1 clique)"}
           </Button>
@@ -320,7 +320,7 @@ export function TelegramForm({
 
           {/* Preview da identidade do bot */}
           {preview && (
-            <div className="flex items-center gap-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 shadow-[0_0_20px_rgba(168,85,247,0.08)] animate-in fade-in slide-in-from-top-2">
+            <div className="flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 shadow-[0_0_20px_rgba(168,85,247,0.08)] animate-in fade-in slide-in-from-top-2 sm:flex-row sm:items-center sm:gap-4">
               <Avatar className="h-12 w-12 border-2 border-primary/20">
                 <AvatarImage src={preview.photoUrl || ""} alt={preview.name} />
                 <AvatarFallback className="bg-primary/10 text-primary">
@@ -355,8 +355,8 @@ export function TelegramForm({
           <div className="border-t border-border/60 pt-5">
             <div className="grid gap-2">
               <Label>Webhook da loja</Label>
-            <div className="flex items-center gap-2">
-              <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+              <Input readOnly value={webhookUrl} className="min-w-0 font-mono text-xs" />
               <Button
                 type="button"
                 variant="outline"
@@ -377,11 +377,11 @@ export function TelegramForm({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
             <Button 
               onClick={submit} 
               disabled={pending} 
-              className="bg-primary text-black font-bold hover:bg-primary/90"
+              className="w-full bg-primary text-black font-bold hover:bg-primary/90 sm:w-auto"
             >
               {pending ? "Salvando..." : "Salvar configurações"}
             </Button>
@@ -408,7 +408,7 @@ export function TelegramForm({
               Encontre os grupos onde o bot é administrador e escolha quais serão usados na divulgação.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5 pt-5">
+          <CardContent className="min-w-0 space-y-5 pt-5">
             <Button
               onClick={detectGroups}
               disabled={detecting}
@@ -430,7 +430,7 @@ export function TelegramForm({
 
             {detectedGroups.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold">Grupos detectados</p>
                     <p className="text-xs text-muted-foreground">
@@ -443,27 +443,27 @@ export function TelegramForm({
                     </Badge>
                   )}
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="max-h-72 space-y-3 overflow-y-auto overflow-x-hidden pr-1">
                   {detectedGroups.map((group) => (
                     <div
                       key={group.id}
-                      className={`flex items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${selectedGroups.has(group.id) ? "border-primary/50 bg-primary/[0.06]" : "border-border hover:border-primary/30 hover:bg-primary/[0.03]"}`}
+                      className={`flex min-w-0 items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${selectedGroups.has(group.id) ? "border-primary/50 bg-primary/[0.06]" : "border-border hover:border-primary/30 hover:bg-primary/[0.03]"}`}
                       onClick={() => toggleGroupSelection(group.id)}
                     >
                       <input
                         type="checkbox"
                         checked={selectedGroups.has(group.id)}
                         onChange={() => toggleGroupSelection(group.id)}
-                        className="w-4 h-4 rounded"
+                        className="mt-1 h-4 w-4 shrink-0 rounded"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{group.title}</span>
-                          <Badge variant="secondary" className="text-xs shrink-0">
+                        <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                          <span className="max-w-full break-words font-medium">{group.title}</span>
+                          <Badge variant="secondary" className="max-w-full shrink-0 text-xs">
                             {group.type}
                           </Badge>
                           {group.isAdmin && (
-                            <Badge className="text-xs shrink-0 bg-primary/15 text-primary hover:bg-primary/15">
+                            <Badge className="max-w-full shrink-0 text-xs bg-primary/15 text-primary hover:bg-primary/15">
                               Administrador
                             </Badge>
                           )}
@@ -472,12 +472,12 @@ export function TelegramForm({
                           {group.memberCount ? `${group.memberCount} membros` : "Membros desconhecidos"}
                         </p>
                         {group.missingPermissions.length > 0 && (
-                          <p className="text-xs text-amber-400">
+                          <p className="break-words text-xs leading-relaxed text-amber-400">
                             Permissões pendentes: {group.missingPermissions.join(", ")}
                           </p>
                         )}
                         {group.missingPermissions.length === 0 && group.isAdmin && (
-                          <p className="text-xs text-primary">Permissões necessárias disponíveis</p>
+                          <p className="break-words text-xs leading-relaxed text-primary">Permissões necessárias disponíveis</p>
                         )}
                       </div>
                     </div>

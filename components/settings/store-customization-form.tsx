@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Image from "next/image"
+import { ImageIcon, Link2, MessageSquareText, Save, Sparkles, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,15 +10,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { saveStoreCustomization } from "@/app/actions/settings"
 import { toast } from "sonner"
 
+const iconClass = "h-4 w-4 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.72)]"
+
 export function StoreCustomizationForm({
   initial,
 }: {
   initial: { welcomeMessage: string; welcomeImageUrl: string }
 }) {
   const [welcomeMessage, setWelcomeMessage] = useState(initial.welcomeMessage)
-  const [welcomeImageUrl, setWelcomeImageUrl] = useState(
-    initial.welcomeImageUrl,
-  )
+  const [welcomeImageUrl, setWelcomeImageUrl] = useState(initial.welcomeImageUrl)
   const [pending, startTransition] = useTransition()
 
   function submit() {
@@ -32,54 +33,85 @@ export function StoreCustomizationForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="welcome-message">Mensagem de boas-vindas</Label>
-        <Textarea
-          id="welcome-message"
-          rows={4}
-          placeholder="Olá {nome}! 👋 Seja bem-vindo(a) à nossa loja. Confira nossos produtos abaixo:"
-          value={welcomeMessage}
-          onChange={(e) => setWelcomeMessage(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Exibida quando o cliente inicia o bot com /start. Use{" "}
-          <code className="rounded bg-muted px-1">{"{nome}"}</code> para inserir o
-          nome do cliente. Aceita tags HTML do Telegram (ex.:{" "}
-          <code className="rounded bg-muted px-1">{"<b>texto</b>"}</code>).
-        </p>
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="welcome-image">URL da imagem de boas-vindas</Label>
-        <Input
-          id="welcome-image"
-          placeholder="https://... (opcional)"
-          value={welcomeImageUrl}
-          onChange={(e) => setWelcomeImageUrl(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Opcional. Se informada, a imagem é enviada junto com a mensagem de
-          boas-vindas (banner, logo, etc.).
-        </p>
-      </div>
-
-      {welcomeImageUrl.trim() ? (
-        <div className="overflow-hidden rounded-md border">
-          {/* Preview of the banner as it will appear in Telegram. */}
-          <Image
-            src={welcomeImageUrl.trim() || "/placeholder.svg"}
-            alt="Prévia da imagem de boas-vindas"
-            width={480}
-            height={240}
-            className="h-auto w-full object-cover"
-            unoptimized
-          />
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-400/20">
+          <Store className={iconClass} />
         </div>
-      ) : null}
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">Identidade da loja</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Defina a primeira impressão que o cliente terá ao iniciar o bot.
+          </p>
+        </div>
+      </div>
 
-      <div>
-        <Button onClick={submit} disabled={pending}>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.72fr)]">
+        <div className="flex flex-col gap-5 rounded-2xl border border-violet-400/15 bg-violet-500/[0.035] p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className={iconClass} />
+            <div>
+              <Label htmlFor="welcome-message" className="text-sm font-semibold">Mensagem de boas-vindas</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">Enviada quando o cliente usa o comando /start.</p>
+            </div>
+          </div>
+          <Textarea
+            id="welcome-message"
+            rows={5}
+            placeholder="Olá {nome}! Seja bem-vindo(a) à nossa loja."
+            value={welcomeMessage}
+            onChange={(e) => setWelcomeMessage(e.target.value)}
+            className="min-h-28 resize-y bg-background/70"
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Use <code className="rounded bg-muted px-1">{"{nome}"}</code> para inserir o nome do cliente. Tags HTML compatíveis do Telegram, como <code className="rounded bg-muted px-1">{"<b>texto</b>"}</code>, também são aceitas.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-5 rounded-2xl border border-violet-400/15 bg-violet-500/[0.035] p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <ImageIcon className={iconClass} />
+            <div>
+              <Label htmlFor="welcome-image" className="text-sm font-semibold">Banner de boas-vindas</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">Logo, banner ou imagem promocional.</p>
+            </div>
+          </div>
+          <div className="relative">
+            <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="welcome-image"
+              placeholder="https://... (opcional)"
+              value={welcomeImageUrl}
+              onChange={(e) => setWelcomeImageUrl(e.target.value)}
+              className="bg-background/70 pl-9"
+            />
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            A imagem será enviada junto da mensagem no Telegram. Deixe em branco para usar somente texto.
+          </p>
+          {welcomeImageUrl.trim() ? (
+            <div className="overflow-hidden rounded-xl border border-violet-300/15 bg-background/60 shadow-[0_0_24px_rgba(124,58,237,0.08)]">
+              <Image
+                src={welcomeImageUrl.trim()}
+                alt="Prévia da imagem de boas-vindas"
+                width={480}
+                height={240}
+                className="h-auto max-h-48 w-full object-cover"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="flex min-h-24 flex-col items-center justify-center rounded-xl border border-dashed border-violet-300/15 bg-background/30 px-4 text-center">
+              <Sparkles className="mb-2 h-4 w-4 text-violet-300/70" />
+              <span className="text-xs text-muted-foreground">A prévia da imagem aparecerá aqui</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end border-t border-border/60 pt-4">
+        <Button onClick={submit} disabled={pending} className="w-full gap-2 sm:w-auto">
+          <Save className="h-4 w-4" />
           {pending ? "Salvando..." : "Salvar personalização"}
         </Button>
       </div>
