@@ -8,6 +8,7 @@ import { saveTelegramSettings, registerTelegramWebhook } from "@/app/actions/set
 import { checkWebhookRegistration } from "@/app/actions/check-webhook"
 import { getBotPreview, type BotPreview } from "@/app/actions/tg-preview"
 import { autoDetectTelegramGroups, syncGroupToAudience } from "@/app/actions/tg-auto-detect"
+import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
 import { Copy, Check, Bot, Loader2, Zap, Users, CircleCheck, AlertTriangle, RefreshCw } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -73,6 +74,7 @@ export function TelegramForm({
   // Auto-detect groups
   const [detectedGroups, setDetectedGroups] = useState<DetectedGroup[]>([])
   const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
+  const [detectionMessage, setDetectionMessage] = useState<string | null>(null)
 
   // Fetch bot preview when token changes
   useEffect(() => {
@@ -148,7 +150,16 @@ export function TelegramForm({
         if (result.ok && result.groups) {
           setDetectedGroups(result.groups)
           setSelectedGroups(new Set())
-          toast.success(`${result.groupsCount} grupo(s) detectado(s)`)
+          setDetectionMessage(
+            result.groups.length === 0
+              ? "Nenhum grupo conhecido foi encontrado. O Telegram não oferece uma lista completa de grupos; adicione o bot como administrador e envie uma mensagem no grupo, ou use o diagnóstico abaixo para verificar o webhook."
+              : null,
+          )
+          if (result.groups.length > 0) {
+            toast.success(`${result.groupsCount} grupo(s) detectado(s)`)
+          } else {
+            toast.info("Nenhum grupo conhecido encontrado. Veja as instruções abaixo.")
+          }
         } else {
           toast.error(result.error || "Erro ao detectar grupos")
         }
@@ -428,6 +439,15 @@ export function TelegramForm({
               )}
             </Button>
 
+            {detectionMessage && (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
+                <p className="font-medium">Detecção sem grupos conhecidos</p>
+                <p className="mt-1 leading-relaxed">{detectionMessage}</p>
+              </div>
+            )}
+
+            <DiagnosticsPanel initial={null} />
+
             {detectedGroups.length > 0 && (
               <div className="space-y-3">
                 <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -506,7 +526,7 @@ export function TelegramForm({
             )}
 
             <p className="text-xs text-muted-foreground">
-              Adicione o bot aos grupos como administrador para que a detecção e a sincronização funcionem corretamente. Não é necessário inserir IDs manualmente.
+              Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo webhook criará o registro automaticamente; depois, clique em Detectar Grupos para revalidar permissões e membros.
             </p>
           </CardContent>
         </Card>
