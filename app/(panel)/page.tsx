@@ -178,7 +178,7 @@ export default function DashboardPage() {
       <SalesOverview metrics={salesMetrics} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
-        <SalesChart data={salesData} periodLabel={selectedPeriodLabel} />
+        {salesData.length > 0 && <SalesChart data={salesData} periodLabel={selectedPeriodLabel} />}
         <PaymentBreakdown
           approved={stats?.approvedPayments || 0}
           pending={stats?.pendingPayments || 0}
