@@ -1,10 +1,19 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  MoreHorizontal,
+  Package,
+  Search,
+  ShoppingBag,
+  Truck,
+  UserRound,
+} from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -13,14 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import {
   PaymentStatusBadge,
@@ -32,7 +33,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 import { formatCurrency, formatDateTime } from "@/lib/format"
 import type { OrderRow } from "@/lib/queries/records"
@@ -41,7 +41,6 @@ import {
   refuseOrder,
   cancelOrder,
 } from "@/app/actions/orders"
-import { useTransition } from "react"
 
 const PAGE_SIZE = 10
 
@@ -69,16 +68,16 @@ export function OrdersView({
   }
 
   const filtered = useMemo(() => {
-    return orders.filter((o) => {
-      const matchesStatus = status === "all" || o.paymentStatus === status
-      const q = search.toLowerCase()
+    return orders.filter((order) => {
+      const matchesStatus = status === "all" || order.paymentStatus === status
+      const query = search.trim().toLowerCase()
       const matchesSearch =
-        !q ||
-        o.productName?.toLowerCase().includes(q) ||
-        o.customerName?.toLowerCase().includes(q) ||
-        o.customerUsername?.toLowerCase().includes(q) ||
-        String(o.id).includes(q) ||
-        o.paymentId?.toLowerCase().includes(q)
+        !query ||
+        order.productName?.toLowerCase().includes(query) ||
+        order.customerName?.toLowerCase().includes(query) ||
+        order.customerUsername?.toLowerCase().includes(query) ||
+        String(order.id).includes(query) ||
+        order.paymentId?.toLowerCase().includes(query)
       return matchesStatus && matchesSearch
     })
   }, [orders, search, status])
@@ -87,193 +86,218 @@ export function OrdersView({
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex flex-col gap-4 mb-6 pb-4 border-b border-border">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm font-medium text-muted-foreground">
-              {filtered.length} pedido{filtered.length !== 1 ? 's' : ''}
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <section className="flex min-w-0 flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-4 rounded-[24px] border border-dashboard-border/80 bg-dashboard-surface/70 p-4 shadow-[0_0_30px_rgba(168,85,247,0.06)] sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-dashboard-accent">
+            <ShoppingBag className="size-4 shrink-0" aria-hidden="true" />
+            Operação de vendas
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-dashboard-text sm:text-3xl">Pedidos</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-dashboard-text-muted">
+            Acompanhe pagamentos, entregas e clientes em uma visão organizada.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-dashboard-border bg-dashboard-bg/60 px-3 py-2 text-sm text-dashboard-text-muted">
+          <Package className="size-4 text-dashboard-accent" aria-hidden="true" />
+          <span>{filtered.length} pedido{filtered.length !== 1 ? "s" : ""}</span>
+        </div>
+      </div>
+
+      <Card className="min-w-0 overflow-hidden rounded-[24px] border-dashboard-border/80 bg-dashboard-surface">
+        <CardContent className="min-w-0 p-4 sm:p-5">
+          <div className="flex min-w-0 flex-col gap-3 border-b border-dashboard-border/70 pb-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative min-w-0 flex-1 lg:max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dashboard-text-muted" aria-hidden="true" />
               <Input
-                placeholder="Buscar por cliente, produto, ID..."
+                placeholder="Buscar por cliente, produto ou ID..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value)
+                onChange={(event) => {
+                  setSearch(event.target.value)
                   setPage(1)
                 }}
-                className="sm:max-w-xs"
+                className="h-11 min-w-0 border-dashboard-border bg-dashboard-bg/60 pl-10 text-sm"
               />
-              <Select
-                items={{
-                  all: "Todos status",
-                  pending: "Pendente",
-                  approved: "Aprovado",
-                  refused: "Recusado",
-                  cancelled: "Cancelado",
-                }}
-                value={status}
-                onValueChange={(v) => {
-                  setStatus(v as string)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="sm:w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos status</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="approved">Aprovado</SelectItem>
-                  <SelectItem value="refused">Recusado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
+            <Select
+              items={{
+                all: "Todos os status",
+                pending: "Pendente",
+                approved: "Aprovado",
+                refused: "Recusado",
+                cancelled: "Cancelado",
+              }}
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value as string)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="h-11 w-full border-dashboard-border bg-dashboard-bg/60 sm:w-[190px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="approved">Aprovado</SelectItem>
+                <SelectItem value="refused">Recusado</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead>Gateway</TableHead>
-                <TableHead>Data</TableHead>
-                {canManage && <TableHead className="w-10" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageItems.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={canManage ? 9 : 8}
-                    className="py-10 text-center text-muted-foreground"
-                  >
-                    Nenhum pedido encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pageItems.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {String(o.id).padStart(4, "0")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {o.customerName || "—"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {o.customerUsername
-                          ? `@${o.customerUsername}`
-                          : o.customerTelegramId || ""}
-                      </div>
-                    </TableCell>
-                    <TableCell>{o.productName || "—"}</TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(o.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <PaymentStatusBadge status={o.paymentStatus} />
-                    </TableCell>
-                    <TableCell>
-                      <DeliveryStatusBadge status={o.deliveryStatus} />
-                    </TableCell>
-                    <TableCell className="uppercase text-xs text-muted-foreground">
-                      {o.gateway}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatDateTime(o.createdAt)}
-                    </TableCell>
+
+          {pageItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-16 text-center">
+              <ShoppingBag className="mb-3 size-8 text-dashboard-text-muted/50" aria-hidden="true" />
+              <p className="font-medium text-dashboard-text">Nenhum pedido encontrado</p>
+              <p className="mt-1 text-sm text-dashboard-text-muted">Tente alterar a busca ou o filtro de status.</p>
+            </div>
+          ) : (
+            <div className="grid min-w-0 gap-3 pt-5 xl:grid-cols-2">
+              {pageItems.map((order) => (
+                <article
+                  key={order.id}
+                  className="min-w-0 rounded-2xl border border-dashboard-border/80 bg-dashboard-bg/45 p-4 transition-colors hover:border-dashboard-accent/40 hover:bg-dashboard-bg/70 sm:p-5"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">
+                        Pedido #{String(order.id).padStart(4, "0")}
+                      </p>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-dashboard-text-muted">
+                        <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
+                        {formatDateTime(order.createdAt)}
+                      </p>
+                    </div>
                     {canManage && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                disabled={isPending}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Ações</span>
-                              </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 shrink-0 rounded-xl text-dashboard-text-muted hover:bg-dashboard-accent/10 hover:text-dashboard-accent"
+                              disabled={isPending}
+                            >
+                              <MoreHorizontal className="size-4" aria-hidden="true" />
+                              <span className="sr-only">Ações do pedido</span>
+                            </Button>
+                          }
+                        />
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={order.deliveryStatus === "delivered"}
+                            onClick={() =>
+                              runAction(
+                                () => approveAndDeliver(order.id),
+                                `Pedido #${order.id} aprovado e entregue`,
+                              )
                             }
-                          />
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              disabled={o.deliveryStatus === "delivered"}
-                              onClick={() =>
-                                runAction(
-                                  () => approveAndDeliver(o.id),
-                                  `Pedido #${o.id} aprovado e entregue`,
-                                )
-                              }
-                            >
-                              Aprovar e entregar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                runAction(
-                                  () => refuseOrder(o.id),
-                                  `Pedido #${o.id} recusado`,
-                                )
-                              }
-                            >
-                              Recusar pagamento
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() =>
-                                runAction(
-                                  () => cancelOrder(o.id),
-                                  `Pedido #${o.id} cancelado`,
-                                )
-                              }
-                            >
-                              Cancelar pedido
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                          >
+                            Aprovar e entregar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              runAction(
+                                () => refuseOrder(order.id),
+                                `Pedido #${order.id} recusado`,
+                              )
+                            }
+                          >
+                            Recusar pagamento
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() =>
+                              runAction(
+                                () => cancelOrder(order.id),
+                                `Pedido #${order.id} cancelado`,
+                              )
+                            }
+                          >
+                            Cancelar pedido
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        {totalPages > 1 && (
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              Página {page} de {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Próxima
-              </Button>
+                  </div>
+
+                  <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">Produto</p>
+                      <p className="mt-1 break-words text-base font-semibold text-dashboard-text">{order.productName || "Pedido de saldo"}</p>
+                    </div>
+                    <div className="sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">Valor</p>
+                      <p className="mt-1 text-xl font-bold text-dashboard-text">{formatCurrency(order.amount)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid min-w-0 gap-3 border-t border-dashboard-border/60 pt-4 sm:grid-cols-2">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <UserRound className="mt-0.5 size-4 shrink-0 text-dashboard-accent" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">Cliente</p>
+                        <p className="mt-1 break-words text-sm font-medium text-dashboard-text">{order.customerName || "Cliente não informado"}</p>
+                        <p className="truncate text-xs text-dashboard-text-muted">
+                          {order.customerUsername ? `@${order.customerUsername}` : order.customerTelegramId || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <CreditCard className="mt-0.5 size-4 shrink-0 text-dashboard-accent" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-dashboard-text-muted">Gateway</p>
+                        <p className="mt-1 truncate text-sm font-medium uppercase text-dashboard-text">{order.gateway || "—"}</p>
+                        <p className="truncate text-xs text-dashboard-text-muted">{order.paymentId || "Pagamento não identificado"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 border-t border-dashboard-border/60 pt-4">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CreditCard className="size-3.5 shrink-0 text-dashboard-text-muted" aria-hidden="true" />
+                      <PaymentStatusBadge status={order.paymentStatus} />
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Truck className="size-3.5 shrink-0 text-dashboard-text-muted" aria-hidden="true" />
+                      <DeliveryStatusBadge status={order.deliveryStatus} />
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+
+          {totalPages > 1 && (
+            <div className="mt-5 flex flex-col gap-3 border-t border-dashboard-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs text-dashboard-text-muted">Página {page} de {totalPages}</span>
+              <div className="flex w-full gap-2 sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                  disabled={page === 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                >
+                  <ChevronLeft className="mr-1 size-4" aria-hidden="true" />
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                  disabled={page === totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                >
+                  Próxima
+                  <ChevronRight className="ml-1 size-4" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   )
 }
