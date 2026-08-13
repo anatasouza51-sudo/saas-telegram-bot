@@ -147,7 +147,7 @@ export default function DashboardPage() {
     : []
 
   return (
-    <div className="relative mx-auto w-full max-w-7xl space-y-4 px-4 pb-28 pt-1 sm:space-y-5 md:px-8 lg:pb-12">
+    <div className="relative mx-auto w-full max-w-7xl space-y-4 px-2 pb-28 pt-1 sm:space-y-5 md:px-4 lg:pb-12">
       <section aria-busy={isRefreshing} className="rounded-[18px] border border-dashboard-border bg-dashboard-surface p-2.5 sm:p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="px-2 sm:px-3">
@@ -296,7 +296,7 @@ export default function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-28 pt-1 md:px-8 lg:pb-12">
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-2 pb-28 pt-1 md:px-4 lg:pb-12">
       <div className="rounded-[22px] border border-dashboard-border bg-dashboard-surface p-5">
         <Skeleton className="mb-4 h-3 w-28 bg-dashboard-surface-elevated" />
         <Skeleton className="h-8 w-48 bg-dashboard-surface-elevated" />
