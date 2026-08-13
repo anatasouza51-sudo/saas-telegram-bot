@@ -21,11 +21,11 @@ interface TopProductsSectionProps {
 }
 
 const colorMap = {
-  blue: { accent: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-  green: { accent: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  yellow: { accent: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  purple: { accent: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-  pink: { accent: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+  blue: { accent: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+  green: { accent: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+  yellow: { accent: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+  purple: { accent: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+  pink: { accent: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
 }
 
 export const TopProductsSection = memo(({
@@ -36,8 +36,8 @@ export const TopProductsSection = memo(({
     return (
       <div className="group relative overflow-hidden rounded-2xl border border-dashboard-border bg-dashboard-surface p-5 transition-all duration-300">
         <div className="flex items-center gap-2 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Package className="w-4 h-4 text-amber-400" />
+          <div className="w-8 h-8 rounded-lg bg-violet-500/10 shadow-[0_0_14px_rgba(139,92,246,0.18)] flex items-center justify-center">
+            <Package className="w-4 h-4 text-violet-400" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">{title}</h3>
@@ -62,8 +62,8 @@ export const TopProductsSection = memo(({
       {/* Header */}
       <div className="relative flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Package className="w-4 h-4 text-amber-400" />
+          <div className="w-8 h-8 rounded-lg bg-violet-500/10 shadow-[0_0_14px_rgba(139,92,246,0.18)] flex items-center justify-center">
+            <Package className="w-4 h-4 text-violet-400" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-dashboard-text uppercase tracking-wider">{title}</h3>
@@ -99,7 +99,8 @@ export const TopProductsSection = memo(({
                   <div className={cn(
                     "w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0",
                     colors.bg,
-                    colors.accent
+                    colors.accent,
+                    "shadow-[0_0_12px_rgba(139,92,246,0.16)]"
                   )}>
                     {product.icon}
                   </div>
@@ -107,7 +108,7 @@ export const TopProductsSection = memo(({
                     <span className={cn(
                       "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border border-white/[0.06]",
                       product.stock > 10 ? "text-emerald-400 bg-emerald-500/10" :
-                      product.stock > 0 ? "text-amber-400 bg-amber-500/10" :
+                      product.stock > 0 ? "text-violet-400 bg-amber-500/10" :
                       "text-rose-400 bg-rose-500/10",
                     )}>
                       {product.stock > 0 ? `${product.stock} em estoque` : "Sem estoque"}
