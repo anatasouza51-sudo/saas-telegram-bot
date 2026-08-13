@@ -32,14 +32,19 @@ export default async function CategoriesPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <CategoriesView categories={categories} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Categoria de Suporte</CardTitle>
-          <CardDescription>
-            Configure a opção especial de suporte exibida no menu do bot.
-          </CardDescription>
+      <Card className="overflow-hidden rounded-xl border-border/80 shadow-sm">
+        <CardHeader className="border-b border-border/70 bg-muted/20">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary">💬</div>
+            <div>
+              <CardTitle>Suporte no menu do bot</CardTitle>
+              <CardDescription className="mt-1">
+                Configure o botão e a mensagem de atendimento exibidos para seus clientes.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-5">
           <SupportConfigForm initial={support} />
         </CardContent>
       </Card>

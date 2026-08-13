@@ -34,6 +34,8 @@ import {
   ArrowUp,
   ArrowDown,
   FolderTree,
+  Sparkles,
+  Layers3,
 } from "lucide-react"
 
 type Row = CategoryRow & { productCount: number; createdAt: Date }
@@ -75,18 +77,52 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {order.length} categoria(s). A ordem define como aparecem no bot.
-        </p>
-        <Button onClick={() => setDialog({ open: true, category: null })}>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            Catálogo
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Categorias</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Organize a navegação do catálogo e defina a ordem exibida no bot.
+          </p>
+        </div>
+        <Button className="w-full sm:w-auto" onClick={() => setDialog({ open: true, category: null })}>
           <Plus className="mr-2 h-4 w-4" />
           Nova categoria
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-card">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] to-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Total de categorias</p>
+            <Layers3 className="h-4 w-4 text-primary" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold">{order.length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Organizadas no menu do bot</p>
+        </div>
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Categorias ativas</p>
+            <FolderTree className="h-4 w-4 text-success" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold">{order.filter((c) => c.status === "active").length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Disponíveis para os clientes</p>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-border/70 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-medium">Categorias do catálogo</h2>
+            <p className="text-xs text-muted-foreground">{order.length} categoria(s) cadastrada(s)</p>
+          </div>
+          <p className="text-xs text-muted-foreground">Use as setas para alterar a ordem</p>
+        </div>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -112,7 +148,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
               </TableRow>
             )}
             {order.map((c, i) => (
-              <TableRow key={c.id}>
+              <TableRow key={c.id} className="group hover:bg-muted/30">
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button
@@ -138,8 +174,8 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg leading-none">{c.emoji || "📁"}</span>
+                    <div className="flex min-w-[220px] items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">{c.emoji || "📁"}</span>
                     <div className="flex flex-col">
                       <span className="font-medium">{c.name}</span>
                       {c.description && (
@@ -214,6 +250,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <CategoryFormDialog
