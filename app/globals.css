@@ -110,6 +110,12 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+@property --dashboard-beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .dashboard-beam-border {
   position: absolute;
   inset: 0;
@@ -120,7 +126,7 @@
   padding: 1px;
   opacity: 0.9;
   background: conic-gradient(
-    from 0deg,
+    from var(--dashboard-beam-angle),
     transparent 0deg 326deg,
     rgba(139, 92, 246, 0.08) 334deg,
     rgba(168, 85, 247, 0.95) 348deg,
@@ -135,7 +141,7 @@
 }
 
 @keyframes dashboard-beam-border {
-  to { transform: rotate(360deg); }
+  to { --dashboard-beam-angle: 360deg; }
 }
 
 @media (prefers-reduced-motion: reduce) {
