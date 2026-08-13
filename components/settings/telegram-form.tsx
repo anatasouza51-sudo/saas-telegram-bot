@@ -425,7 +425,7 @@ export function TelegramForm({
               Encontre os grupos onde o bot é administrador e escolha quais serão usados na divulgação.
             </CardDescription>
           </CardHeader>
-          <CardContent className="min-w-0 space-y-5 pt-5">
+          <CardContent className="min-w-0 space-y-4 pt-3">
             <Button
               onClick={detectGroups}
               disabled={detecting}
