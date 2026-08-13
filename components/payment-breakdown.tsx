@@ -43,7 +43,7 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
           <div className="relative mx-auto h-44 w-44 [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} cx="50%" cy="50%" innerRadius={53} outerRadius={74} paddingAngle={2} dataKey="value" strokeWidth={0}>
+                <Pie rootTabIndex={-1} data={data} cx="50%" cy="50%" innerRadius={53} outerRadius={74} paddingAngle={2} dataKey="value" strokeWidth={0}>
                   {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}
                 </Pie>
                 <Tooltip
