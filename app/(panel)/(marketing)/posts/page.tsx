@@ -257,7 +257,7 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
+    <div className="flex min-w-0 w-full flex-col gap-4 overflow-hidden p-3 sm:p-4 md:p-6">
       <PostsWorkspace
         channels={channels}
         posts={posts}

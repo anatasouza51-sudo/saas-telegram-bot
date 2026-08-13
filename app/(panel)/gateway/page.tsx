@@ -46,7 +46,7 @@ export default async function GatewayPage() {
   const pixConfig = parsePixConfig(saved["pix.config"])
 
   return (
-    <div className="flex flex-col gap-6 p-3 md:p-6 max-w-4xl mx-auto">
+    <div className="flex min-w-0 w-full flex-col gap-6 p-3 md:p-6">
       <Card className="border-dashboard-border/30 bg-dashboard-card">
         <CardHeader className="px-4 py-5 md:px-6">
           <CardTitle className="text-xl md:text-2xl font-black tracking-tight">Gateways</CardTitle>
