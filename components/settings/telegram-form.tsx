@@ -36,7 +36,11 @@ export function TelegramForm({
   webhookUrl,
   botConfigured,
 }: {
-  initial: { hasBotToken: boolean; adminIds: string }
+  initial: {
+    hasBotToken: boolean
+    adminIds: string
+    botIdentity: { name: string; username: string; photoUrl: string | null } | null
+  }
   webhookUrl: string
   botConfigured: boolean
 }) {
@@ -212,7 +216,9 @@ export function TelegramForm({
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-lg font-semibold">Meu bot do Telegram</h2>
+                  <h2 className="truncate text-lg font-semibold">
+                    {preview?.name || initial.botIdentity?.name || "Meu bot do Telegram"}
+                  </h2>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                     webhookMatches === false
                       ? "bg-destructive/10 text-destructive"

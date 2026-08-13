@@ -7,6 +7,7 @@ import { parseCatalogConfig } from "@/lib/catalog-config"
 import { getAppBaseUrl } from "@/lib/urls"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
+import { getBotPreview } from "@/app/actions/tg-preview"
 
 export default async function TelegramPage() {
   let user
@@ -31,14 +32,25 @@ export default async function TelegramPage() {
 
   const webhookUrl = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
   const botConfigured = Boolean(saved["telegram.botToken"])
+  const botIdentity = botConfigured
+    ? await safeLoad(
+        "getBotPreview",
+        () => getBotPreview(saved["telegram.botToken"] ?? ""),
+        null,
+      )
+    : null
 
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-clip p-0">
       <TelegramForm
         initial={{
           hasBotToken: botConfigured,
-          adminIds: saved["telegram.adminIds"] ?? "",
-        }}
+                      adminIds: saved["telegram.adminIds"] ?? "",
+            botIdentity: botIdentity
+              ? { name: botIdentity.name, username: botIdentity.username, photoUrl: botIdentity.photoUrl }
+              : null,
+          }}
+
         webhookUrl={webhookUrl}
         botConfigured={botConfigured}
       />
