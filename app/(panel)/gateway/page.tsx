@@ -102,6 +102,26 @@ export default async function GatewayPage() {
           <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateways disponíveis</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">Gateways desativados permanecem aqui para você reativar ou atualizar suas credenciais.</p>
         </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {futureGateways.map((gateway) => (
+            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-fuchsia-300/25">
+              <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-fuchsia-500/5 blur-2xl transition-colors group-hover:bg-fuchsia-500/10" />
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <CreditCard className="h-6 w-6 text-white/35" />
+                </div>
+                <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200/70">Em breve</span>
+              </div>
+              <div className="relative mt-5 flex items-end justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-white/85">{gateway.name}</h3>
+                  <p className="mt-1 text-xs text-white/40">{gateway.type}</p>
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-white/25" />
+              </div>
+            </div>
+          ))}
+        </div>
         {!veopagEnabled && (
           <div className="space-y-3">
             {await Promise.all(gatewayProviders.filter((provider) => provider.id === "veopag").map(async (provider) => {
@@ -126,26 +146,6 @@ export default async function GatewayPage() {
             }))}
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {futureGateways.map((gateway) => (
-            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-fuchsia-300/25">
-              <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-fuchsia-500/5 blur-2xl transition-colors group-hover:bg-fuchsia-500/10" />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <CreditCard className="h-6 w-6 text-white/35" />
-                </div>
-                <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200/70">Em breve</span>
-              </div>
-              <div className="relative mt-5 flex items-end justify-between gap-3">
-                <div>
-                  <h3 className="font-bold text-white/85">{gateway.name}</h3>
-                  <p className="mt-1 text-xs text-white/40">{gateway.type}</p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-white/25" />
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
       <section className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#100d16] shadow-[0_18px_60px_rgba(0,0,0,0.18)]">

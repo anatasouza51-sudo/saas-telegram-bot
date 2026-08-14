@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,7 @@ export function GatewayForm({
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
+  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [isExpanded, setIsExpanded] = useState(provider === "veopag")
   const [copied, setCopied] = useState(false)
@@ -49,6 +51,7 @@ export function GatewayForm({
         setIsEnabled(nextEnabled)
         setConfirmDisableOpen(false)
         toast.success(nextEnabled ? `Gateway ${providerName} ativado` : `Gateway ${providerName} desativado`)
+        router.refresh()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
       }
