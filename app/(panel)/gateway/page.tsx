@@ -64,41 +64,68 @@ export default async function GatewayPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-end justify-between gap-4 px-1">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">Sua operação</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateway configurado</h2>
+      {veopagConfigured && veopagEnabled && (
+        <section className="space-y-3">
+          <div className="flex items-end justify-between gap-4 px-1">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">Sua operação</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateway configurado</h2>
+            </div>
+            <span className="hidden text-xs text-white/40 md:block">1 integração ativa</span>
           </div>
-          <span className="hidden text-xs text-white/40 md:block">1 integração disponível</span>
-        </div>
-        {await Promise.all(gatewayProviders.map(async (provider) => {
-          const hasSecretKey = Boolean(saved[`${provider.id}.secretKey`])
-          const maskedWebhookUrl = `${getAppBaseUrl()}/api/${provider.id}/webhook/${user.storeId}/••••••••`
+          {await Promise.all(gatewayProviders.filter((provider) => provider.id === "veopag").map(async (provider) => {
+            const hasSecretKey = Boolean(saved[`${provider.id}.secretKey`])
+            const maskedWebhookUrl = `${getAppBaseUrl()}/api/${provider.id}/webhook/${user.storeId}/••••••••`
 
-          return (
-            <GatewayForm
-              key={provider.id}
-              provider={provider.id}
-              providerName={provider.name}
-              logoUrl={provider.logo}
-              configured={veopagConfigured && veopagEnabled}
-              enabled={veopagEnabled}
-              initial={{
-                publicKey: saved[`${provider.id}.publicKey`] ?? "",
-                hasSecretKey,
-              }}
-              maskedWebhookUrl={maskedWebhookUrl}
-            />
-          )
-        }))}
-      </section>
+            return (
+              <GatewayForm
+                key={provider.id}
+                provider={provider.id}
+                providerName={provider.name}
+                logoUrl={provider.logo}
+                configured
+                enabled
+                initial={{
+                  publicKey: saved[`${provider.id}.publicKey`] ?? "",
+                  hasSecretKey,
+                }}
+                maskedWebhookUrl={maskedWebhookUrl}
+              />
+            )
+          }))}
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="px-1">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Ecossistema</p>
           <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateways disponíveis</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">Gateways desativados permanecem aqui para você reativar ou atualizar suas credenciais.</p>
         </div>
+        {!veopagEnabled && (
+          <div className="space-y-3">
+            {await Promise.all(gatewayProviders.filter((provider) => provider.id === "veopag").map(async (provider) => {
+              const hasSecretKey = Boolean(saved[`${provider.id}.secretKey`])
+              const maskedWebhookUrl = `${getAppBaseUrl()}/api/${provider.id}/webhook/${user.storeId}/••••••••`
+
+              return (
+                <GatewayForm
+                  key={provider.id}
+                  provider={provider.id}
+                  providerName={provider.name}
+                  logoUrl={provider.logo}
+                  configured={false}
+                  enabled={false}
+                  initial={{
+                    publicKey: saved[`${provider.id}.publicKey`] ?? "",
+                    hasSecretKey,
+                  }}
+                  maskedWebhookUrl={maskedWebhookUrl}
+                />
+              )
+            }))}
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {futureGateways.map((gateway) => (
             <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-fuchsia-300/25">

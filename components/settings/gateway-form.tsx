@@ -76,9 +76,8 @@ export function GatewayForm({
       <div className="relative flex flex-col gap-5 p-5 md:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[1.05rem] border border-white/15 bg-gradient-to-br from-white/15 via-white/5 to-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_8px_20px_rgba(236,72,153,0.18)] [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)]">
-              <div className="absolute inset-1 rounded-[0.78rem] border border-white/10" />
-              <Image src={logoUrl} alt={providerName} fill sizes="58px" className="object-contain p-2" />
+            <div className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)]">
+              <Image src={logoUrl} alt={providerName} fill sizes="68px" className="object-contain" />
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
