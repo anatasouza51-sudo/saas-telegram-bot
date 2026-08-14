@@ -22,7 +22,7 @@ export default async function GatewayPage() {
   ]
 
   const futureGateways = [
-    { name: "Mercado Pago", type: "PIX e cartão" },
+    { name: "Mercado Pago", type: "PIX e cartão", logo: "/assets/logos/mercadopago-3d-transparent.png" },
     { name: "Stripe", type: "Cartões" },
     { name: "Asaas", type: "PIX e boleto" },
   ]
@@ -107,8 +107,16 @@ export default async function GatewayPage() {
             <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-fuchsia-300/25">
               <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-fuchsia-500/5 blur-2xl transition-colors group-hover:bg-fuchsia-500/10" />
               <div className="relative flex items-start justify-between gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <CreditCard className="h-6 w-6 text-white/35" />
+                <div className="flex h-16 w-16 items-center justify-center">
+                  {gateway.logo ? (
+                    <img
+                      src={gateway.logo}
+                      alt={`Logo ${gateway.name}`}
+                      className="h-16 w-16 object-contain drop-shadow-[0_8px_18px_rgba(37,99,235,0.28)]"
+                    />
+                  ) : (
+                    <CreditCard className="h-6 w-6 text-white/35" />
+                  )}
                 </div>
                 <span className="rounded-full border border-amber-300/15 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200/70">Em breve</span>
               </div>
