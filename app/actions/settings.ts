@@ -100,22 +100,36 @@ export async function saveGatewaySettings(input: {
   provider: string
   publicKey: string
   secretKey?: string
+  enabled?: boolean
 }) {
   const user = await requireCapability("gateway.manage")
   const provider = input.provider.toLowerCase()
-  
-  await saveSetting(user.storeId, `${provider}.publicKey`, validateGatewayKey(input.publicKey, "Chave pública"))
-  
+  const isDisabling = input.enabled === false
+
+  // Desativar não deve exigir que o administrador redigite uma credencial.
+  // Ao salvar ou reativar, a chave pública continua sendo validada normalmente.
+  if (!isDisabling || input.publicKey.trim()) {
+    await saveSetting(user.storeId, `${provider}.publicKey`, validateGatewayKey(input.publicKey, "Chave pública"))
+  }
+
   // Keep the stored secret when the field is left blank (never round-tripped
   // to the client).
   const secret = input.secretKey ? validateGatewayKey(input.secretKey, "Chave secreta") : undefined
   if (secret) {
     await saveSetting(user.storeId, `${provider}.secretKey`, secret)
   }
-  
+
+  if (typeof input.enabled === "boolean") {
+    await saveSetting(user.storeId, `${provider}.enabled`, String(input.enabled))
+  }
+
   await logActivity({
     storeId: user.storeId,
-    action: `Configurações do gateway ${input.provider} atualizadas`,
+    action: isDisabling
+      ? `Gateway ${input.provider} desativado`
+      : input.enabled === true
+        ? `Gateway ${input.provider} ativado`
+        : `Configurações do gateway ${input.provider} atualizadas`,
     category: "settings",
     actor: user,
   })

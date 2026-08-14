@@ -65,7 +65,7 @@ type StoreContext = {
   tg: TelegramClient
   botId: number | null
   adminIds: string[]
-  veopag: VeoPagCredentials
+  veopag: VeoPagCredentials & { enabled: boolean }
   welcomeMessage: string
   welcomeImageUrl: string
   support: SupportConfig
@@ -121,6 +121,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     veopag: {
       publicKey: map["veopag.publicKey"] ?? "",
       secretKey: map["veopag.secretKey"] ?? "",
+      enabled: map["veopag.enabled"] !== "false",
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
     welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",
@@ -674,6 +675,10 @@ async function handleRecharge(
   from: { id: number; username?: string; first_name?: string },
 ) {
   // Callback data vem do Telegram, portanto valide antes de tocar no banco ou
+  if (!ctx.veopag.enabled) {
+    await ctx.tg.sendMessage(chatId, "⚠️ Os pagamentos estão temporariamente indisponíveis. Tente novamente mais tarde.")
+    return
+  }
   // chamar a VeoPag. Isso evita pedidos com NaN/zero e torna o erro explícito.
   if (!Number.isFinite(amount) || amount <= 0) {
     await ctx.tg.sendMessage(chatId, "❌ Valor de recarga inválido. Volte ao menu e escolha um dos valores disponíveis.")
@@ -843,6 +848,10 @@ async function startPurchase(
       .where(eq(customers.id, customer.id))
     // Increment coupon usage counter.
     await incrementCouponUsage(ctx.storeId, appliedCouponCode)
+  }
+  if (!ctx.veopag.enabled) {
+    await ctx.tg.sendMessage(chatId, "⚠️ Os pagamentos estão temporariamente indisponíveis. Tente novamente mais tarde.")
+    return
   }
 
   const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")

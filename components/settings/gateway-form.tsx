@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { saveGatewaySettings } from "@/app/actions/settings"
 import { toast } from "sonner"
-import { CheckCircle2, ChevronDown, ChevronUp, Copy, Eye, KeyRound, LockKeyhole, Settings2, Webhook } from "lucide-react"
+import { CheckCircle2, ChevronDown, ChevronUp, Copy, Eye, KeyRound, LockKeyhole, PowerOff, Settings2, Webhook } from "lucide-react"
 import Image from "next/image"
+import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export function GatewayForm({
   provider,
@@ -16,6 +18,7 @@ export function GatewayForm({
   initial,
   maskedWebhookUrl,
   configured,
+  enabled,
 }: {
   provider: string
   providerName: string
@@ -23,27 +26,41 @@ export function GatewayForm({
   initial: { publicKey: string; hasSecretKey: boolean }
   maskedWebhookUrl: string
   configured: boolean
+  enabled: boolean
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
   const [pending, startTransition] = useTransition()
   const [isExpanded, setIsExpanded] = useState(provider === "veopag")
   const [copied, setCopied] = useState(false)
+  const [isEnabled, setIsEnabled] = useState(enabled)
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false)
 
-  function submit() {
+  function submit(nextEnabled = isEnabled) {
     startTransition(async () => {
       try {
         await saveGatewaySettings({
           provider,
           publicKey,
           secretKey: secretKey.trim() || undefined,
+          enabled: nextEnabled,
         })
         setSecretKey("")
-        toast.success(`Configurações de ${providerName} salvas`)
+        setIsEnabled(nextEnabled)
+        setConfirmDisableOpen(false)
+        toast.success(nextEnabled ? `Gateway ${providerName} ativado` : `Gateway ${providerName} desativado`)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar")
       }
     })
+  }
+
+  function handleEnabledChange(nextValue: boolean) {
+    if (!nextValue) {
+      setConfirmDisableOpen(true)
+      return
+    }
+    submit(true)
   }
 
   async function copyWebhook() {
@@ -59,9 +76,9 @@ export function GatewayForm({
       <div className="relative flex flex-col gap-5 p-5 md:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-[1.35rem] border border-white/20 bg-gradient-to-br from-white/20 via-white/5 to-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_28px_rgba(236,72,153,0.24)] [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)]">
-              <div className="absolute inset-1 rounded-[1rem] border border-white/10" />
-              <Image src={logoUrl} alt={providerName} fill sizes="76px" className="object-contain p-3" />
+            <div className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[1.05rem] border border-white/15 bg-gradient-to-br from-white/15 via-white/5 to-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_8px_20px_rgba(236,72,153,0.18)] [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)]">
+              <div className="absolute inset-1 rounded-[0.78rem] border border-white/10" />
+              <Image src={logoUrl} alt={providerName} fill sizes="58px" className="object-contain p-2" />
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -73,10 +90,11 @@ export function GatewayForm({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 self-start">
-            <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${configured ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : "border-amber-300/20 bg-amber-300/10 text-amber-200"}`}>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {configured ? "Ativo" : "Configurar"}
+            <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${!isEnabled ? "border-slate-300/20 bg-slate-300/10 text-slate-300" : configured ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : "border-amber-300/20 bg-amber-300/10 text-amber-200"}`}>
+              {!isEnabled ? <PowerOff className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {!isEnabled ? "Desativado" : configured ? "Ativo" : "Configurar"}
             </span>
+            <Switch checked={isEnabled} onCheckedChange={handleEnabledChange} disabled={pending} aria-label={`${isEnabled ? "Desativar" : "Ativar"} gateway ${providerName}`} className="data-[checked]:bg-fuchsia-500" />
             <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} aria-label={isExpanded ? "Recolher gateway" : "Expandir gateway"} className="rounded-xl text-white/55 hover:bg-white/10 hover:text-white">
               {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
             </Button>
@@ -135,6 +153,19 @@ export function GatewayForm({
           </div>
         </div>
       )}
+
+      <Dialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
+        <DialogContent className="border border-fuchsia-400/20 bg-[#17101f] text-white shadow-[0_20px_80px_rgba(0,0,0,0.55)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white"><PowerOff className="h-5 w-5 text-amber-300" />Desativar o gateway VeoPag?</DialogTitle>
+            <DialogDescription className="text-white/60">Novas cobranças PIX deixarão de ser iniciadas enquanto o gateway estiver desativado. As credenciais e o webhook serão preservados para uma futura reativação.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-white/10 bg-white/[0.03]">
+            <DialogClose render={<Button variant="outline" className="border-white/10 text-white/70 hover:bg-white/10 hover:text-white" />}>Cancelar</DialogClose>
+            <Button onClick={() => submit(false)} disabled={pending} className="bg-amber-500 font-bold text-black hover:bg-amber-400">{pending ? "Desativando..." : "Confirmar desativação"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </article>
   )
 }

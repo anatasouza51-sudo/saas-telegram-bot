@@ -29,7 +29,7 @@ export default async function GatewayPage() {
 
   const keysToLoad = [
     "pix.config",
-    ...gatewayProviders.flatMap((provider) => [`${provider.id}.publicKey`, `${provider.id}.secretKey`]),
+    ...gatewayProviders.flatMap((provider) => [`${provider.id}.publicKey`, `${provider.id}.secretKey`, `${provider.id}.enabled`]),
   ]
 
   const saved = await safeLoad(
@@ -40,6 +40,7 @@ export default async function GatewayPage() {
 
   const pixConfig = parsePixConfig(saved["pix.config"])
   const veopagConfigured = Boolean(saved["veopag.publicKey"])
+  const veopagEnabled = saved["veopag.enabled"] !== "false"
 
   return (
     <div className="min-w-0 w-full space-y-6 px-3 pb-8 md:px-6">
@@ -81,7 +82,8 @@ export default async function GatewayPage() {
               provider={provider.id}
               providerName={provider.name}
               logoUrl={provider.logo}
-              configured={veopagConfigured}
+              configured={veopagConfigured && veopagEnabled}
+              enabled={veopagEnabled}
               initial={{
                 publicKey: saved[`${provider.id}.publicKey`] ?? "",
                 hasSecretKey,
