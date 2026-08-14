@@ -6,7 +6,7 @@ import { parsePixConfig } from "@/lib/pix-config"
 import { getAppBaseUrl } from "@/lib/urls"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
-import { ArrowUpRight, CheckCircle2, Clock3, CreditCard, ShieldCheck, Sparkles, WalletCards, Webhook } from "lucide-react"
+import { ArrowUpRight, CheckCircle2, Clock3, CreditCard, ShieldCheck, WalletCards } from "lucide-react"
 
 export default async function GatewayPage() {
   let user
@@ -152,8 +152,7 @@ export default async function GatewayPage() {
         <div className="border-b border-white/10 p-5 md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">
-                <Sparkles className="h-4 w-4" />
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">
                 Experiência de cobrança
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight text-white md:text-2xl">Pagamento PIX</h2>
@@ -161,8 +160,7 @@ export default async function GatewayPage() {
                 Personalize os textos, os botões e o tempo de expiração exibidos na cobrança PIX no bot e na página de pagamento.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/45">
-              <Webhook className="h-4 w-4 text-fuchsia-300" />
+            <div className="text-xs text-white/45">
               Fluxo conectado ao VeoPag
             </div>
           </div>
