@@ -18,7 +18,7 @@ export default async function GatewayPage() {
   }
 
   const gatewayProviders = [
-    { id: "veopag", name: "VeoPag", logo: "/assets/logos/veopag-3d.png", enabled: true },
+    { id: "veopag", name: "VeoPag", logo: "/assets/logos/veopag-3d-transparent.png", enabled: true },
   ]
 
   const futureGateways = [
