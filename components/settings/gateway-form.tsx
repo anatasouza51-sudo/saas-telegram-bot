@@ -33,7 +33,8 @@ export function GatewayForm({
   const [secretKey, setSecretKey] = useState("")
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [isExpanded, setIsExpanded] = useState(provider === "veopag")
+  const isCompact = !configured && !enabled
+  const [isExpanded, setIsExpanded] = useState(configured && enabled)
   const [copied, setCopied] = useState(false)
   const [isEnabled, setIsEnabled] = useState(enabled)
   const [confirmDisableOpen, setConfirmDisableOpen] = useState(false)
@@ -74,36 +75,47 @@ export function GatewayForm({
   }
 
   return (
-    <article className="relative overflow-hidden rounded-[1.7rem] border border-fuchsia-400/20 bg-[radial-gradient(circle_at_10%_0%,rgba(236,72,153,0.13),transparent_32%),linear-gradient(145deg,rgba(25,12,31,0.98),rgba(12,10,18,0.98))] shadow-[0_18px_70px_rgba(168,40,150,0.12)]">
+    <article className={`relative overflow-hidden rounded-[1.35rem] border ${isCompact ? "border-white/10 bg-[#100d16] shadow-[0_18px_60px_rgba(0,0,0,0.18)]" : "border-fuchsia-400/20 bg-[radial-gradient(circle_at_10%_0%,rgba(236,72,153,0.13),transparent_32%),linear-gradient(145deg,rgba(25,12,31,0.98),rgba(12,10,18,0.98))] shadow-[0_18px_70px_rgba(168,40,150,0.12)]"}`}>
       <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
-      <div className="relative flex flex-col gap-5 p-5 md:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className={`relative flex flex-col gap-5 ${isCompact ? "p-4 md:p-5" : "p-5 md:p-6"}`}>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)]">
-              <Image src={logoUrl} alt={providerName} fill sizes="68px" className="object-contain" />
+            <div className={`relative shrink-0 items-center justify-center [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)] ${isCompact ? "flex h-14 w-14" : "flex h-[68px] w-[68px]"}`}>
+              <Image src={logoUrl} alt={providerName} fill sizes={isCompact ? "56px" : "68px"} className="object-contain" />
             </div>
             <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">PIX</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Gateway oficial</span>
-              </div>
-              <h3 className="truncate text-2xl font-black tracking-tight text-white">{providerName}</h3>
-              <p className="mt-1 text-sm text-white/50">Processamento conectado à sua operação</p>
+              {!isCompact && (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">PIX</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Gateway oficial</span>
+                </div>
+              )}
+              <h3 className={`truncate font-black tracking-tight text-white ${isCompact ? "text-lg" : "text-2xl"}`}>{providerName}</h3>
+              <p className="mt-1 text-sm text-white/50">{isCompact ? "PIX e pagamentos" : "Processamento conectado à sua operação"}</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2 self-start">
-            <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${!isEnabled ? "border-slate-300/20 bg-slate-300/10 text-slate-300" : configured ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : "border-amber-300/20 bg-amber-300/10 text-amber-200"}`}>
-              {!isEnabled ? <PowerOff className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-              {!isEnabled ? "Desativado" : configured ? "Ativo" : "Configurar"}
-            </span>
-            <Switch checked={isEnabled} onCheckedChange={handleEnabledChange} disabled={pending} aria-label={`${isEnabled ? "Desativar" : "Ativar"} gateway ${providerName}`} className="data-[checked]:bg-fuchsia-500" />
-            <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} aria-label={isExpanded ? "Recolher gateway" : "Expandir gateway"} className="rounded-xl text-white/55 hover:bg-white/10 hover:text-white">
-              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-            </Button>
-          </div>
+          {isCompact ? (
+            <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+              <span className="rounded-full border border-slate-300/20 bg-slate-300/10 px-2.5 py-1 text-[10px] font-bold text-slate-300">Desativado</span>
+              <Button type="button" onClick={() => setIsExpanded(!isExpanded)} disabled={pending} className="h-9 rounded-xl bg-white/10 px-3 text-xs font-bold text-white hover:bg-fuchsia-500 hover:text-white">
+                {isExpanded ? "Fechar" : "Configurar"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex shrink-0 items-center gap-2 self-start">
+              <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${!isEnabled ? "border-slate-300/20 bg-slate-300/10 text-slate-300" : configured ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : "border-amber-300/20 bg-amber-300/10 text-amber-200"}`}>
+                {!isEnabled ? <PowerOff className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                {!isEnabled ? "Desativado" : configured ? "Ativo" : "Configurar"}
+              </span>
+              <Switch checked={isEnabled} onCheckedChange={handleEnabledChange} disabled={pending} aria-label={`${isEnabled ? "Desativar" : "Ativar"} gateway ${providerName}`} className="data-[checked]:bg-fuchsia-500" />
+              <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} aria-label={isExpanded ? "Recolher gateway" : "Expandir gateway"} className="rounded-xl text-white/55 hover:bg-white/10 hover:text-white">
+                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </Button>
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        {!isCompact && <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
             <KeyRound className="h-4 w-4 text-fuchsia-300" />
             <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-white/35">Credenciais</p>
@@ -119,7 +131,7 @@ export function GatewayForm({
             <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-white/35">Webhook</p>
             <p className="mt-1 text-sm font-semibold text-white/75">Endpoint pronto</p>
           </div>
-        </div>
+        </div>}
       </div>
 
       {isExpanded && (
@@ -151,7 +163,7 @@ export function GatewayForm({
           </div>
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-xs text-white/35"><Eye className="h-4 w-4" /> Revise os dados antes de salvar.</div>
-            <Button onClick={submit} disabled={pending} className="h-11 rounded-xl bg-fuchsia-500 px-6 font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.22)] hover:bg-fuchsia-400">{pending ? "Salvando..." : "Salvar configurações"}</Button>
+            <Button onClick={() => submit(isCompact ? true : undefined)} disabled={pending} className="h-11 rounded-xl bg-fuchsia-500 px-6 font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.22)] hover:bg-fuchsia-400">{pending ? "Salvando..." : isCompact ? "Salvar e ativar" : "Salvar configurações"}</Button>
           </div>
         </div>
       )}
