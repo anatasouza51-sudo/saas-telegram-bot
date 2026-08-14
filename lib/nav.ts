@@ -71,13 +71,6 @@ export const MAIN_NAV: NavNode[] = [
         description: "Veja o histórico e os dados dos seus clientes.",
       },
       {
-        title: "Pagamentos",
-        href: "/payments",
-        icon: "CreditCard",
-        capability: "payments.view",
-        description: "Acompanhe transações e conciliação financeira.",
-      },
-      {
         title: "Entregas",
         href: "/deliveries",
         icon: "Truck",
