@@ -4,13 +4,12 @@ import { useState, useTransition, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { saveTelegramSettings, registerTelegramWebhook } from "@/app/actions/settings"
-import { checkWebhookRegistration } from "@/app/actions/check-webhook"
+import { saveTelegramSettings } from "@/app/actions/settings"
 import { getBotPreview, type BotPreview } from "@/app/actions/tg-preview"
 import { autoDetectTelegramGroups, syncGroupToAudience } from "@/app/actions/tg-auto-detect"
 import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
-import { Copy, Check, Bot, Loader2, Zap, Users, CircleCheck, AlertTriangle, RefreshCw } from "lucide-react"
+import { Bot, Loader2, Zap, Users, CircleCheck } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 
@@ -26,7 +25,6 @@ type DetectedGroup = {
 
 export function TelegramForm({
   initial,
-  webhookUrl,
   botConfigured,
 }: {
   initial: {
@@ -34,35 +32,12 @@ export function TelegramForm({
     adminIds: string
     botIdentity: { name: string; username: string; photoUrl: string | null } | null
   }
-  webhookUrl: string
   botConfigured: boolean
 }) {
   const [botToken, setBotToken] = useState("")
   const [adminIds, setAdminIds] = useState(initial.adminIds)
   const [pending, startTransition] = useTransition()
-  const [registering, startRegister] = useTransition()
-  // Webhook mismatch guard: if Telegram's registered URL points at another
-  // store, updates (and /start, buttons) never reach this shop silently.
-  const [webhookMatches, setWebhookMatches] = useState<boolean | null>(null)
-  const [webhookRegisteredUrl, setWebhookRegisteredUrl] = useState<string | null>(null)
-  const [checkingWebhook, setCheckingWebhook] = useState(false)
-  async function refreshWebhookStatus() {
-    if (!botConfigured) return
-    setCheckingWebhook(true)
-    try {
-      const res = await checkWebhookRegistration()
-      if (res.ok) {
-        setWebhookMatches(res.matches ?? false)
-        setWebhookRegisteredUrl(res.registeredUrl ?? null)
-      }
-    } catch {
-      // Best-effort diagnostics — never break the page on a check failure
-    } finally {
-      setCheckingWebhook(false)
-    }
-  }
   const [detecting, startDetect] = useTransition()
-  const [copied, setCopied] = useState(false)
   
   // Preview state
   const [preview, setPreview] = useState<BotPreview | null>(null)
@@ -74,10 +49,6 @@ export function TelegramForm({
   const [detectionMessage, setDetectionMessage] = useState<string | null>(null)
 
   // Fetch bot preview when token changes
-  useEffect(() => {
-    refreshWebhookStatus()
-  }, [botConfigured])
-
   useEffect(() => {
     const token = botToken.trim()
     if (token && token.includes(":")) {
@@ -118,28 +89,6 @@ export function TelegramForm({
     })
   }
 
-  function connect() {
-    startRegister(async () => {
-      const res = await registerTelegramWebhook()
-      if (res.ok) {
-        toast.success("Webhook registrado no Telegram com sucesso")
-        await refreshWebhookStatus()
-      } else {
-        toast.error(res.error || "Falha ao registrar webhook")
-      }
-    })
-  }
-
-  function fixMismatchedWebhook() {
-    connect()
-  }
-
-  function copyUrl() {
-    navigator.clipboard.writeText(webhookUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
   async function detectGroups() {
     startDetect(async () => {
       try {
@@ -149,7 +98,7 @@ export function TelegramForm({
           setSelectedGroups(new Set())
           setDetectionMessage(
             result.groups.length === 0
-              ? "Nenhum grupo conhecido foi encontrado. O Telegram não oferece uma lista completa de grupos; adicione o bot como administrador e envie uma mensagem no grupo, ou use o diagnóstico abaixo para verificar o webhook."
+              ? "Nenhum grupo conhecido foi encontrado. O Telegram não oferece uma lista completa de grupos; adicione o bot como administrador e envie uma mensagem no grupo, ou use o diagnóstico abaixo para verificar a conexão."
               : null,
           )
           if (result.groups.length > 0) {
@@ -213,79 +162,25 @@ export function TelegramForm({
                     {preview?.name || initial.botIdentity?.name || "Meu bot do Telegram"}
                   </h2>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                    webhookMatches === false
-                      ? "bg-destructive/10 text-destructive"
-                      : botConfigured
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-muted text-muted-foreground"
+                    botConfigured
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-muted text-muted-foreground"
                   }`}>
-                    {webhookMatches === false ? (
-                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : botConfigured ? (
-                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : null}
-                    {webhookMatches === false ? "Webhook precisa de atenção" : botConfigured ? "Bot configurado" : "Bot não configurado"}
+                    {botConfigured ? <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+                    {botConfigured ? "Bot configurado" : "Bot não configurado"}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {webhookMatches === false
-                    ? "O Telegram está apontando para outra URL. Corrija a conexão abaixo."
-                    : botConfigured
-                      ? "A integração está pronta para receber atualizações do Telegram."
-                      : "Conecte um bot para começar a receber pedidos e mensagens."}
+                  {botConfigured
+                    ? "A integração do bot está configurada."
+                    : "Conecte um bot para começar a receber pedidos e mensagens."}
                 </p>
               </div>
-            </div>
-            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-              {botConfigured && (
-                <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={refreshWebhookStatus} disabled={checkingWebhook}>
-                  <RefreshCw className={`mr-2 h-4 w-4 ${checkingWebhook ? "animate-spin" : ""}`} aria-hidden="true" />
-                  {checkingWebhook ? "Verificando..." : "Verificar conexão"}
-                </Button>
-              )}
-              <Button type="button" size="sm" className="w-full sm:w-auto" onClick={connect} disabled={registering || !botConfigured}>
-                {registering ? "Conectando..." : "Registrar webhook"}
-              </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Mismatch warning: the silent failure where Telegram keeps an old
-          webhook registration pointing at another store's URL. */}
-      {botConfigured && checkingWebhook && (
-        <p className="text-xs text-muted-foreground">
-          Verificando o status do webhook no Telegram...
-        </p>
-      )}
-      {botConfigured && webhookMatches === false && (
-        <div className="rounded-xl border border-destructive bg-destructive/10 p-4 space-y-2">
-          <p className="font-bold text-destructive">
-            ⚠️ O webhook do Telegram NÃO aponta para esta loja
-          </p>
-          <p className="text-sm text-muted-foreground break-all">
-            O Telegram está entregando as mensagens a outra URL:{" "}
-            <code className="text-xs">{webhookRegisteredUrl ?? "?"}</code>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            URL esperada desta loja:{" "}
-            <code className="text-xs break-all">{webhookUrl}</code>
-          </p>
-          <p className="text-sm">
-            É por isso que o bot não responde. Clique abaixo para registrar o
-            webhook correto agora.
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            onClick={fixMismatchedWebhook}
-            disabled={registering}
-            className="w-full bg-primary text-black font-bold hover:bg-primary/90 sm:w-auto"
-          >
-            {registering ? "Corrigindo..." : "Corrigir webhook (1 clique)"}
-          </Button>
-        </div>
-      )}
       {/* Etapa 2: identidade e acesso do bot */}
       <section className="min-w-0 space-y-5">
         <div className="border-b border-border/60 pb-4">
@@ -362,31 +257,6 @@ export function TelegramForm({
             </div>
           </div>
 
-          <div className="border-t border-border/60 pt-5">
-            <div className="grid gap-2">
-              <Label>Webhook da loja</Label>
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <Input readOnly value={webhookUrl} className="min-w-0 font-mono text-xs" />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={copyUrl}
-                aria-label="Copiar URL"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-              <p className="text-xs text-muted-foreground">
-                Endereço exclusivo que o Telegram chamará para entregar eventos desta loja.
-              </p>
-            </div>
-          </div>
-
           <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
             <Button 
               onClick={submit} 
@@ -394,13 +264,6 @@ export function TelegramForm({
               className="w-full bg-primary text-black font-bold hover:bg-primary/90 sm:w-auto"
             >
               {pending ? "Salvando..." : "Salvar configurações"}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={connect}
-              disabled={registering || !botConfigured}
-            >
-              {registering ? "Conectando..." : "Registrar webhook"}
             </Button>
           </div>
         </div>
@@ -415,7 +278,7 @@ export function TelegramForm({
               Grupos e permissões
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sincronize grupos conhecidos pelo webhook, confira as permissões do bot e escolha quais serão usados na divulgação.
+              Sincronize grupos conhecidos do Telegram, confira as permissões do bot e escolha quais serão usados na divulgação.
             </p>
           </div>
           <div className="min-w-0 space-y-4">
@@ -525,7 +388,7 @@ export function TelegramForm({
             )}
 
             <p className="text-xs text-muted-foreground">
-              Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo webhook criará o registro automaticamente; depois, use esta ação para revalidar permissões e membros dos grupos conhecidos.
+              Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo Telegram criará o registro automaticamente; depois, use esta ação para revalidar permissões e membros dos grupos conhecidos.
             </p>
           </div>
         </section>

@@ -4,7 +4,6 @@ import { StoreCustomizationForm } from "@/components/settings/store-customizatio
 import { CatalogButtonsForm } from "@/components/settings/catalog-buttons-form"
 import { getSettings } from "@/lib/settings"
 import { parseCatalogConfig } from "@/lib/catalog-config"
-import { getAppBaseUrl } from "@/lib/urls"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
 import { getBotPreview } from "@/app/actions/tg-preview"
@@ -31,7 +30,6 @@ export default async function TelegramPage() {
     {} as Record<string, string | null>
   )
 
-  const webhookUrl = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
   const botConfigured = Boolean(saved["telegram.botToken"])
   const botIdentity = botConfigured
     ? await safeLoad(
@@ -54,7 +52,6 @@ export default async function TelegramPage() {
                   ? { name: botIdentity.name, username: botIdentity.username, photoUrl: botIdentity.photoUrl }
                   : null,
               }}
-              webhookUrl={webhookUrl}
               botConfigured={botConfigured}
             />
 
