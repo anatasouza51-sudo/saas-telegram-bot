@@ -159,6 +159,75 @@
   }
 }
 
+/* Campo Operacional — relevo 3D reservado para controles acionáveis. */
+:is(button, a, [role="button"]).dashboard-3d-control {
+  border-color: var(--dashboard-border-active);
+  box-shadow:
+    inset 0 1px 0 var(--dashboard-3d-highlight),
+    inset 0 -2px 0 var(--dashboard-3d-inset),
+    0 3px 0 var(--dashboard-3d-shadow-deep),
+    0 8px 18px var(--dashboard-3d-shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+:is(button, a, [role="button"]).dashboard-3d-control:hover {
+  border-color: var(--dashboard-border-active);
+  box-shadow:
+    inset 0 1px 0 var(--dashboard-3d-highlight),
+    inset 0 -2px 0 var(--dashboard-3d-inset),
+    0 4px 0 var(--dashboard-3d-shadow-deep),
+    0 10px 22px var(--dashboard-3d-shadow);
+}
+
+:is(button, a, [role="button"]).dashboard-3d-control:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 var(--dashboard-3d-inset),
+    0 1px 0 var(--dashboard-3d-shadow-deep),
+    0 4px 10px var(--dashboard-3d-shadow);
+}
+
+:is(button, a, [role="button"]).dashboard-3d-control:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.dashboard-3d-icon {
+  border: 1px solid var(--dashboard-border-active);
+  box-shadow:
+    inset 0 1px 0 var(--dashboard-3d-highlight),
+    inset 0 -2px 0 var(--dashboard-3d-inset),
+    0 2px 0 var(--dashboard-3d-shadow-deep),
+    0 6px 14px var(--dashboard-3d-shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.dashboard-3d-icon:hover {
+  border-color: var(--dashboard-border-active);
+  transform: translateY(-1px);
+}
+
+.dashboard-3d-icon:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 0 var(--dashboard-3d-inset),
+    0 1px 0 var(--dashboard-3d-shadow-deep),
+    0 3px 8px var(--dashboard-3d-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-3d-control,
+  .dashboard-3d-icon {
+    transition: none;
+  }
+
+  .dashboard-3d-control:active,
+  .dashboard-3d-icon:active,
+  .dashboard-3d-icon:hover {
+    transform: none;
+  }
+}
+
 :root {
   color-scheme: dark;
   
@@ -175,6 +244,10 @@
   --dashboard-accent: #A9C97F;
   --dashboard-accent-secondary: #D17D55;
   --dashboard-glow: rgba(169, 201, 127, 0.12);
+  --dashboard-3d-highlight: rgba(241, 235, 221, 0.10);
+  --dashboard-3d-shadow: rgba(0, 0, 0, 0.30);
+  --dashboard-3d-shadow-deep: rgba(0, 0, 0, 0.22);
+  --dashboard-3d-inset: rgba(0, 0, 0, 0.16);
 
   /* shadcn/ui Overrides — Campo Operacional */
   --background: var(--dashboard-bg);
@@ -230,6 +303,10 @@ html:not(.dark) {
   --dashboard-accent: #5E7E45;
   --dashboard-accent-secondary: #B96849;
   --dashboard-glow: rgba(94, 126, 69, 0.10);
+  --dashboard-3d-highlight: rgba(255, 255, 255, 0.72);
+  --dashboard-3d-shadow: rgba(32, 49, 39, 0.18);
+  --dashboard-3d-shadow-deep: rgba(32, 49, 39, 0.12);
+  --dashboard-3d-inset: rgba(32, 49, 39, 0.10);
 
   --background: #F3F2EB;
   --foreground: #203127;

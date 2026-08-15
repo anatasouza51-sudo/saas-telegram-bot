@@ -46,7 +46,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
     if (!Icon) return null
     return (
       <span className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+        "dashboard-3d-icon flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
         child ? "size-8" : "size-9",
         active ? "bg-dashboard-accent/15 text-dashboard-accent" : "text-dashboard-text-muted group-hover:text-dashboard-text",
       )} aria-hidden="true">

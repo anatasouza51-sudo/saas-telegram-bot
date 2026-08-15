@@ -35,7 +35,7 @@ export function MobilePanelNav() {
             href={href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
+              "dashboard-3d-control flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
               isActive
                 ? "text-dashboard-accent"
                 : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
@@ -53,7 +53,7 @@ export function MobilePanelNav() {
         type="button"
         onClick={toggleMobileMenu}
         className={cn(
-          "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
+          "dashboard-3d-control flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
           mobileMenuOpen
             ? "bg-dashboard-surface-elevated text-dashboard-text"
             : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",

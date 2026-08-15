@@ -75,7 +75,7 @@ export const TopNavBar = memo(({
           <Button
             variant="ghost"
             size="icon"
-            className="size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text"
+            className="dashboard-3d-control size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text"
             onClick={() => setProfileDialogOpen(true)}
             aria-label="Configurações de perfil"
           >

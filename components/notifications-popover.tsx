@@ -41,7 +41,7 @@ export function NotificationsPopover({
           <Button
             variant="ghost"
             size="icon"
-            className="relative size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="dashboard-3d-control relative size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             aria-label="Notificações"
           />
         }

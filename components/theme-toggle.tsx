@@ -33,7 +33,7 @@ export function ThemeToggle() {
       size="icon"
       onClick={toggle}
       className={cn(
-        "size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text transition-all duration-300",
+        "dashboard-3d-control size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text transition-all duration-300",
         !isDark && "text-yellow-500 hover:text-yellow-400"
       )}
       aria-label={isDark ? "Modo claro" : "Modo escuro"}
