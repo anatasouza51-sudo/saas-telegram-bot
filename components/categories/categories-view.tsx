@@ -46,9 +46,11 @@ type DragState = {
   pointerId: number
   sourceIndex: number
   dropIndex: number | null
-  startX: number
-  startY: number
   originRect: DOMRect
+  grabOffsetX: number
+  grabOffsetY: number
+  lastX: number
+  lastY: number
 }
 
 export function CategoriesView({ categories }: { categories: Row[] }) {
@@ -61,11 +63,17 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   })
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [dragPreview, setDragPreview] = useState<{
+    left: number
+    top: number
+    width: number
+    height: number
+  } | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const pressRef = useRef<PressState | null>(null)
   const dragRef = useRef<DragState | null>(null)
+  const autoScrollFrameRef = useRef<number | null>(null)
 
   useEffect(() => {
     setOrder(categories)
@@ -123,15 +131,22 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           pointerId: current.pointerId,
           sourceIndex: current.sourceIndex,
           dropIndex: current.sourceIndex,
-          startX: current.startX,
-          startY: current.startY,
           originRect: current.originRect,
+          grabOffsetX: current.startX - current.originRect.left,
+          grabOffsetY: current.startY - current.originRect.top,
+          lastX: current.startX,
+          lastY: current.startY,
         }
         pressRef.current = null
         row.setPointerCapture?.(event.pointerId)
         setDraggingId(category.id)
         setDropIndex(current.sourceIndex)
-        setDragOffset({ x: 0, y: 0 })
+        setDragPreview({
+          left: current.originRect.left,
+          top: current.originRect.top,
+          width: current.originRect.width,
+          height: current.originRect.height,
+        })
       }, 350),
     }
 
@@ -146,10 +161,124 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       pressRef.current = null
     }
 
+    function stopAutoScroll() {
+      if (autoScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(autoScrollFrameRef.current)
+        autoScrollFrameRef.current = null
+      }
+    }
+
+    function getEdgeScrollStep(clientY: number) {
+      const edgeSize = Math.min(120, Math.max(72, window.innerHeight * 0.12))
+      const maxStep = 5
+      const minStep = 1.25
+
+      if (clientY <= edgeSize) {
+        const intensity = Math.min(1, (edgeSize - clientY) / edgeSize)
+        return -Math.max(minStep, intensity * maxStep)
+      }
+
+      const bottomEdge = window.innerHeight - edgeSize
+      if (clientY >= bottomEdge) {
+        const intensity = Math.min(1, (clientY - bottomEdge) / edgeSize)
+        return Math.max(minStep, intensity * maxStep)
+      }
+
+      return 0
+    }
+
+    function updateDragPosition(clientX: number, clientY: number) {
+      const drag = dragRef.current
+      const list = listRef.current
+      const draggedRow = drag ? rowRefs.current[drag.category.id] : null
+      if (!drag || !list || !draggedRow) return
+
+      const bounds = list.getBoundingClientRect()
+      setDragPreview((current) =>
+        current
+          ? {
+              ...current,
+              left: clientX - drag.grabOffsetX,
+              top: clientY - drag.grabOffsetY,
+            }
+          : current,
+      )
+
+      const insideList =
+        clientX >= bounds.left &&
+        clientX <= bounds.right &&
+        clientY >= bounds.top &&
+        clientY <= bounds.bottom
+      const withinListWidth = clientX >= bounds.left && clientX <= bounds.right
+      const edgeSize = Math.min(120, Math.max(72, window.innerHeight * 0.12))
+      const nearTopEdge = withinListWidth && clientY <= edgeSize && clientY < bounds.top
+      const nearBottomEdge =
+        withinListWidth &&
+        clientY >= window.innerHeight - edgeSize &&
+        clientY > bounds.bottom
+
+      if (!insideList && !nearTopEdge && !nearBottomEdge) {
+        drag.dropIndex = null
+        setDropIndex(null)
+        return
+      }
+
+      const targetY = insideList
+        ? clientY
+        : nearTopEdge
+          ? bounds.top + 1
+          : bounds.bottom - 1
+      const remaining = order.filter((item) => item.id !== drag.category.id)
+      let nextIndex = remaining.length
+
+      for (let index = 0; index < remaining.length; index += 1) {
+        const row = rowRefs.current[remaining[index].id]
+        if (!row) continue
+        const rowBounds = row.getBoundingClientRect()
+        if (targetY < rowBounds.top + rowBounds.height / 2) {
+          nextIndex = index
+          break
+        }
+      }
+
+      drag.dropIndex = nextIndex
+      setDropIndex(nextIndex)
+    }
+
+    function autoScrollStep() {
+      const drag = dragRef.current
+      if (!drag) {
+        stopAutoScroll()
+        return
+      }
+
+      const step = getEdgeScrollStep(drag.lastY)
+      if (step === 0) {
+        stopAutoScroll()
+        return
+      }
+
+      const before = window.scrollY
+      window.scrollBy({ top: step, left: 0, behavior: "auto" })
+      const after = window.scrollY
+      if (after === before) {
+        stopAutoScroll()
+        return
+      }
+
+      updateDragPosition(drag.lastX, drag.lastY)
+      autoScrollFrameRef.current = window.requestAnimationFrame(autoScrollStep)
+    }
+
+    function scheduleAutoScroll() {
+      if (autoScrollFrameRef.current === null) {
+        autoScrollFrameRef.current = window.requestAnimationFrame(autoScrollStep)
+      }
+    }
+
     function handlePointerMove(event: PointerEvent) {
       const press = pressRef.current
       const drag = dragRef.current
-      const list = listRef.current
 
       if (press && !drag && event.pointerId === press.pointerId) {
         const movedX = event.clientX - press.startX
@@ -158,47 +287,13 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         return
       }
 
-      if (!drag || event.pointerId !== drag.pointerId || !list) return
+      if (!drag || event.pointerId !== drag.pointerId) return
 
       event.preventDefault()
-      const bounds = list.getBoundingClientRect()
-      const rawX = event.clientX - drag.startX
-      const rawY = event.clientY - drag.startY
-      const minX = bounds.left - drag.originRect.left
-      const maxX = bounds.right - drag.originRect.right
-      const minY = bounds.top - drag.originRect.top
-      const maxY = bounds.bottom - drag.originRect.bottom
-      setDragOffset({
-        x: Math.min(Math.max(rawX, minX), maxX),
-        y: Math.min(Math.max(rawY, minY), maxY),
-      })
-      const insideList =
-        event.clientX >= bounds.left &&
-        event.clientX <= bounds.right &&
-        event.clientY >= bounds.top &&
-        event.clientY <= bounds.bottom
-
-      if (!insideList) {
-        drag.dropIndex = null
-        setDropIndex(null)
-        return
-      }
-
-      const remaining = order.filter((item) => item.id !== drag.category.id)
-      let nextIndex = remaining.length
-
-      for (let index = 0; index < remaining.length; index += 1) {
-        const row = rowRefs.current[remaining[index].id]
-        if (!row) continue
-        const rowBounds = row.getBoundingClientRect()
-        if (event.clientY < rowBounds.top + rowBounds.height / 2) {
-          nextIndex = index
-          break
-        }
-      }
-
-      drag.dropIndex = nextIndex
-      setDropIndex(nextIndex)
+      drag.lastX = event.clientX
+      drag.lastY = event.clientY
+      updateDragPosition(event.clientX, event.clientY)
+      scheduleAutoScroll()
     }
 
     function finishDrag(event: PointerEvent) {
@@ -209,6 +304,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       }
       if (event.pointerId !== drag.pointerId) return
 
+      stopAutoScroll()
       const targetIndex = drag.dropIndex
       const remaining = order.filter((item) => item.id !== drag.category.id)
 
@@ -225,17 +321,18 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       dragRef.current = null
       setDraggingId(null)
       setDropIndex(null)
-      setDragOffset({ x: 0, y: 0 })
+      setDragPreview(null)
     }
 
     function cancelDrag(event: PointerEvent) {
       cancelPendingPress(event.pointerId)
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
+      stopAutoScroll()
       dragRef.current = null
       setDraggingId(null)
       setDropIndex(null)
-      setDragOffset({ x: 0, y: 0 })
+      setDragPreview(null)
     }
 
     window.addEventListener("pointermove", handlePointerMove, { passive: false })
@@ -244,6 +341,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
 
     return () => {
       cancelPendingPress()
+      stopAutoScroll()
       window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerup", finishDrag)
       window.removeEventListener("pointercancel", cancelDrag)
@@ -320,12 +418,11 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                   ref={(element) => {
                     rowRefs.current[c.id] = element
                   }}
-                  className={`flex min-w-0 flex-col gap-4 p-4 transition-[transform,background-color,box-shadow] duration-150 hover:bg-muted/30 select-none sm:flex-row sm:items-center sm:select-auto ${
+                  className={`flex min-w-0 flex-col gap-4 p-4 transition-[background-color,box-shadow,opacity] duration-150 hover:bg-muted/30 select-none sm:flex-row sm:items-center sm:select-auto ${
                     isDragging
-                      ? "relative z-20 touch-none bg-primary/10 shadow-[0_12px_30px_rgba(0,0,0,0.24)] sm:relative sm:z-auto sm:bg-transparent sm:shadow-none"
+                      ? "relative z-0 touch-none opacity-0 sm:relative sm:z-auto sm:opacity-100"
                       : "touch-pan-y"
                   }`}
-                  style={isDragging ? { transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`, transition: "none" } : undefined}
                   onPointerDown={(event) => beginPress(event, c)}
                   aria-grabbed={isDragging}
                 >
@@ -433,6 +530,56 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           )}
         </div>
       </div>
+
+      {dragPreview && draggingId !== null && (
+        <div
+          className="pointer-events-none fixed left-0 top-0 z-[70] hidden max-w-[calc(100vw-2rem)] flex-col gap-4 rounded-xl border border-primary/30 bg-card/95 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:hidden"
+          style={{
+            width: dragPreview.width,
+            minHeight: dragPreview.height,
+            transform: `translate3d(${dragPreview.left}px, ${dragPreview.top}px, 0)`,
+          }}
+          aria-hidden="true"
+        >
+          {(() => {
+            const draggedCategory = order.find((item) => item.id === draggingId)
+            if (!draggedCategory) return null
+            return (
+              <>
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
+                    {draggedCategory.emoji || "📁"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="break-words font-medium">{draggedCategory.name}</p>
+                    {draggedCategory.description && (
+                      <p className="break-words text-xs text-muted-foreground line-clamp-2">
+                        {draggedCategory.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <div className="flex min-w-12 flex-col items-end">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Produtos</span>
+                    <span className="text-sm font-medium text-muted-foreground">{draggedCategory.productCount}</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={
+                      draggedCategory.status === "active"
+                        ? "border-success/30 bg-success/10 text-success"
+                        : "border-muted-foreground/30 bg-muted text-muted-foreground"
+                    }
+                  >
+                    {draggedCategory.status === "active" ? "Ativa" : "Inativa"}
+                  </Badge>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
 
       <CategoryFormDialog
         open={dialog.open}
