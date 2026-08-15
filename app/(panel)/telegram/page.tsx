@@ -1,3 +1,4 @@
+import { requireCapability } from "@/lib/session"
 import { TelegramForm } from "@/components/settings/telegram-form"
 import { StoreCustomizationForm } from "@/components/settings/store-customization-form"
 import { CatalogButtonsForm } from "@/components/settings/catalog-buttons-form"
