@@ -40,7 +40,7 @@ export default async function TelegramPage() {
     : null
 
   return (
-    <div className="w-full min-w-0 max-w-full overflow-x-clip">
+    <div className="mx-auto w-full min-w-0 max-w-6xl overflow-x-clip p-4 md:p-6">
       <Card className="w-full min-w-0 max-w-full overflow-hidden rounded-3xl border-dashboard-border/70 bg-dashboard-card/80 shadow-[0_18px_70px_rgba(0,0,0,0.16)]">
         <CardContent className="min-w-0 p-4 sm:p-6 lg:p-8">
           <div className="min-w-0 divide-y divide-dashboard-border/60">
