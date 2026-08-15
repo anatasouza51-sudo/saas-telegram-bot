@@ -14,6 +14,7 @@ import {
 import { requireCapability } from "@/lib/session"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
+import { MessageCircle } from "lucide-react"
 
 export default async function CategoriesPage() {
   try {
@@ -35,7 +36,9 @@ export default async function CategoriesPage() {
       <Card className="overflow-hidden rounded-xl border-border/80 shadow-sm">
         <CardHeader className="border-b border-border/70 bg-muted/20">
           <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">💬</div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-[0_0_14px_rgba(169,201,127,0.12)]">
+              <MessageCircle className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+            </div>
             <div>
               <CardTitle>Suporte no menu do bot</CardTitle>
               <CardDescription className="mt-1">
