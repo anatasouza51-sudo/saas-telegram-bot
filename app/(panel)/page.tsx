@@ -216,8 +216,8 @@ export default function DashboardPage() {
       <section className="overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface">
         <div className="flex items-center justify-between border-b border-dashboard-border/70 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10">
-              <ShoppingCart className="size-4 shrink-0 text-dashboard-accent" strokeWidth={1.8} />
+            <div className="flex size-10 shrink-0 aspect-square items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10 shadow-[0_0_14px_rgba(169,201,127,0.16)]">
+              <ShoppingCart className="size-[18px] shrink-0 text-dashboard-accent" strokeWidth={1.8} aria-hidden="true" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-dashboard-text">Pedidos recentes</h3>
