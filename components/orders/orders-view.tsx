@@ -104,7 +104,7 @@ export function OrdersView({
         </div>
       </div>
 
-      <Card className="min-w-0 overflow-hidden rounded-[24px] border-dashboard-border/80 bg-dashboard-surface">
+      <Card className="min-w-0 overflow-hidden rounded-[24px] border-dashboard-border/80 bg-dashboard-surface shadow-none">
         <CardContent className="min-w-0 p-4 sm:p-5">
           <div className="flex min-w-0 flex-col gap-3 border-b border-dashboard-border/70 pb-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative min-w-0 flex-1 lg:max-w-xl">
