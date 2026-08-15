@@ -37,6 +37,8 @@ type PressState = {
   sourceIndex: number
   startX: number
   startY: number
+  lastX: number
+  lastY: number
   originRect: DOMRect
   timer: ReturnType<typeof setTimeout>
 }
@@ -123,21 +125,24 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       sourceIndex,
       startX: event.clientX,
       startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
       originRect: row.getBoundingClientRect(),
       timer: setTimeout(() => {
         const current = pressRef.current
         if (!current || current.pointerId !== event.pointerId) return
 
+        const currentRect = row.getBoundingClientRect()
         dragRef.current = {
           category: current.category,
           pointerId: current.pointerId,
           sourceIndex: current.sourceIndex,
           dropIndex: current.sourceIndex,
-          originRect: current.originRect,
-          grabOffsetX: current.startX - current.originRect.left,
-          grabOffsetY: current.startY - current.originRect.top,
-          lastX: current.startX,
-          lastY: current.startY,
+          originRect: currentRect,
+          grabOffsetX: current.lastX - currentRect.left,
+          grabOffsetY: current.lastY - currentRect.top,
+          lastX: current.lastX,
+          lastY: current.lastY,
         }
         pressRef.current = null
         const scrollContainer = row.closest("main") as HTMLElement | null
@@ -155,7 +160,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           width: current.originRect.width,
           height: current.originRect.height,
         })
-      }, 220),
+      }, 140),
     }
 
     pressRef.current = press
@@ -203,22 +208,22 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       if (!drag || !list || !draggedRow) return
 
       const bounds = list.getBoundingClientRect()
+      const rawLeft = clientX - drag.grabOffsetX
+      const minLeft = bounds.left
+      const maxLeft = Math.max(minLeft, bounds.right - drag.originRect.width)
+      const clampedLeft = Math.min(Math.max(rawLeft, minLeft), maxLeft)
       setDragPreview((current) =>
         current
           ? {
               ...current,
-              left: clientX - drag.grabOffsetX,
+              left: clampedLeft,
               top: clientY - drag.grabOffsetY,
             }
           : current,
       )
 
-      const insideList =
-        clientX >= bounds.left &&
-        clientX <= bounds.right &&
-        clientY >= bounds.top &&
-        clientY <= bounds.bottom
-      const withinListWidth = clientX >= bounds.left && clientX <= bounds.right
+      const insideList = clientY >= bounds.top && clientY <= bounds.bottom
+      const withinListWidth = true
       const scrollContainer = scrollContainerRef.current
       const scrollBounds = scrollContainer?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight)
       const edgeSize = Math.min(112, Math.max(64, scrollBounds.height * 0.16))
@@ -303,9 +308,11 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       const drag = dragRef.current
 
       if (press && !drag && event.pointerId === press.pointerId) {
+        press.lastX = event.clientX
+        press.lastY = event.clientY
         const movedX = event.clientX - press.startX
         const movedY = event.clientY - press.startY
-        if (Math.hypot(movedX, movedY) > 24) cancelPendingPress(event.pointerId)
+        if (Math.hypot(movedX, movedY) > 40) cancelPendingPress(event.pointerId)
         return
       }
 
