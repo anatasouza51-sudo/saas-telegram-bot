@@ -74,6 +74,8 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   const pressRef = useRef<PressState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const autoScrollFrameRef = useRef<number | null>(null)
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const originalScrollBehaviorRef = useRef<string | null>(null)
 
   useEffect(() => {
     setOrder(categories)
@@ -138,6 +140,12 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           lastY: current.startY,
         }
         pressRef.current = null
+        const scrollContainer = row.closest("main") as HTMLElement | null
+        scrollContainerRef.current = scrollContainer
+        if (scrollContainer) {
+          originalScrollBehaviorRef.current = scrollContainer.style.scrollBehavior
+          scrollContainer.style.scrollBehavior = "auto"
+        }
         row.setPointerCapture?.(event.pointerId)
         setDraggingId(category.id)
         setDropIndex(current.sourceIndex)
@@ -147,7 +155,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           width: current.originRect.width,
           height: current.originRect.height,
         })
-      }, 240),
+      }, 220),
     }
 
     pressRef.current = press
@@ -168,17 +176,18 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       }
     }
 
-    function getEdgeScrollStep(clientY: number) {
-      const edgeSize = Math.min(120, Math.max(72, window.innerHeight * 0.12))
-      const maxStep = 5
-      const minStep = 1.25
+    function getEdgeScrollStep(clientY: number, scrollBounds: DOMRect) {
+      const edgeSize = Math.min(112, Math.max(64, scrollBounds.height * 0.16))
+      const maxStep = 8
+      const minStep = 1.5
+      const topEdge = scrollBounds.top + edgeSize
+      const bottomEdge = scrollBounds.bottom - edgeSize
 
-      if (clientY <= edgeSize) {
-        const intensity = Math.min(1, (edgeSize - clientY) / edgeSize)
+      if (clientY <= topEdge) {
+        const intensity = Math.min(1, (topEdge - clientY) / edgeSize)
         return -Math.max(minStep, intensity * maxStep)
       }
 
-      const bottomEdge = window.innerHeight - edgeSize
       if (clientY >= bottomEdge) {
         const intensity = Math.min(1, (clientY - bottomEdge) / edgeSize)
         return Math.max(minStep, intensity * maxStep)
@@ -210,11 +219,16 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         clientY >= bounds.top &&
         clientY <= bounds.bottom
       const withinListWidth = clientX >= bounds.left && clientX <= bounds.right
-      const edgeSize = Math.min(120, Math.max(72, window.innerHeight * 0.12))
-      const nearTopEdge = withinListWidth && clientY <= edgeSize && clientY < bounds.top
+      const scrollContainer = scrollContainerRef.current
+      const scrollBounds = scrollContainer?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight)
+      const edgeSize = Math.min(112, Math.max(64, scrollBounds.height * 0.16))
+      const nearTopEdge =
+        withinListWidth &&
+        clientY <= scrollBounds.top + edgeSize &&
+        clientY < bounds.top
       const nearBottomEdge =
         withinListWidth &&
-        clientY >= window.innerHeight - edgeSize &&
+        clientY >= scrollBounds.bottom - edgeSize &&
         clientY > bounds.bottom
 
       if (!insideList && !nearTopEdge && !nearBottomEdge) {
@@ -252,14 +266,19 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         return
       }
 
-      const step = getEdgeScrollStep(drag.lastY)
+      const scrollTarget = scrollContainerRef.current
+      if (!scrollTarget) {
+        stopAutoScroll()
+        return
+      }
+
+      const step = getEdgeScrollStep(drag.lastY, scrollTarget.getBoundingClientRect())
       if (step === 0) {
         stopAutoScroll()
         return
       }
 
-      const scrollTarget = document.scrollingElement ?? document.documentElement
-      const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - window.innerHeight)
+      const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight)
       const before = scrollTarget.scrollTop
       const nextScrollTop = Math.min(maxScrollTop, Math.max(0, before + step))
       scrollTarget.scrollTop = nextScrollTop
@@ -286,7 +305,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       if (press && !drag && event.pointerId === press.pointerId) {
         const movedX = event.clientX - press.startX
         const movedY = event.clientY - press.startY
-        if (Math.hypot(movedX, movedY) > 14) cancelPendingPress(event.pointerId)
+        if (Math.hypot(movedX, movedY) > 24) cancelPendingPress(event.pointerId)
         return
       }
 
@@ -299,6 +318,15 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       scheduleAutoScroll()
     }
 
+    function restoreScrollBehavior() {
+      const scrollContainer = scrollContainerRef.current
+      if (scrollContainer && originalScrollBehaviorRef.current !== null) {
+        scrollContainer.style.scrollBehavior = originalScrollBehaviorRef.current
+      }
+      scrollContainerRef.current = null
+      originalScrollBehaviorRef.current = null
+    }
+
     function finishDrag(event: PointerEvent) {
       const drag = dragRef.current
       if (!drag) {
@@ -308,6 +336,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       if (event.pointerId !== drag.pointerId) return
 
       stopAutoScroll()
+      restoreScrollBehavior()
       const targetIndex = drag.dropIndex
       const remaining = order.filter((item) => item.id !== drag.category.id)
 
@@ -332,6 +361,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
       stopAutoScroll()
+      restoreScrollBehavior()
       dragRef.current = null
       setDraggingId(null)
       setDropIndex(null)
@@ -345,6 +375,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     return () => {
       cancelPendingPress()
       stopAutoScroll()
+      restoreScrollBehavior()
       window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerup", finishDrag)
       window.removeEventListener("pointercancel", cancelDrag)
