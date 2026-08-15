@@ -46,12 +46,12 @@ export default async function PanelLayout({
       />
 
       {/* Área de Conteúdo */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+      <div className="flex-1 flex min-h-0 flex-col min-w-0 h-screen overflow-hidden relative">
         {/* Topbar */}
         <TopNavBar user={user} />
 
         {/* Conteúdo Principal com Scroll */}
-        <main className="flex-1 overflow-y-auto scroll-smooth relative bg-grain">
+        <main className="flex min-h-0 flex-1 overflow-y-auto scroll-smooth relative bg-grain">
           <div className="w-full min-w-0 max-w-none px-2 pb-32 pt-4 sm:px-3 md:px-4 md:pb-32 md:pt-8 lg:pb-8">
             <PageTransition>{children}</PageTransition>
           </div>
