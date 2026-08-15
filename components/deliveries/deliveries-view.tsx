@@ -49,7 +49,53 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
+
+        <div className="grid gap-3 md:hidden">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-border bg-muted/10 p-8 text-center text-muted-foreground">
+              Nenhuma entrega registrada.
+            </div>
+          ) : (
+            filtered.map((d) => (
+              <article key={d.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                <div className="flex items-start justify-between gap-3 border-b border-border/70 p-4">
+                  <div className="min-w-0">
+                    <span className="text-xs text-muted-foreground">Pedido</span>
+                    <h3 className="mt-1 break-all font-mono text-sm font-semibold">
+                      #{String(d.orderId).padStart(4, "0")}
+                    </h3>
+                  </div>
+                  <Badge className="shrink-0" variant="default">Entregue</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 p-4">
+                  <div className="min-w-0 rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Produto</span>
+                    <p className="mt-1 break-words font-medium">{d.productName || "—"}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Cliente</span>
+                    <p className="mt-1 break-words font-medium">{d.customerName || "—"}</p>
+                    {d.customerTelegramId && (
+                      <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{d.customerTelegramId}</p>
+                    )}
+                  </div>
+                  <div className="col-span-2 min-w-0 rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Item entregue</span>
+                    <p className="mt-1 break-words whitespace-pre-wrap font-mono text-sm text-muted-foreground">
+                      {d.deliveredContent || "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-border/70 px-4 py-3 text-xs text-muted-foreground">
+                  <span>Data da entrega</span>
+                  <span className="text-right">{formatDateTime(d.createdAt)}</span>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow>

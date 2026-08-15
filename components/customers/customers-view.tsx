@@ -48,7 +48,59 @@ export function CustomersView({ customers }: { customers: CustomerRow[] }) {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
+
+        <div className="grid gap-3 md:hidden">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-border bg-muted/10 p-8 text-center text-muted-foreground">
+              Nenhum cliente encontrado.
+            </div>
+          ) : (
+            filtered.map((c) => (
+              <article key={c.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                <div className="flex items-start justify-between gap-3 border-b border-border/70 p-4">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-semibold">{c.name || "—"}</h3>
+                    {c.username && (
+                      <p className="mt-1 break-all text-sm text-muted-foreground">@{c.username}</p>
+                    )}
+                  </div>
+                  <Badge
+                    className="shrink-0"
+                    variant={c.status === "active" ? "default" : "secondary"}
+                  >
+                    {c.status === "active" ? "Ativo" : "Bloqueado"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 p-4">
+                  <div className="min-w-0 rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Telegram ID</span>
+                    <p className="mt-1 break-all font-mono text-sm">{c.telegramId}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Compras</span>
+                    <p className="mt-1 font-semibold">{c.purchaseCount}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Total gasto</span>
+                    <p className="mt-1 font-semibold">{formatCurrency(c.totalSpent)}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg bg-muted/30 p-3">
+                    <span className="text-xs text-muted-foreground">Última compra</span>
+                    <p className="mt-1 break-words text-sm font-medium">
+                      {c.lastPurchaseAt ? formatDateTime(c.lastPurchaseAt) : "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-border/70 px-4 py-3 text-xs text-muted-foreground">
+                  <span>Cadastro</span>
+                  <span className="text-right">{formatDateTime(c.createdAt)}</span>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader>
               <TableRow>
