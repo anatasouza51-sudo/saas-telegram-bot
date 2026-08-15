@@ -63,7 +63,7 @@ export function SectionHeader({
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] whitespace-nowrap",
                       isActive
-                        ? "bg-gradient-to-r from-primary to-blue-600 text-white shadow-md shadow-primary/20"
+                        ? "bg-dashboard-accent text-dashboard-bg shadow-md shadow-dashboard-accent/20"
                         : "text-muted-foreground hover:bg-white/5 hover:text-white",
                     )}
                   >

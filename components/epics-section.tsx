@@ -23,13 +23,13 @@ const colorMap = {
   blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
   green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
   yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20" },
-  pink: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20" },
+  purple: { bg: "bg-dashboard-accent/10", text: "text-dashboard-accent", border: "border-dashboard-accent/20" },
+  pink: { bg: "bg-dashboard-accent-secondary/10", text: "text-dashboard-accent-secondary", border: "border-dashboard-accent-secondary/20" },
 }
 
 const statusMap = {
   design: { label: "Design", color: "text-blue-400" },
-  development: { label: "Desenvolvimento", color: "text-purple-400" },
+  development: { label: "Desenvolvimento", color: "text-dashboard-accent" },
   review: { label: "Review", color: "text-amber-400" },
   completed: { label: "Concluído", color: "text-emerald-400" },
 }

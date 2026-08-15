@@ -31,12 +31,12 @@ const getInitials = (name: string) => {
 }
 
 const colors = [
-  "bg-pink-500",
-  "bg-purple-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-blue-500",
-  "bg-rose-500",
+  "bg-[#D17D55]",
+  "bg-[#A9C97F]",
+  "bg-[#5F8B5A]",
+  "bg-[#D5A24F]",
+  "bg-[#4F8B7A]",
+  "bg-[#B8534E]",
 ]
 
 export const TeamMembers = memo(({

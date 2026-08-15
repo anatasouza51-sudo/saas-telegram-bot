@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { saveStoreCustomization } from "@/app/actions/settings"
 import { toast } from "sonner"
 
-const iconClass = "h-4 w-4 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.72)]"
+const iconClass = "h-4 w-4 text-dashboard-accent drop-shadow-[0_0_8px_rgba(169,201,127,0.72)]"
 
 export function StoreCustomizationForm({
   initial,
@@ -35,7 +35,7 @@ export function StoreCustomizationForm({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start gap-3 pl-3 sm:pl-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-400/20">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 ring-1 ring-dashboard-accent/20">
           <Store className={iconClass} />
         </div>
         <div>
@@ -47,7 +47,7 @@ export function StoreCustomizationForm({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.72fr)]">
-        <div className="flex flex-col gap-5 rounded-2xl border border-violet-400/15 bg-violet-500/[0.035] p-4 sm:p-5">
+        <div className="flex flex-col gap-5 rounded-2xl border border-dashboard-accent/15 bg-dashboard-accent/[0.035] p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <MessageSquareText className={iconClass} />
             <div>
@@ -68,7 +68,7 @@ export function StoreCustomizationForm({
           </p>
         </div>
 
-        <div className="flex flex-col gap-5 rounded-2xl border border-violet-400/15 bg-violet-500/[0.035] p-4 sm:p-5">
+        <div className="flex flex-col gap-5 rounded-2xl border border-dashboard-accent/15 bg-dashboard-accent/[0.035] p-4 sm:p-5">
           <div className="flex items-center gap-2">
             <ImageIcon className={iconClass} />
             <div>
@@ -90,7 +90,7 @@ export function StoreCustomizationForm({
             A imagem será enviada junto da mensagem no Telegram. Deixe em branco para usar somente texto.
           </p>
           {welcomeImageUrl.trim() ? (
-            <div className="overflow-hidden rounded-xl border border-violet-300/15 bg-background/60 shadow-[0_0_24px_rgba(124,58,237,0.08)]">
+            <div className="overflow-hidden rounded-xl border border-dashboard-accent/15 bg-background/60 shadow-[0_0_24px_rgba(169,201,127,0.08)]">
               <Image
                 src={welcomeImageUrl.trim()}
                 alt="Prévia da imagem de boas-vindas"
@@ -101,8 +101,8 @@ export function StoreCustomizationForm({
               />
             </div>
           ) : (
-            <div className="flex min-h-24 flex-col items-center justify-center rounded-xl border border-dashed border-violet-300/15 bg-background/30 px-4 text-center">
-              <Sparkles className="mb-2 h-4 w-4 text-violet-300/70" />
+            <div className="flex min-h-24 flex-col items-center justify-center rounded-xl border border-dashed border-dashboard-accent/15 bg-background/30 px-4 text-center">
+              <Sparkles className="mb-2 h-4 w-4 text-dashboard-accent/70" />
               <span className="text-xs text-muted-foreground">A prévia da imagem aparecerá aqui</span>
             </div>
           )}

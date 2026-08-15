@@ -18,13 +18,13 @@ interface TopCustomersProps {
 }
 
 const getInitials = (name: string) => name.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "??"
-const avatarColors = ["from-blue-500 to-cyan-400", "from-violet-500 to-fuchsia-400", "from-emerald-500 to-teal-400", "from-amber-500 to-orange-400", "from-rose-500 to-pink-400"]
+const avatarColors = ["from-[#5F8B5A] to-[#A9C97F]", "from-[#D17D55] to-[#D5A24F]", "from-[#4F8B7A] to-[#83B879]", "from-[#B77F35] to-[#D5A24F]", "from-[#B8534E] to-[#D17D55]"]
 
 export const TopCustomers = memo(({ customers, title = "Principais clientes" }: TopCustomersProps) => {
   return (
     <section className="rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
       <div className="mb-5 flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10 shadow-[0_0_14px_rgba(139,92,246,0.18)]"><Users className="size-4 shrink-0 text-violet-400" strokeWidth={1.8} /></div>
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10 shadow-[0_0_14px_rgba(169,201,127,0.16)]"><Users className="size-4 shrink-0 text-dashboard-accent" strokeWidth={1.8} /></div>
         <div><h3 className="text-sm font-bold text-dashboard-text">{title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{customers.length} cliente{customers.length === 1 ? "" : "s"} em destaque</p></div>
       </div>
 

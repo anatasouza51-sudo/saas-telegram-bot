@@ -10,7 +10,7 @@ import { saveCatalogSettings } from "@/app/actions/settings"
 import { type CatalogConfig } from "@/lib/catalog-config"
 import { toast } from "sonner"
 
-const iconClass = "h-4 w-4 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.72)]"
+const iconClass = "h-4 w-4 text-dashboard-accent drop-shadow-[0_0_8px_rgba(169,201,127,0.72)]"
 
 type ButtonKey = "buyButton" | "couponButton" | "backButton"
 
@@ -57,7 +57,7 @@ export function CatalogButtonsForm({ initial }: { initial: CatalogConfig }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start gap-3 pl-3 sm:pl-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-400/20">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 ring-1 ring-dashboard-accent/20">
           <LayoutGrid className={iconClass} />
         </div>
         <div>
@@ -74,10 +74,10 @@ export function CatalogButtonsForm({ initial }: { initial: CatalogConfig }) {
           const Icon = meta.icon
           const item = config[key]
           return (
-            <div key={key} className="flex flex-col gap-4 rounded-2xl border border-violet-400/15 bg-violet-500/[0.035] p-4 transition-colors hover:border-violet-400/30 sm:p-5">
+            <div key={key} className="flex flex-col gap-4 rounded-2xl border border-dashboard-accent/15 bg-dashboard-accent/[0.035] p-4 transition-colors hover:border-dashboard-accent/30 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background/70 ring-1 ring-violet-400/15">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background/70 ring-1 ring-dashboard-accent/15">
                     <Icon className={iconClass} />
                   </div>
                   <div className="min-w-0">
@@ -102,7 +102,7 @@ export function CatalogButtonsForm({ initial }: { initial: CatalogConfig }) {
                 />
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Check className={item.enabled ? "h-3.5 w-3.5 text-violet-300" : "h-3.5 w-3.5 text-muted-foreground/40"} />
+                <Check className={item.enabled ? "h-3.5 w-3.5 text-dashboard-accent" : "h-3.5 w-3.5 text-muted-foreground/40"} />
                 {item.enabled ? "Visível no catálogo" : "Oculto no catálogo"}
               </div>
             </div>

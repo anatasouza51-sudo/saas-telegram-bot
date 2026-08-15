@@ -21,10 +21,10 @@ interface SprintOverviewProps {
 
 const colorClasses = {
   pink: {
-    bg: "bg-pink-500/10",
-    border: "border-pink-500/20",
-    text: "text-pink-400",
-    dot: "bg-pink-500",
+    bg: "bg-dashboard-accent-secondary/10",
+    border: "border-dashboard-accent-secondary/20",
+    text: "text-dashboard-accent-secondary",
+    dot: "bg-dashboard-accent-secondary",
   },
   green: {
     bg: "bg-emerald-500/10",
@@ -39,10 +39,10 @@ const colorClasses = {
     dot: "bg-amber-500",
   },
   purple: {
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
-    text: "text-purple-400",
-    dot: "bg-purple-500",
+    bg: "bg-dashboard-accent/10",
+    border: "border-dashboard-accent/20",
+    text: "text-dashboard-accent",
+    dot: "bg-dashboard-accent",
   },
 }
 

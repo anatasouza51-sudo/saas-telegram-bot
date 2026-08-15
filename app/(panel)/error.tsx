@@ -18,10 +18,10 @@ export default function PanelError({
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#07060B] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-dashboard-bg text-white flex items-center justify-center p-6">
       <div className="flex flex-col items-center text-center gap-6 max-w-md">
-        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-          <RefreshCw className="w-8 h-8 text-rose-500" />
+        <div className="w-16 h-16 rounded-2xl bg-dashboard-accent-secondary/10 border border-dashboard-accent-secondary/20 flex items-center justify-center">
+          <RefreshCw className="w-8 h-8 text-dashboard-accent-secondary" />
         </div>
         <h2 className="text-xl font-black tracking-tight">Painel Indisponível</h2>
         <p className="text-sm text-white/60 max-w-sm">
@@ -35,7 +35,7 @@ export default function PanelError({
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={() => reset()}
-            className="w-full px-8 py-3 bg-[#EC4899] hover:bg-[#EC4899]/90 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full px-8 py-3 bg-dashboard-accent-secondary hover:bg-[#E0A37E] text-dashboard-bg font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             Tentar Novamente

@@ -87,7 +87,7 @@ export function OrdersView({
 
   return (
     <section className="flex min-w-0 flex-col gap-5">
-      <div className="flex min-w-0 flex-col gap-4 rounded-[24px] border border-dashboard-border/80 bg-dashboard-surface/70 p-4 shadow-[0_0_30px_rgba(168,85,247,0.06)] sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex min-w-0 flex-col gap-4 rounded-[24px] border border-dashboard-border/80 bg-dashboard-surface/70 p-4 shadow-[0_0_30px_rgba(169,201,127,0.08)] sm:p-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-dashboard-accent">
             <ShoppingBag className="size-4 shrink-0" aria-hidden="true" />

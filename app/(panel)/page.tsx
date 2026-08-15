@@ -96,7 +96,7 @@ export default function DashboardPage() {
       label: "Clientes",
       value: formatNumber(data?.stats?.totalCustomers || 0),
       icon: <Users className="size-4 shrink-0" strokeWidth={1.8} />,
-      color: "violet" as const,
+      color: "teal" as const,
       helper: "na sua operação",
     },
     {

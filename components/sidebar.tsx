@@ -62,7 +62,7 @@ export function Sidebar() {
         <div className="flex flex-col items-center justify-between w-20 h-full bg-dashboard-sidebar border border-dashboard-border rounded-2xl py-4 shadow-2xl mx-3 my-auto">
           
           {/* Topo: Sua Logo */}
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-dashboard-accent text-dashboard-bg shadow-lg shadow-dashboard-accent/20">
             👻
           </div>
 
@@ -94,7 +94,7 @@ export function Sidebar() {
           <div className="flex flex-col items-center gap-3 w-full px-2 pt-2 border-t border-dashboard-border">
             <div 
               title="Perfil"
-              className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center text-white font-semibold justify-center text-sm shadow-inner cursor-pointer"
+              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#D17D55] to-dashboard-accent flex items-center text-dashboard-bg font-semibold justify-center text-sm shadow-inner cursor-pointer"
             >
               U
             </div>

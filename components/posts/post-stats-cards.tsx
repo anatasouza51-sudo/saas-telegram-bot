@@ -33,9 +33,9 @@ export function PostStatsCards({
 
   const cards = [
     { label: "Total de postagens", value: stats.total, icon: Megaphone, color: "text-blue-400" },
-    { label: "Enviadas hoje", value: stats.today, icon: CalendarDays, color: "text-purple-400" },
+    { label: "Enviadas hoje", value: stats.today, icon: CalendarDays, color: "text-[#7CA98D]" },
     { label: "Enviadas na semana", value: stats.week, icon: CalendarDays, color: "text-blue-300" },
-    { label: "Enviadas no mês", value: stats.month, icon: CalendarDays, color: "text-purple-300" },
+    { label: "Enviadas no mês", value: stats.month, icon: CalendarDays, color: "text-dashboard-accent" },
     { label: "Sucesso", value: stats.sent, icon: CheckCircle2, color: "text-green-400" },
     { label: "Falhas", value: stats.failed, icon: XCircle, color: "text-red-400" },
     { label: "Agendadas", value: stats.scheduled, icon: CalendarClock, color: "text-yellow-400" },

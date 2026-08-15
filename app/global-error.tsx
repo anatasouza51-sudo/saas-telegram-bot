@@ -16,7 +16,7 @@ export default function GlobalError({
 
   return (
     <html lang="pt-BR" className="dark">
-      <body className="bg-[#07060B] text-white min-h-screen flex items-center justify-center p-6">
+      <body className="bg-dashboard-bg text-white min-h-screen flex items-center justify-center p-6">
         <div className="flex flex-col items-center text-center gap-6 max-w-md">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
             <svg className="w-8 h-8 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -34,7 +34,7 @@ export default function GlobalError({
           )}
           <button
             onClick={() => reset()}
-            className="mt-4 px-8 py-3 bg-[#EC4899] hover:bg-[#EC4899]/90 text-white font-bold rounded-xl transition-colors"
+            className="mt-4 px-8 py-3 bg-dashboard-accent-secondary hover:bg-dashboard-accent-secondary/90 text-white font-bold rounded-xl transition-colors"
           >
             Tentar Novamente
           </button>

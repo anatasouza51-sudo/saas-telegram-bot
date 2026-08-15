@@ -55,7 +55,7 @@ export function TwoFactorVerify() {
     <div className="w-full max-w-[420px] px-4 py-6">
       <div className="mb-8 flex flex-col items-center text-center">
         <GhostLogo className="w-14 h-14 mb-5" />
-        <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
+        <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-dashboard-accent-secondary to-dashboard-accent bg-clip-text text-transparent tracking-widest uppercase italic font-mono">
           VERIFICACAO 2FA
         </h1>
         <p className="mt-3 text-sm text-muted-foreground opacity-80 max-w-[300px]">
@@ -65,7 +65,7 @@ export function TwoFactorVerify() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-5 bg-[#0c0d12] border border-gray-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm"
+        className="flex flex-col gap-5 bg-dashboard-surface border border-dashboard-border rounded-2xl p-6 sm:p-8 shadow-2xl z-10 backdrop-blur-sm"
       >
         <div className="space-y-2">
           <Label htmlFor="code" className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">
@@ -78,7 +78,7 @@ export function TwoFactorVerify() {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="000000"
             maxLength={6}
-            className="h-11 text-sm bg-[#121319] border-gray-800 focus:border-gray-600 focus:ring-gray-600 transition-all rounded-xl placeholder:text-gray-600 text-white text-center tracking-widest text-lg font-mono"
+            className="h-11 text-sm bg-dashboard-bg border-dashboard-border focus:border-dashboard-accent focus:ring-dashboard-accent/30 transition-all rounded-xl placeholder:text-gray-600 text-white text-center tracking-widest text-lg font-mono"
             required
           />
         </div>
@@ -89,7 +89,7 @@ export function TwoFactorVerify() {
             id="trustDevice"
             checked={trustDevice}
             onChange={(e) => setTrustDevice(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-600 bg-[#121319] cursor-pointer"
+            className="w-4 h-4 rounded border-dashboard-border bg-dashboard-bg cursor-pointer"
           />
           <label htmlFor="trustDevice" className="text-xs text-gray-400 cursor-pointer">
             Confiar neste dispositivo por 30 dias

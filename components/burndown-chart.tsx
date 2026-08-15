@@ -25,7 +25,7 @@ interface BurndownChartProps {
 const chartConfig = {
   ideal: {
     label: "Ideal",
-    color: "rgba(168, 85, 247, 0.5)",
+    color: "rgba(79, 139, 122, 0.65)",
   },
   actual: {
     label: "Real",
@@ -80,7 +80,7 @@ export const BurndownChart = memo(({
                 tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }}
               />
               <ChartTooltip
-                cursor={{ stroke: 'rgba(236, 72, 153, 0.2)', strokeWidth: 2 }}
+                cursor={{ stroke: 'rgba(209, 125, 85, 0.22)', strokeWidth: 2 }}
                 content={
                   <ChartTooltipContent
                     className="bg-dashboard-surface-elevated border-dashboard-border shadow-2xl backdrop-blur-md"
@@ -98,7 +98,7 @@ export const BurndownChart = memo(({
               <Line
                 dataKey="ideal"
                 type="monotone"
-                stroke="rgba(168, 85, 247, 0.5)"
+                stroke="rgba(79, 139, 122, 0.65)"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={false}

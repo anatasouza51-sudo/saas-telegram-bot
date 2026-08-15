@@ -44,11 +44,11 @@ export default async function GatewayPage() {
 
   return (
     <div className="min-w-0 w-full space-y-6 px-3 pb-8 md:px-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-fuchsia-400/15 bg-[radial-gradient(circle_at_85%_15%,rgba(236,72,153,0.2),transparent_34%),linear-gradient(135deg,rgba(25,12,35,0.98),rgba(8,8,16,0.98))] p-5 shadow-[0_20px_80px_rgba(164,49,176,0.14)] md:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-dashboard-accent-secondary/20 bg-[radial-gradient(circle_at_85%_15%,rgba(209,125,85,0.16),transparent_34%),linear-gradient(135deg,rgba(29,51,39,0.98),rgba(13,24,18,0.98))] p-5 shadow-[0_20px_80px_rgba(169,201,127,0.10)] md:p-8">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-dashboard-accent-secondary/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-fuchsia-300">
+            <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-dashboard-accent-secondary">
               <WalletCards className="h-4 w-4" />
               Infraestrutura financeira
             </div>
@@ -68,7 +68,7 @@ export default async function GatewayPage() {
         <section className="space-y-3">
           <div className="flex items-end justify-between gap-4 px-1">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">Sua operação</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-dashboard-accent-secondary">Sua operação</p>
               <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateway configurado</h2>
             </div>
             <span className="hidden text-xs text-white/40 md:block">1 integração ativa</span>
@@ -104,8 +104,8 @@ export default async function GatewayPage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {futureGateways.map((gateway) => (
-            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-fuchsia-300/25">
-              <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-fuchsia-500/5 blur-2xl transition-colors group-hover:bg-fuchsia-500/10" />
+            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-dashboard-accent-secondary/30">
+              <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-dashboard-accent-secondary/5 blur-2xl transition-colors group-hover:bg-dashboard-accent-secondary/10" />
               <div className="relative flex items-start justify-between gap-3">
                 <div className="flex h-16 w-16 items-center justify-center">
                   {gateway.logo ? (
@@ -160,7 +160,7 @@ export default async function GatewayPage() {
         <div className="border-b border-white/10 p-5 md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-300">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-dashboard-accent-secondary">
                 Experiência de cobrança
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight text-white md:text-2xl">Pagamento PIX</h2>

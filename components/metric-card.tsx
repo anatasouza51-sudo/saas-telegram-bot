@@ -39,9 +39,9 @@ const colorMap: Record<MetricColor, { bg: string; text: string; border: string; 
   green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", glow: "shadow-emerald-500/[0.06]" },
   red: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/20", glow: "shadow-rose-500/[0.06]" },
   yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", glow: "shadow-amber-500/[0.06]" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20", glow: "shadow-purple-500/[0.06]" },
-  pink: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20", glow: "shadow-pink-500/[0.06]" },
-  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-400", border: "border-indigo-500/20", glow: "shadow-indigo-500/[0.06]" },
+  purple: { bg: "bg-dashboard-accent/10", text: "text-dashboard-accent", border: "border-dashboard-accent/20", glow: "shadow-dashboard-accent/[0.06]" },
+  pink: { bg: "bg-dashboard-accent-secondary/10", text: "text-dashboard-accent-secondary", border: "border-dashboard-accent-secondary/20", glow: "shadow-dashboard-accent-secondary/[0.06]" },
+  indigo: { bg: "bg-[#4F8B7A]/10", text: "text-[#8FC5A3]", border: "border-[#4F8B7A]/20", glow: "shadow-[#4F8B7A]/[0.06]" },
 }
 
 const iconMap: Record<string, LucideIcon> = {

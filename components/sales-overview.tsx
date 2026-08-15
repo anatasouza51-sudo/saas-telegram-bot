@@ -6,7 +6,7 @@ interface SalesMetric {
   label: string
   value: string | number
   icon: React.ReactNode
-  color: "blue" | "green" | "violet" | "amber"
+  color: "blue" | "green" | "teal" | "amber"
   helper?: string
 }
 
@@ -15,10 +15,10 @@ interface SalesOverviewProps {
 }
 
 const colorClasses = {
-  blue: { icon: "text-violet-400", iconBg: "bg-violet-500/10", line: "from-violet-500/60", accent: "text-violet-300" },
-  green: { icon: "text-violet-400", iconBg: "bg-violet-500/10", line: "from-violet-500/60", accent: "text-violet-300" },
-  violet: { icon: "text-violet-400", iconBg: "bg-violet-500/10", line: "from-violet-500/60", accent: "text-violet-300" },
-  amber: { icon: "text-violet-400", iconBg: "bg-violet-500/10", line: "from-violet-500/60", accent: "text-violet-300" },
+  blue: { icon: "text-[#8FC5A3]", iconBg: "bg-[#4F8B7A]/10", line: "from-[#4F8B7A]/60", accent: "text-[#8FC5A3]" },
+  green: { icon: "text-dashboard-accent", iconBg: "bg-dashboard-accent/10", line: "from-dashboard-accent/60", accent: "text-dashboard-accent" },
+  teal: { icon: "text-[#7CA98D]", iconBg: "bg-[#7CA98D]/10", line: "from-[#7CA98D]/60", accent: "text-[#7CA98D]" },
+  amber: { icon: "text-dashboard-accent-secondary", iconBg: "bg-dashboard-accent-secondary/10", line: "from-dashboard-accent-secondary/60", accent: "text-dashboard-accent-secondary" },
 }
 
 export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
@@ -39,7 +39,7 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
                 <p className="mt-5 font-space text-[2rem] font-bold leading-none tracking-tight text-dashboard-text sm:text-[2.15rem]">{metric.value}</p>
                 {metric.helper && <p className={cn("mt-3 text-[11px] font-medium", colors.accent)}>{metric.helper}</p>}
               </div>
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/20 shadow-[0_0_14px_rgba(139,92,246,0.18)]", colors.iconBg, colors.icon)}>
+              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 shadow-[0_0_14px_rgba(169,201,127,0.16)]", colors.iconBg, colors.icon)}>
                 <span className="flex size-5 shrink-0 items-center justify-center [&>svg]:size-4">{metric.icon}</span>
               </div>
             </div>

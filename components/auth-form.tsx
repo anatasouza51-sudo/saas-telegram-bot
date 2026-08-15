@@ -48,7 +48,7 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? "pl-11" : "px-4"} ${rightElement ? "pr-11" : ""} h-10 rounded-xl sm:h-12 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-fuchsia-300/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-fuchsia-300/20`}
+        className={`${Icon ? "pl-11" : "px-4"} ${rightElement ? "pr-11" : ""} h-10 rounded-xl sm:h-12 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-dashboard-accent/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-dashboard-accent/20`}
       />
     </div>
   </div>
@@ -135,7 +135,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 sm:gap-10">
       <section className="w-full max-w-2xl px-2 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-100/80 backdrop-blur">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-dashboard-accent-secondary/30 bg-dashboard-accent-secondary/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-accent-secondary backdrop-blur">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
           Operação Ghost online
         </div>
@@ -144,7 +144,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <div>
             <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
             <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-              GHOST <span className="text-fuchsia-300 drop-shadow-[0_0_22px_rgba(232,121,249,0.45)]">BOT</span>
+              GHOST <span className="text-dashboard-accent drop-shadow-[0_0_22px_rgba(169,201,127,0.38)]">BOT</span>
             </h1>
           </div>
         </div>
@@ -153,14 +153,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       <section className="w-full max-w-[440px]">
           <form
             onSubmit={handleSubmit}
-            className="relative overflow-hidden rounded-[2rem] bg-[#160c28]/70 p-6 shadow-[0_24px_90px_-28px_rgba(168,85,247,0.75)] backdrop-blur-2xl sm:p-8"
+            className="relative overflow-hidden rounded-[2rem] bg-dashboard-sidebar/85 p-6 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:p-8"
           >
-          <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent-secondary/18 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-dashboard-accent/16 blur-3xl" />
           <div className="relative">
             <div className="mb-8">
               <div className="mb-3 flex items-center justify-between">
-                <span className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-100/60">
+                <span className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-accent-secondary/80">
                   {isSignUp ? "Novo operador" : "Acesso restrito"}
                 </span>
                 <ShieldCheck className="h-4 w-4 text-emerald-200/70" />
@@ -190,7 +190,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                 required
                 rightElement={
                   <div className="flex items-center gap-3">
-                    {!isSignUp && <Link href="/forget-password" className="font-space text-[10px] font-bold uppercase tracking-wider text-fuchsia-200 hover:text-white">Recuperar</Link>}
+                    {!isSignUp && <Link href="/forget-password" className="font-space text-[10px] font-bold uppercase tracking-wider text-dashboard-accent-secondary hover:text-white">Recuperar</Link>}
                     <button
                       type="button"
                       onClick={togglePassword}
@@ -212,7 +212,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             <button
               type="submit"
               disabled={loading}
-              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-300 via-violet-300 to-purple-300 px-4 py-3.5 font-space text-sm font-black uppercase tracking-wider text-[#160c28] shadow-[0_12px_30px_-10px_rgba(232,121,249,0.9)] transition-all hover:brightness-110 hover:shadow-[0_16px_36px_-10px_rgba(232,121,249,0.95)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-dashboard-accent via-[#C9DC9D] to-dashboard-accent-secondary px-4 py-3.5 font-space text-sm font-black uppercase tracking-wider text-dashboard-bg shadow-[0_12px_30px_-10px_rgba(169,201,127,0.42)] transition-all hover:brightness-110 hover:shadow-[0_16px_36px_-10px_rgba(169,201,127,0.52)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <span className="flex items-center gap-2">
@@ -224,9 +224,9 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
             <div className="mt-6 text-center text-xs text-white/45">
               {isSignUp ? (
-                <>Já tem conta? <Link href="/sign-in" className="font-bold text-fuchsia-100 transition-colors hover:text-white">Entrar</Link></>
+                <>Já tem conta? <Link href="/sign-in" className="font-bold text-dashboard-accent-secondary transition-colors hover:text-white">Entrar</Link></>
               ) : (
-                <>Ainda não tem conta? <Link href="/sign-up" className="font-bold text-fuchsia-100 transition-colors hover:text-white">Criar conta gratuita</Link></>
+                <>Ainda não tem conta? <Link href="/sign-up" className="font-bold text-dashboard-accent-secondary transition-colors hover:text-white">Criar conta gratuita</Link></>
               )}
             </div>
           </div>

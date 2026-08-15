@@ -19,10 +19,10 @@ interface ProjectStatisticsProps {
 }
 
 const colorClasses = {
-  pink: { stroke: "#EC4899", light: "text-pink-400" },
+  pink: { stroke: "#D17D55", light: "text-dashboard-accent-secondary" },
   green: { stroke: "#34D399", light: "text-emerald-400" },
   yellow: { stroke: "#FBBF24", light: "text-amber-400" },
-  purple: { stroke: "#A855F7", light: "text-purple-400" },
+  purple: { stroke: "#A9C97F", light: "text-dashboard-accent" },
 }
 
 const CircularProgress = memo(({

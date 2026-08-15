@@ -65,7 +65,7 @@ function getStatusBadge(status: string) {
       )
     case "processing":
       return (
-        <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30">
+        <Badge className="bg-[#7CA98D]/15 text-[#A9C97F] border-[#7CA98D]/30">
           <RotateCcw className="w-3 h-3 mr-1 animate-spin" /> Processando
         </Badge>
       )

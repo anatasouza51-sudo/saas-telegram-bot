@@ -114,7 +114,7 @@ export default function OnboardingTutorial({ initialOnboardingSeen = true }: { i
 
           {/* Tooltip central */}
           <motion.div
-            className="relative pointer-events-auto bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl shadow-purple-500/20 max-w-md w-[90vw] overflow-hidden"
+            className="relative pointer-events-auto bg-dashboard-surface-elevated border border-dashboard-accent-secondary/30 rounded-xl shadow-2xl shadow-dashboard-accent-secondary/10 max-w-md w-[90vw] overflow-hidden"
             initial={{ scale: 0.8, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: -40 }}
@@ -123,7 +123,7 @@ export default function OnboardingTutorial({ initialOnboardingSeen = true }: { i
             {/* Progress bar */}
             <div className="h-1 bg-gray-800">
               <motion.div
-                className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
+                className="h-full bg-gradient-to-r from-dashboard-accent to-dashboard-accent-secondary"
                 initial={{ width: 0 }}
                 animate={{ width: `${((currentStep + 1) / ONBOARDING_STEPS.length) * 100}%` }}
                 transition={{ duration: 0.4 }}
@@ -134,8 +134,8 @@ export default function OnboardingTutorial({ initialOnboardingSeen = true }: { i
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-purple-400" />
+                  <div className="w-10 h-10 rounded-lg bg-dashboard-accent/10 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-dashboard-accent" />
                   </div>
                   <h3 className="text-white font-semibold text-lg">{step.title}</h3>
                 </div>
@@ -164,14 +164,14 @@ export default function OnboardingTutorial({ initialOnboardingSeen = true }: { i
                       <div
                         key={i}
                         className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                          i <= currentStep ? "bg-purple-500" : "bg-gray-700"
+                          i <= currentStep ? "bg-dashboard-accent" : "bg-gray-700"
                         }`}
                       />
                     ))}
                   </div>
                   <button
                     onClick={handleContinue}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-dashboard-accent-secondary hover:bg-[#E0A37E] text-dashboard-bg text-sm font-medium rounded-lg transition-colors"
                   >
                     {currentStep < ONBOARDING_STEPS.length - 1 ? "Continuar" : "Começar"}
                     <ChevronRight className="w-3.5 h-3.5" />

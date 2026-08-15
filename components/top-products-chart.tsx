@@ -16,7 +16,7 @@ interface TopProductsChartProps {
   products: TopProduct[]
 }
 
-const BAR_COLORS = ["#EC4899", "#A855F7", "#34D399", "#FBBF24", "#FB7185", "#60A5FA"]
+const BAR_COLORS = ["#A9C97F", "#D17D55", "#83B879", "#D5A24F", "#7CA98D", "#6F9B83"]
 
 export const TopProductsChart = memo(({ products }: TopProductsChartProps) => {
   const data = useMemo(() => {

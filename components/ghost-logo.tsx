@@ -3,8 +3,8 @@ import Image from "next/image"
 export function GhostLogo({ className }: { className?: string }) {
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
-      {/* Glow Effect matching the original purple logo */}
-      <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
+      {/* Halo discreto da identidade Campo Operacional */}
+      <div className="absolute inset-0 bg-dashboard-accent/18 blur-xl rounded-full animate-pulse" />
       
       <div className="relative flex h-20 w-20 items-center justify-center">
         <Image 

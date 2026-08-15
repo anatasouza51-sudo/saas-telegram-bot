@@ -35,10 +35,10 @@ export default function ForgetPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-[#0a0a0a] p-4 relative overflow-hidden">
+    <main className="flex min-h-svh items-center justify-center bg-dashboard-bg p-4 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-dashboard-accent/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-dashboard-accent-secondary/10 blur-[120px] rounded-full" />
 
       <div className="w-full max-w-[440px] px-4 py-8">
         <div className="mb-10 flex flex-col items-center text-center">
@@ -54,7 +54,7 @@ export default function ForgetPasswordPage() {
         </div>
 
         <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-[22px] blur opacity-20 group-hover:opacity-30 transition duration-1000" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-dashboard-accent to-dashboard-accent-secondary rounded-[22px] blur opacity-20 group-hover:opacity-30 transition duration-1000" />
           
           <div className="relative flex flex-col gap-5 rounded-[20px] border border-white/10 bg-card/90 p-8 shadow-2xl">
             {!success ? (
@@ -70,7 +70,7 @@ export default function ForgetPasswordPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="pl-10 h-12 bg-white/5 border-white/10 focus:border-primary/50 focus:ring-primary/20 transition-all rounded-xl"
+                      className="pl-10 h-12 bg-white/5 border-white/10 focus:border-dashboard-accent/50 focus:ring-dashboard-accent/20 transition-all rounded-xl"
                     />
                   </div>
                 </div>
@@ -83,7 +83,7 @@ export default function ForgetPasswordPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 mt-2 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-semibold text-base rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
+                  className="w-full h-12 mt-2 bg-gradient-to-r from-dashboard-accent to-dashboard-accent-secondary hover:from-[#C9DC9D] hover:to-[#E0A37E] text-dashboard-bg font-semibold text-base rounded-xl shadow-lg shadow-dashboard-accent/20 transition-all active:scale-[0.98]"
                   disabled={loading}
                 >
                   {loading ? (

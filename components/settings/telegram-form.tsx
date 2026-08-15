@@ -211,7 +211,7 @@ export function TelegramForm({
         <CardContent className="p-5 md:p-6">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 max-w-full items-start gap-3 sm:items-center sm:gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(168,85,247,0.18)]">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(169,201,127,0.16)]">
                 <Bot className="h-7 w-7" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -337,7 +337,7 @@ export function TelegramForm({
 
           {/* Preview da identidade do bot */}
           {preview && (
-            <div className="flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 shadow-[0_0_20px_rgba(168,85,247,0.08)] animate-in fade-in slide-in-from-top-2 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 shadow-[0_0_20px_rgba(169,201,127,0.08)] animate-in fade-in slide-in-from-top-2 sm:flex-row sm:items-center sm:gap-4">
               <Avatar className="h-12 w-12 border-2 border-primary/20">
                 <AvatarImage src={preview.photoUrl || ""} alt={preview.name} />
                 <AvatarFallback className="bg-primary/10 text-primary">

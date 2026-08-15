@@ -53,8 +53,8 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
       <div className="relative z-10 mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10 shadow-[0_0_14px_rgba(139,92,246,0.18)]">
-              <Activity className="size-4 shrink-0 text-violet-400" strokeWidth={1.8} />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10 shadow-[0_0_14px_rgba(169,201,127,0.16)]">
+              <Activity className="size-4 shrink-0 text-dashboard-accent" strokeWidth={1.8} />
             </div>
             <div>
               <h3 className="text-sm font-bold text-dashboard-text">Seu desempenho</h3>

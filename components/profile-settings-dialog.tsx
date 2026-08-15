@@ -108,9 +108,9 @@ export function ProfileSettingsDialog({
           {/* Avatar Preview */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <Avatar className="h-20 w-20 border-2 border-primary/20">
+              <Avatar className="h-20 w-20 border-2 border-dashboard-accent/25">
                 {image && <AvatarImage src={image} alt={name} className="object-cover" />}
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg font-bold">
+                <AvatarFallback className="bg-gradient-to-r from-dashboard-accent-secondary to-dashboard-accent text-dashboard-bg text-lg font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -123,7 +123,7 @@ export function ProfileSettingsDialog({
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-white hover:bg-primary/90 transition-colors shadow-lg"
+                className="absolute bottom-0 right-0 rounded-full bg-dashboard-accent p-2 text-dashboard-bg hover:bg-[#C9DC9D] transition-colors shadow-lg"
                 disabled={pending}
               >
                 <Camera className="h-4 w-4" />

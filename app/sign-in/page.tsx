@@ -10,8 +10,8 @@ export default async function LoginPage() {
   if (current) redirect("/")
 
   return (
-    <main className="relative isolate min-h-screen w-full overflow-hidden bg-[#090713] text-white font-sans">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(168,85,247,0.42),transparent_34%),radial-gradient(circle_at_82%_18%,rgba(236,72,153,0.2),transparent_30%),linear-gradient(135deg,rgba(9,7,19,0.92),rgba(22,10,40,0.72),rgba(5,4,11,0.96))]" />
+    <main className="relative isolate min-h-screen w-full overflow-hidden bg-dashboard-bg text-white font-sans">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(169,201,127,0.18),transparent_34%),radial-gradient(circle_at_82%_18%,rgba(209,125,85,0.16),transparent_30%),linear-gradient(135deg,rgba(17,24,19,0.96),rgba(30,40,27,0.78),rgba(9,14,11,0.98))]" />
       <div className="pointer-events-none absolute inset-0 bg-black/20" />
       <GhostBg />
 
