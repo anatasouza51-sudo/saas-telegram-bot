@@ -106,7 +106,7 @@ export function NotificationsPopover({
                   ) : item.type === "success" ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   ) : (
-                    <Info className="h-4 w-4 text-blue-500" />
+                    <Info className="h-4 w-4 text-[#7CA98D]" />
                   )}
                 </div>
                 <div className="flex-1 space-y-1">

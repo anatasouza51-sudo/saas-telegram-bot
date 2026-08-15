@@ -12,7 +12,7 @@ export function GhostLogo({ className }: { className?: string }) {
           alt="GHOST BOT Logo" 
           width={80} 
           height={80} 
-          className="object-contain"
+          className="object-contain [filter:sepia(1)_saturate(1.65)_hue-rotate(35deg)_brightness(1.08)]"
           priority
         />
       </div>

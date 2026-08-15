@@ -37,8 +37,8 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
       <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-            <Activity className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#7CA98D]/25 bg-[#7CA98D]/10">
+            <Activity className="size-4 shrink-0 text-[#7CA98D]" strokeWidth={1.8} />
           </div>
           <div>
             <h3 className="text-sm font-bold text-dashboard-text">Log de atividades</h3>
@@ -67,8 +67,8 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
         <div className="relative z-10 space-y-2">
           {recentActions.map((action) => (
             <div key={action.id} className="flex items-center gap-3 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3 transition-colors hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated/60 sm:p-3.5">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10">
-                <ShoppingCart className="size-4 shrink-0 text-blue-400" strokeWidth={1.8} />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#7CA98D]/25 bg-[#7CA98D]/10">
+                <ShoppingCart className="size-4 shrink-0 text-[#7CA98D]" strokeWidth={1.8} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-bold text-dashboard-text">{action.title}</p>

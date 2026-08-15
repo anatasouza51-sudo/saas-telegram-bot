@@ -100,11 +100,11 @@ export default async function GatewayPage() {
         <div className="px-1">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Ecossistema</p>
           <h2 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Gateways disponíveis</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">Gateways desativados permanecem aqui para você reativar ou atualizar suas credenciais.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-dashboard-text-muted">Gateways desativados permanecem aqui para você reativar ou atualizar suas credenciais.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {futureGateways.map((gateway) => (
-            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#100d16] p-4 transition-colors hover:border-dashboard-accent-secondary/30">
+            <div key={gateway.name} className="group relative overflow-hidden rounded-[1.35rem] border border-dashboard-border bg-dashboard-surface p-4 transition-colors hover:border-dashboard-border-active">
               <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-dashboard-accent-secondary/5 blur-2xl transition-colors group-hover:bg-dashboard-accent-secondary/10" />
               <div className="relative flex items-start justify-between gap-3">
                 <div className="flex h-16 w-16 items-center justify-center">
@@ -112,7 +112,7 @@ export default async function GatewayPage() {
                     <img
                       src={gateway.logo}
                       alt={`Logo ${gateway.name}`}
-                      className="h-16 w-16 object-contain drop-shadow-[0_8px_18px_rgba(37,99,235,0.28)]"
+                      className="h-16 w-16 object-contain drop-shadow-[0_8px_18px_rgba(169,201,127,0.20)]"
                     />
                   ) : (
                     <CreditCard className="h-6 w-6 text-white/35" />
@@ -156,19 +156,19 @@ export default async function GatewayPage() {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#100d16] shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
-        <div className="border-b border-white/10 p-5 md:p-6">
+      <section className="overflow-hidden rounded-[1.7rem] border border-dashboard-border bg-dashboard-surface shadow-[0_18px_60px_rgba(20,36,29,0.28)]">
+        <div className="border-b border-dashboard-border p-5 md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-dashboard-accent-secondary">
                 Experiência de cobrança
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight text-white md:text-2xl">Pagamento PIX</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-dashboard-text-muted">
                 Personalize os textos, os botões e o tempo de expiração exibidos na cobrança PIX no bot e na página de pagamento.
               </p>
             </div>
-            <div className="text-xs text-white/45">
+            <div className="text-xs text-dashboard-text-muted">
               Fluxo conectado ao VeoPag
             </div>
           </div>

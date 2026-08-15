@@ -35,7 +35,7 @@ interface MetricCardProps {
 }
 
 const colorMap: Record<MetricColor, { bg: string; text: string; border: string; glow: string }> = {
-  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", glow: "shadow-blue-500/[0.06]" },
+  blue: { bg: "bg-[#7CA98D]/10", text: "text-[#7CA98D]", border: "border-[#7CA98D]/25", glow: "shadow-[#7CA98D]/[0.06]" },
   green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", glow: "shadow-emerald-500/[0.06]" },
   red: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/20", glow: "shadow-rose-500/[0.06]" },
   yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", glow: "shadow-amber-500/[0.06]" },

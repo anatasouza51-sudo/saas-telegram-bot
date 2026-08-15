@@ -20,7 +20,7 @@ interface EpicsSectionProps {
 }
 
 const colorMap = {
-  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
+  blue: { bg: "bg-[#7CA98D]/10", text: "text-[#7CA98D]", border: "border-[#7CA98D]/25" },
   green: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
   yellow: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
   purple: { bg: "bg-dashboard-accent/10", text: "text-dashboard-accent", border: "border-dashboard-accent/20" },
@@ -28,7 +28,7 @@ const colorMap = {
 }
 
 const statusMap = {
-  design: { label: "Design", color: "text-blue-400" },
+  design: { label: "Design", color: "text-[#7CA98D]" },
   development: { label: "Desenvolvimento", color: "text-dashboard-accent" },
   review: { label: "Review", color: "text-amber-400" },
   completed: { label: "Concluído", color: "text-emerald-400" },

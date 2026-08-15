@@ -20,7 +20,7 @@ interface PaymentMetricsProps {
 }
 
 const colorClasses = {
-  blue: { stroke: "#60A5FA", light: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-400/20" },
+  blue: { stroke: "#7CA98D", light: "text-[#7CA98D]", bg: "bg-[#7CA98D]/10", border: "border-[#7CA98D]/25" },
   emerald: { stroke: "#34D399", light: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-400/20" },
   amber: { stroke: "#FBBF24", light: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-400/20" },
   rose: { stroke: "#FB7185", light: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-400/20" },
