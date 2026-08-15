@@ -30,6 +30,7 @@ const FormInput = memo(({
   required = false,
   minLength,
   rightElement,
+  inputRightElement,
 }: any) => (
   <div className="space-y-1 sm:space-y-2">
     <div className="ml-1 flex items-center justify-between">
@@ -48,8 +49,13 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? "pl-11" : "px-4"} ${rightElement ? "pr-11" : ""} h-10 rounded-xl sm:h-12 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-dashboard-accent/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-dashboard-accent/20`}
+        className={`${Icon ? "pl-11" : "px-4"} ${inputRightElement ? "pr-11" : ""} h-10 rounded-xl sm:h-12 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-dashboard-accent/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-dashboard-accent/20`}
       />
+      {inputRightElement && (
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
+          {inputRightElement}
+        </div>
+      )}
     </div>
   </div>
 ))
@@ -188,18 +194,16 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                 placeholder="••••••••"
                 minLength={8}
                 required
-                rightElement={
-                  <div className="flex items-center gap-3">
-                    {!isSignUp && <Link href="/forget-password" className="font-space text-[10px] font-bold uppercase tracking-wider text-dashboard-accent-secondary hover:text-white">Recuperar</Link>}
-                    <button
-                      type="button"
-                      onClick={togglePassword}
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      className="text-white/40 transition-colors hover:text-white"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
+                rightElement={!isSignUp && <Link href="/forget-password" className="font-space text-[10px] font-bold uppercase tracking-wider text-dashboard-accent-secondary hover:text-white">Recuperar</Link>}
+                inputRightElement={
+                  <button
+                    type="button"
+                    onClick={togglePassword}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    className="rounded-md p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 }
               />
               {isSignUp && (
@@ -216,7 +220,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <span className="flex items-center gap-2">
-                  {isSignUp ? "Criar meu acesso" : "Entrar no painel"}
+                  {isSignUp ? "Criar meu acesso" : "ENTRAR NA CONTA"}
                   <ArrowRight className="h-4 w-4" />
                 </span>
               )}
