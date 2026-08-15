@@ -52,7 +52,7 @@ export default async function PanelLayout({
 
         {/* Conteúdo Principal com Scroll */}
         <main className="flex-1 overflow-y-auto scroll-smooth relative bg-grain">
-          <div className="w-full min-w-0 max-w-none px-2 pb-32 pt-24 sm:px-3 md:px-4 md:pb-32 md:pt-8 lg:pb-8">
+          <div className="w-full min-w-0 max-w-none px-2 pb-32 pt-4 sm:px-3 md:px-4 md:pb-32 md:pt-8 lg:pb-8">
             <PageTransition>{children}</PageTransition>
           </div>
         </main>
