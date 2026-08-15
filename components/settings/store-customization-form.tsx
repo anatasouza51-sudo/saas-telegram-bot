@@ -33,8 +33,8 @@ export function StoreCustomizationForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-3 pl-3 sm:pl-4">
+    <div className="min-w-0 flex flex-col gap-6">
+      <div className="flex items-start gap-3 border-b border-border/60 pb-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 ring-1 ring-dashboard-accent/20">
           <Store className={iconClass} />
         </div>
@@ -46,8 +46,8 @@ export function StoreCustomizationForm({
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.72fr)]">
-        <div className="flex flex-col gap-5 rounded-2xl border border-dashboard-accent/15 bg-dashboard-accent/[0.035] p-4 sm:p-5">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.72fr)]">
+        <div className="flex min-w-0 flex-col gap-5 border-t border-dashboard-accent/15 pt-5 lg:border-t-0 lg:border-r lg:pr-6 lg:pt-0">
           <div className="flex items-center gap-2">
             <MessageSquareText className={iconClass} />
             <div>
@@ -68,7 +68,7 @@ export function StoreCustomizationForm({
           </p>
         </div>
 
-        <div className="flex flex-col gap-5 rounded-2xl border border-dashboard-accent/15 bg-dashboard-accent/[0.035] p-4 sm:p-5">
+        <div className="flex min-w-0 flex-col gap-5 border-t border-dashboard-accent/15 pt-5 lg:border-t-0 lg:pl-1 lg:pt-0">
           <div className="flex items-center gap-2">
             <ImageIcon className={iconClass} />
             <div>

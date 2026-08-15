@@ -12,13 +12,6 @@ import { DiagnosticsPanel } from "@/components/channels/diagnostics-panel"
 import { toast } from "sonner"
 import { Copy, Check, Bot, Loader2, Zap, Users, CircleCheck, AlertTriangle, RefreshCw } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 type DetectedGroup = {
@@ -206,9 +199,9 @@ export function TelegramForm({
   }
 
   return (
-    <div className="flex min-w-0 w-full max-w-full flex-col gap-6 overflow-x-hidden pl-3 sm:pl-4">
-      <Card className="w-full min-w-0 max-w-full overflow-hidden border-primary/20 bg-primary/[0.03]">
-        <CardContent className="p-5 md:p-6">
+    <div className="min-w-0 space-y-8">
+      <section className="min-w-0">
+        <div className="min-w-0">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 max-w-full items-start gap-3 sm:items-center sm:gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(169,201,127,0.16)]">
@@ -255,8 +248,8 @@ export function TelegramForm({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Mismatch warning: the silent failure where Telegram keeps an old
           webhook registration pointing at another store's URL. */}
@@ -294,17 +287,17 @@ export function TelegramForm({
         </div>
       )}
       {/* Etapa 2: identidade e acesso do bot */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <section className="min-w-0 space-y-5">
+        <div className="border-b border-border/60 pb-4">
+          <h3 className="flex items-center gap-2 text-base font-semibold">
             <Bot className="h-5 w-5 text-primary" />
             Identidade e acesso
-          </CardTitle>
-          <CardDescription>
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Configure a conexão e confirme qual bot está vinculado a esta loja.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+          </p>
+        </div>
+        <div className="space-y-5">
           <div className="grid gap-2">
             <Label htmlFor="tg-token">Token do Bot</Label>
             <div className="relative">
@@ -410,22 +403,22 @@ export function TelegramForm({
               {registering ? "Conectando..." : "Registrar webhook"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Etapa 3: grupos, permissões e sincronização */}
       {botConfigured && (
-        <Card className="overflow-hidden border-primary/15">
-          <CardHeader className="border-b border-border/60 bg-primary/[0.03]">
-            <CardTitle className="flex items-center gap-2">
+        <section className="min-w-0 space-y-4">
+          <div className="border-b border-border/60 pb-4">
+            <h3 className="flex items-center gap-2 text-base font-semibold">
               <Zap className="h-5 w-5 text-primary" />
               Grupos e permissões
-            </CardTitle>
-            <CardDescription>
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
               Sincronize grupos conhecidos pelo webhook, confira as permissões do bot e escolha quais serão usados na divulgação.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="min-w-0 space-y-4 pt-3">
+            </p>
+          </div>
+          <div className="min-w-0 space-y-4">
             <Button
               onClick={detectGroups}
               disabled={detecting}
@@ -534,8 +527,8 @@ export function TelegramForm({
             <p className="text-xs text-muted-foreground">
               Para um grupo já existente, adicione o bot como administrador e envie uma mensagem no grupo. O evento recebido pelo webhook criará o registro automaticamente; depois, use esta ação para revalidar permissões e membros dos grupos conhecidos.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
     </div>
   )
