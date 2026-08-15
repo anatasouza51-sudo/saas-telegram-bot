@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -26,7 +26,6 @@ import {
   ArrowUp,
   ArrowDown,
   FolderTree,
-  GripVertical,
   Layers3,
 } from "lucide-react"
 
@@ -37,6 +36,9 @@ type DragState = {
   pointerId: number
   sourceIndex: number
   dropIndex: number | null
+  startX: number
+  startY: number
+  originRect: DOMRect
 }
 
 export function CategoriesView({ categories }: { categories: Row[] }) {
@@ -49,6 +51,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   })
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const listRef = useRef<HTMLDivElement | null>(null)
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const dragRef = useRef<DragState | null>(null)
@@ -57,7 +60,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     setOrder(categories)
   }, [categories])
 
-  function action(fn: () => Promise<unknown>, successMsg: string) {
+  const action = useCallback((fn: () => Promise<unknown>, successMsg: string) => {
     startTransition(async () => {
       try {
         await fn()
@@ -66,7 +69,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         toast.error((err as Error).message)
       }
     })
-  }
+  }, [startTransition])
 
   function move(index: number, dir: -1 | 1) {
     const target = index + dir
@@ -80,23 +83,30 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     )
   }
 
-  function beginDrag(event: React.PointerEvent<HTMLButtonElement>, category: Row) {
+  function beginDrag(event: React.PointerEvent<HTMLDivElement>, category: Row) {
     if (event.pointerType === "mouse" || pending || typeof window === "undefined") return
     if (!window.matchMedia("(max-width: 639px)").matches) return
 
+    const target = event.target as HTMLElement
+    if (target.closest("button, [role=menuitem], input, textarea, select, a")) return
+
     const sourceIndex = order.findIndex((item) => item.id === category.id)
-    if (sourceIndex < 0) return
+    const row = rowRefs.current[category.id]
+    if (sourceIndex < 0 || !row) return
 
     event.preventDefault()
-    event.stopPropagation()
     dragRef.current = {
       category,
       pointerId: event.pointerId,
       sourceIndex,
       dropIndex: sourceIndex,
+      startX: event.clientX,
+      startY: event.clientY,
+      originRect: row.getBoundingClientRect(),
     }
     setDraggingId(category.id)
     setDropIndex(sourceIndex)
+    setDragOffset({ x: 0, y: 0 })
   }
 
   useEffect(() => {
@@ -109,6 +119,16 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
 
       event.preventDefault()
       const bounds = list.getBoundingClientRect()
+      const rawX = event.clientX - drag.startX
+      const rawY = event.clientY - drag.startY
+      const minX = bounds.left - drag.originRect.left
+      const maxX = bounds.right - drag.originRect.right
+      const minY = bounds.top - drag.originRect.top
+      const maxY = bounds.bottom - drag.originRect.bottom
+      setDragOffset({
+        x: Math.min(Math.max(rawX, minX), maxX),
+        y: Math.min(Math.max(rawY, minY), maxY),
+      })
       const insideList =
         event.clientX >= bounds.left &&
         event.clientX <= bounds.right &&
@@ -158,6 +178,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       dragRef.current = null
       setDraggingId(null)
       setDropIndex(null)
+      setDragOffset({ x: 0, y: 0 })
     }
 
     function cancelDrag(event: PointerEvent) {
@@ -166,6 +187,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       dragRef.current = null
       setDraggingId(null)
       setDropIndex(null)
+      setDragOffset({ x: 0, y: 0 })
     }
 
     window.addEventListener("pointermove", handlePointerMove, { passive: false })
@@ -179,12 +201,6 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     }
   }, [action, draggingId, order])
 
-  const visibleOrder = draggingId
-    ? order.filter((item) => item.id !== draggingId)
-    : order
-  const draggingCategory = draggingId
-    ? order.find((item) => item.id === draggingId)
-    : null
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -233,12 +249,6 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         </div>
 
         <div ref={listRef} className="divide-y divide-border/70">
-          {draggingCategory && (
-            <div className="mx-4 mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-xs text-primary sm:hidden" aria-live="polite">
-              Segurando <span className="font-semibold">{draggingCategory.name}</span>. Solte dentro desta lista.
-            </div>
-          )}
-
           {order.length === 0 && (
             <div className="flex min-h-32 flex-col items-center justify-center gap-2 p-6 text-center text-muted-foreground">
               <FolderTree className="h-8 w-8 opacity-40" />
@@ -246,18 +256,29 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
             </div>
           )}
 
-          {visibleOrder.map((c, displayIndex) => {
+          {order.map((c) => {
             const originalIndex = order.findIndex((item) => item.id === c.id)
+            const remainingIndex = draggingId
+              ? order.filter((item) => item.id !== draggingId).findIndex((item) => item.id === c.id)
+              : -1
+            const isDragging = draggingId === c.id
             return (
               <div key={c.id}>
-                {draggingId && dropIndex === displayIndex && (
+                {draggingId && c.id !== draggingId && dropIndex === remainingIndex && (
                   <div className="mx-4 h-1 rounded-full bg-primary shadow-[0_0_12px_rgba(169,201,127,0.7)] sm:hidden" aria-hidden="true" />
                 )}
                 <div
                   ref={(element) => {
                     rowRefs.current[c.id] = element
                   }}
-                  className="flex min-w-0 flex-col gap-4 p-4 transition-[transform,opacity,background-color] duration-150 hover:bg-muted/30 sm:flex-row sm:items-center"
+                  className={`flex min-w-0 flex-col gap-4 p-4 transition-[transform,background-color,box-shadow] duration-150 hover:bg-muted/30 touch-none select-none sm:flex-row sm:items-center sm:touch-auto sm:select-auto ${
+                    isDragging
+                      ? "relative z-20 bg-primary/10 shadow-[0_12px_30px_rgba(0,0,0,0.24)] sm:relative sm:z-auto sm:bg-transparent sm:shadow-none"
+                      : ""
+                  }`}
+                  style={isDragging ? { transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`, transition: "none" } : undefined}
+                  onPointerDown={(event) => beginDrag(event, c)}
+                  aria-grabbed={isDragging}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
@@ -274,16 +295,6 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                   </div>
 
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
-                    <button
-                      type="button"
-                      className="flex h-9 w-9 shrink-0 touch-none select-none items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary transition-colors active:cursor-grabbing active:bg-primary/15 sm:hidden"
-                      onPointerDown={(event) => beginDrag(event, c)}
-                      aria-label={`Segure para mover ${c.name}`}
-                      title="Segure e arraste para reordenar"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-
                     <div className="hidden items-center gap-1 sm:flex">
                       <Button
                         variant="ghost"
@@ -368,7 +379,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
             )
           })}
 
-          {draggingId && dropIndex === visibleOrder.length && (
+          {draggingId && dropIndex === order.filter((item) => item.id !== draggingId).length && (
             <div className="mx-4 h-1 rounded-full bg-primary shadow-[0_0_12px_rgba(169,201,127,0.7)] sm:hidden" aria-hidden="true" />
           )}
         </div>
