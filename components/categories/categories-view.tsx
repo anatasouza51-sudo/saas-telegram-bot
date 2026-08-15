@@ -176,10 +176,18 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         const current = pressRef.current
         if (!current || current.pointerId !== event.pointerId) return
         activateDrag(current)
-      }, 140),
+      }, 90),
     }
 
     pressRef.current = press
+
+    // Captura o ponteiro desde o início para o movimento vertical não ser
+    // interpretado pelo navegador como um gesto horizontal/lateral.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // Alguns navegadores podem rejeitar a captura após o toque terminar.
+    }
   }
 
   useEffect(() => {
@@ -243,14 +251,8 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       const scrollContainer = scrollContainerRef.current
       const scrollBounds = scrollContainer?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight)
       const edgeSize = Math.min(112, Math.max(64, scrollBounds.height * 0.16))
-      const nearTopEdge =
-        withinListWidth &&
-        clientY <= scrollBounds.top + edgeSize &&
-        clientY < bounds.top
-      const nearBottomEdge =
-        withinListWidth &&
-        clientY >= scrollBounds.bottom - edgeSize &&
-        clientY > bounds.bottom
+      const nearTopEdge = withinListWidth && clientY <= scrollBounds.top + edgeSize
+      const nearBottomEdge = withinListWidth && clientY >= scrollBounds.bottom - edgeSize
 
       if (!insideList && !nearTopEdge && !nearBottomEdge) {
         drag.dropIndex = null
@@ -324,12 +326,21 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       const drag = dragRef.current
 
       if (press && !drag && event.pointerId === press.pointerId) {
+        const previousY = press.lastY
         press.lastX = event.clientX
         press.lastY = event.clientY
         const movedY = Math.abs(event.clientY - press.startY)
         const elapsed = Date.now() - press.startedAt
+        const deltaY = event.clientY - previousY
+        const movedX = Math.abs(event.clientX - press.startX)
 
-        if (movedY >= 6 && elapsed >= 45) {
+        const row = rowRefs.current[press.category.id]
+        const scrollContainer = row?.closest("main") as HTMLElement | null
+        if (scrollContainer && deltaY !== 0 && elapsed < 90) {
+          scrollContainer.scrollTop += deltaY
+        }
+
+        if (movedY >= 2 && elapsed >= 40) {
           window.clearTimeout(press.timer)
           if (activateDrag(press)) {
             const activeDrag = dragRef.current
@@ -344,7 +355,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           return
         }
 
-        if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 40) {
+        if (movedX > 24 && movedX > movedY * 1.5) {
           cancelPendingPress(event.pointerId)
         }
         return
@@ -497,26 +508,39 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                   className={`flex min-w-0 flex-col gap-4 p-4 transition-[background-color,box-shadow,opacity] duration-150 hover:bg-muted/30 select-none sm:flex-row sm:items-center sm:select-auto ${
                     isDragging
                       ? "relative z-0 touch-none opacity-0 sm:relative sm:z-auto sm:opacity-100"
-                      : "touch-pan-y"
+                      : "touch-none sm:touch-auto"
                   }`}
                   onPointerDown={(event) => beginPress(event, c)}
                   aria-grabbed={isDragging}
                 >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
-                      {c.emoji || "📁"}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="break-words font-medium">{c.name}</p>
-                      {c.description && (
-                        <p className="break-words text-xs text-muted-foreground line-clamp-2">
-                          {c.description}
-                        </p>
-                      )}
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
+                        {c.emoji || "📁"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="break-words font-medium">{c.name}</p>
+                        {c.description && (
+                          <p className="break-words text-xs text-muted-foreground line-clamp-2">
+                            {c.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 sm:hidden ${
+                        c.status === "active"
+                          ? "border-success/30 bg-success/10 text-success"
+                          : "border-muted-foreground/30 bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {c.status === "active" ? "Ativa" : "Inativa"}
+                    </Badge>
                   </div>
 
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
+
                     <div className="hidden items-center gap-1 sm:flex">
                       <Button
                         variant="ghost"
@@ -540,18 +564,18 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                       </Button>
                     </div>
 
-                    <div className="flex min-w-12 flex-col items-end sm:items-start">
+                    <div className="inline-flex min-w-0 items-baseline gap-1.5 sm:min-w-12 sm:flex sm:flex-col sm:items-end sm:gap-0">
                       <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Produtos</span>
                       <span className="text-sm font-medium text-muted-foreground">{c.productCount}</span>
                     </div>
 
                     <Badge
                       variant="outline"
-                      className={
+                      className={`hidden shrink-0 sm:inline-flex ${
                         c.status === "active"
                           ? "border-success/30 bg-success/10 text-success"
                           : "border-muted-foreground/30 bg-muted text-muted-foreground"
-                      }
+                      }`}
                     >
                       {c.status === "active" ? "Ativa" : "Inativa"}
                     </Badge>
@@ -622,34 +646,34 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
             if (!draggedCategory) return null
             return (
               <>
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
-                    {draggedCategory.emoji || "📁"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="break-words font-medium">{draggedCategory.name}</p>
-                    {draggedCategory.description && (
-                      <p className="break-words text-xs text-muted-foreground line-clamp-2">
-                        {draggedCategory.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex min-w-0 items-center justify-between gap-3">
-                  <div className="flex min-w-12 flex-col items-end">
-                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Produtos</span>
-                    <span className="text-sm font-medium text-muted-foreground">{draggedCategory.productCount}</span>
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
+                      {draggedCategory.emoji || "📁"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{draggedCategory.name}</p>
+                      {draggedCategory.description && (
+                        <p className="break-words text-xs text-muted-foreground line-clamp-2">
+                          {draggedCategory.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <Badge
                     variant="outline"
                     className={
                       draggedCategory.status === "active"
-                        ? "border-success/30 bg-success/10 text-success"
-                        : "border-muted-foreground/30 bg-muted text-muted-foreground"
+                        ? "shrink-0 border-success/30 bg-success/10 text-success"
+                        : "shrink-0 border-muted-foreground/30 bg-muted text-muted-foreground"
                     }
                   >
                     {draggedCategory.status === "active" ? "Ativa" : "Inativa"}
                   </Badge>
+                </div>
+                <div className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Produtos</span>
+                  <span className="text-sm font-medium text-muted-foreground">{draggedCategory.productCount}</span>
                 </div>
               </>
             )
