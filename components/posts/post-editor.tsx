@@ -285,12 +285,43 @@ export function PostEditor({
   }
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex w-full flex-col gap-5">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashboard-border/30 bg-dashboard-surface/70 px-4 py-3 shadow-lg shadow-black/5 sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/15 text-dashboard-accent">
+            <Megaphone className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-dashboard-text">
+              {postId ? "Editar postagem" : "Nova postagem"}
+            </p>
+            <p className="truncate text-[10px] font-medium text-dashboard-text-muted">
+              Monte a mensagem e escolha os destinos de envio.
+            </p>
+          </div>
+        </div>
+        <span className="hidden shrink-0 rounded-full border border-dashboard-border/30 bg-dashboard-bg/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-dashboard-text-muted sm:inline-flex">
+          {parseMode}
+        </span>
+      </div>
+
       {/* Editor principal */}
-      <Card className="flex flex-col gap-4 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-2xl w-full">
+      <Card className="flex w-full flex-col gap-5 overflow-hidden rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-2xl shadow-black/10 sm:p-5 md:p-6">
+        <div className="flex items-center justify-between border-b border-dashboard-border/20 pb-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-dashboard-accent">
+              Conteúdo da mensagem
+            </p>
+            <p className="mt-1 text-xs text-dashboard-text-muted">
+              O conteúdo será enviado aos destinos selecionados.
+            </p>
+          </div>
+          <MessagesSquare className="hidden h-5 w-5 text-dashboard-text-muted/50 sm:block" />
+        </div>
+
         {/* Título */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="post-title" className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">
             Título interno (opcional)
           </Label>
           <Input
@@ -298,21 +329,21 @@ export function PostEditor({
             placeholder="Ex.: Promoção de fim de semana"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="h-10 bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl px-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all"
+            className="h-11 rounded-xl border-dashboard-border/30 bg-dashboard-bg/50 px-3 text-sm text-dashboard-text transition-all placeholder:text-dashboard-text-muted/50 focus:border-dashboard-accent/50 focus:ring-dashboard-accent/10"
           />
         </div>
 
         {/* Mensagem */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="post-text" className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">
               Mensagem
             </Label>
             <Select
               value={parseMode}
               onValueChange={(v) => setParseMode((v as "HTML" | "Markdown") ?? "HTML")}
             >
-              <SelectTrigger size="sm" className="w-28 h-7 bg-dashboard-bg/50 border-dashboard-border/30 rounded-lg text-xs font-bold text-dashboard-text">
+              <SelectTrigger size="sm" className="h-8 w-32 rounded-lg border-dashboard-border/30 bg-dashboard-bg/50 text-xs font-bold text-dashboard-text">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -323,17 +354,17 @@ export function PostEditor({
           </div>
 
           {/* Toolbar de formatação */}
-          <div className="flex gap-1 p-1 bg-black/5 dark:bg-black/20 rounded-xl w-fit">
-            <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Negrito">
+          <div className="flex w-fit gap-1 rounded-xl border border-dashboard-border/20 bg-dashboard-bg/50 p-1">
+            <Button type="button" variant="ghost" size="icon" onClick={formatBold} className="h-8 w-8 rounded-lg text-dashboard-text hover:bg-dashboard-accent/10 hover:text-dashboard-accent" aria-label="Negrito">
               <Bold className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Itálico">
+            <Button type="button" variant="ghost" size="icon" onClick={formatItalic} className="h-8 w-8 rounded-lg text-dashboard-text hover:bg-dashboard-accent/10 hover:text-dashboard-accent" aria-label="Itálico">
               <Italic className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Código">
+            <Button type="button" variant="ghost" size="icon" onClick={formatCode} className="h-8 w-8 rounded-lg text-dashboard-text hover:bg-dashboard-accent/10 hover:text-dashboard-accent" aria-label="Código">
               <Code className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-8 w-8 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-dashboard-text" aria-label="Link">
+            <Button type="button" variant="ghost" size="icon" onClick={formatLink} className="h-8 w-8 rounded-lg text-dashboard-text hover:bg-dashboard-accent/10 hover:text-dashboard-accent" aria-label="Link">
               <Link2 className="h-4 w-4" />
             </Button>
           </div>
@@ -346,9 +377,9 @@ export function PostEditor({
             value={text}
             maxLength={MAX_TEXT_LENGTH}
             onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT_LENGTH))}
-            className="bg-dashboard-bg/50 border-dashboard-border/30 rounded-xl p-3 text-sm text-dashboard-text focus:border-primary/40 focus:ring-primary/10 transition-all leading-relaxed min-h-[160px] resize-none"
+            className="min-h-[190px] resize-none rounded-xl border-dashboard-border/30 bg-dashboard-bg/50 p-4 text-sm leading-relaxed text-dashboard-text transition-all placeholder:text-dashboard-text-muted/50 focus:border-dashboard-accent/50 focus:ring-dashboard-accent/10 sm:min-h-[220px]"
           />
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[10px] font-bold uppercase tracking-widest text-dashboard-text-muted/60">
               {text.length} / {MAX_TEXT_LENGTH} caracteres · Formatação{" "}
               {parseMode}
@@ -366,8 +397,14 @@ export function PostEditor({
         </div>
 
         {/* Mídia */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Mídia</Label>
+        <div className="flex flex-col gap-3 rounded-2xl border border-dashboard-border/25 bg-dashboard-bg/25 p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">Mídia</Label>
+              <p className="mt-1 text-[10px] text-dashboard-text-muted/60">Anexe imagens, vídeos ou arquivos à postagem.</p>
+            </div>
+            <span className="rounded-full bg-dashboard-surface/70 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-dashboard-text-muted">Opcional</span>
+          </div>
           <MediaAttachment
             items={media}
             onAdd={(m) => setMedia((prev) => [...prev, m])}
@@ -377,20 +414,34 @@ export function PostEditor({
         </div>
 
         {/* Botões inline */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Botões inline</Label>
+        <div className="flex flex-col gap-3 rounded-2xl border border-dashboard-border/25 bg-dashboard-bg/25 p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">Botões inline</Label>
+              <p className="mt-1 text-[10px] text-dashboard-text-muted/60">Crie atalhos para links e ações dentro da mensagem.</p>
+            </div>
+            <span className="rounded-full bg-dashboard-surface/70 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-dashboard-text-muted">Telegram</span>
+          </div>
           <ButtonBuilder rows={buttons} onChange={setButtons} />
         </div>
       </Card>
 
       {/* Destinos da Mensagem — aparece em mobile abaixo do editor */}
-      <Card className="flex flex-col gap-3 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-xl w-full">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted">Destinos da Mensagem</Label>
-          <span className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">{targets.size} selecionados</span>
+      <Card className="flex w-full flex-col gap-4 rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5 sm:p-5">
+        <div className="flex items-center justify-between gap-3 border-b border-dashboard-border/20 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-dashboard-accent/15 text-dashboard-accent">
+              <Users className="h-4 w-4" />
+            </div>
+            <div>
+              <Label className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">Destinos da mensagem</Label>
+              <p className="mt-1 text-[10px] text-dashboard-text-muted/60">Escolha quem receberá esta postagem.</p>
+            </div>
+          </div>
+          <span className="shrink-0 rounded-full bg-dashboard-accent/15 px-2.5 py-1 text-[10px] font-black text-dashboard-accent">{targets.size} selecionados</span>
         </div>
         {audience.length === 0 ? (
-          <p className="text-xs text-dashboard-text-muted italic bg-dashboard-bg/50 p-3 rounded-xl border border-dashed border-dashboard-border/30">
+            <p className="rounded-xl border border-dashed border-dashboard-border/30 bg-dashboard-bg/50 p-4 text-xs italic text-dashboard-text-muted">
             Nenhum grupo/canal de audiência configurado.
           </p>
         ) : (
@@ -418,11 +469,18 @@ export function PostEditor({
       </Card>
 
       {/* Ações — botões proporcionais para mobile */}
-      <div className="flex flex-col gap-2 w-full">
+      <div className="flex w-full flex-col gap-2 rounded-2xl border border-dashboard-border/30 bg-dashboard-surface/45 p-3 sm:p-4">
+        <div className="mb-1 flex items-center justify-between gap-3 px-1">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">Finalizar postagem</p>
+            <p className="mt-1 text-[10px] text-dashboard-text-muted/60">Publique agora ou defina quando ela será enviada.</p>
+          </div>
+          <Send className="hidden h-4 w-4 text-dashboard-accent sm:block" />
+        </div>
         <Button
           onClick={handlePublish}
           disabled={isPending}
-          className="w-full h-11 bg-primary text-primary-foreground font-black uppercase text-xs rounded-xl shadow-lg shadow-primary/10"
+          className="h-12 w-full rounded-xl bg-dashboard-accent text-dashboard-bg shadow-lg shadow-dashboard-accent/15 hover:bg-dashboard-accent/90"
         >
           <Send className="mr-2 h-4 w-4" />
           Publicar agora
@@ -431,17 +489,17 @@ export function PostEditor({
           variant="outline"
           onClick={() => setScheduleOpen((s) => !s)}
           disabled={isPending}
-          className="w-full h-10 bg-dashboard-bg/50 border-dashboard-border/30 text-dashboard-text font-black uppercase text-xs rounded-xl"
+          className="h-11 w-full rounded-xl border-dashboard-border/30 bg-dashboard-bg/50 text-xs font-black uppercase text-dashboard-text hover:border-dashboard-accent/40 hover:bg-dashboard-accent/5"
         >
           <CalendarClock className="mr-2 h-4 w-4" />
           Agendar
         </Button>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 border-t border-dashboard-border/20 pt-2">
           <Button
             variant="ghost"
             onClick={handleSaveDraft}
             disabled={isPending}
-            className="h-9 text-dashboard-text-muted hover:text-dashboard-text font-bold uppercase text-[10px] rounded-xl"
+            className="h-10 rounded-xl text-[10px] font-bold uppercase text-dashboard-text-muted hover:bg-dashboard-bg/60 hover:text-dashboard-text"
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
             Salvar rascunho
@@ -450,7 +508,7 @@ export function PostEditor({
             variant="ghost"
             onClick={handleSaveTemplate}
             disabled={isPending}
-            className="h-9 text-dashboard-text-muted hover:text-dashboard-text font-bold uppercase text-[10px] rounded-xl"
+            className="h-10 rounded-xl text-[10px] font-bold uppercase text-dashboard-text-muted hover:bg-dashboard-bg/60 hover:text-dashboard-text"
           >
             <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
             Salvar template
@@ -460,9 +518,12 @@ export function PostEditor({
 
       {/* Agendamento Popover-like (Mobile Friendly) */}
       {scheduleOpen && (
-        <Card className="flex flex-col gap-4 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <Card className="flex flex-col gap-4 rounded-2xl border-dashboard-accent/25 bg-dashboard-card p-4 shadow-2xl shadow-black/10 animate-in fade-in slide-in-from-bottom-4 duration-300 sm:p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-widest text-dashboard-text">Configurar Agendamento</h3>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-accent">Programação de envio</p>
+              <h3 className="mt-1 text-sm font-black text-dashboard-text">Configurar agendamento</h3>
+            </div>
             <Button variant="ghost" size="icon" onClick={() => setScheduleOpen(false)} className="h-8 w-8 text-dashboard-text-muted">
               <X className="h-4 w-4" />
             </Button>
@@ -541,10 +602,16 @@ export function PostEditor({
       )}
 
       {/* Preview flutuante ou abaixo no mobile */}
-      <div className="mt-4">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted mb-2 block">
-          Prévia no Telegram
-        </Label>
+      <div className="mt-1 rounded-2xl border border-dashboard-border/30 bg-dashboard-surface/45 p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <Label className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">
+              Prévia no Telegram
+            </Label>
+            <p className="mt-1 text-[10px] text-dashboard-text-muted/60">Veja como a mensagem aparecerá para o destinatário.</p>
+          </div>
+          <span className="rounded-full bg-dashboard-bg/50 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-dashboard-text-muted">Ao vivo</span>
+        </div>
         <PostPreview
           botName={botName}
           text={text}
@@ -571,12 +638,12 @@ function TargetGroup({
   onToggle: (id: string) => void
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-dashboard-text-muted/60">
-        {icon}
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-dashboard-text-muted/70">
+        <span className="text-dashboard-accent">{icon}</span>
         {label}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="grid gap-2 sm:grid-cols-2">
         {items.map((item) => {
           const active = targets.has(item.chatId)
           return (
@@ -585,10 +652,10 @@ function TargetGroup({
               type="button"
               onClick={() => onToggle(item.chatId)}
               className={cn(
-                "flex items-center justify-between p-3 rounded-xl border transition-all text-left",
+                "flex min-w-0 items-center justify-between gap-3 rounded-xl border p-3.5 text-left transition-all",
                 active
-                  ? "bg-primary/10 border-primary/40 text-dashboard-text"
-                  : "bg-dashboard-bg/30 border-dashboard-border/20 text-dashboard-text-muted hover:border-dashboard-border/40",
+                  ? "border-dashboard-accent/45 bg-dashboard-accent/10 text-dashboard-text shadow-sm shadow-dashboard-accent/5"
+                  : "border-dashboard-border/20 bg-dashboard-bg/30 text-dashboard-text-muted hover:border-dashboard-accent/30 hover:bg-dashboard-bg/50",
               )}
             >
               <div className="flex flex-col gap-0.5 min-w-0">
@@ -598,8 +665,8 @@ function TargetGroup({
                 </span>
               </div>
               {active && (
-                <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                  <CheckIcon className="h-2.5 w-2.5 text-black" />
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-dashboard-accent">
+                  <CheckIcon className="h-3 w-3 text-dashboard-bg" />
                 </div>
               )}
             </button>

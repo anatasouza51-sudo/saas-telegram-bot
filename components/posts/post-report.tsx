@@ -41,31 +41,31 @@ function getStatusBadge(status: string) {
   switch (status) {
     case "sent":
       return (
-        <Badge className="bg-green-500/15 text-green-400 border-green-500/30">
+        <Badge className="border-[#7CA98D]/30 bg-[#7CA98D]/15 text-[#7CA98D]">
           <CheckCircle2 className="w-3 h-3 mr-1" /> Enviada
         </Badge>
       )
     case "failed":
       return (
-        <Badge className="bg-red-500/15 text-red-400 border-red-500/30">
+        <Badge className="border-destructive/30 bg-destructive/15 text-destructive">
           <XCircle className="w-3 h-3 mr-1" /> Falhou
         </Badge>
       )
     case "sent":
       return (
-        <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30">
+        <Badge className="border-dashboard-accent/30 bg-dashboard-accent/15 text-dashboard-accent">
           <Send className="w-3 h-3 mr-1" /> Enviada
         </Badge>
       )
     case "pending":
       return (
-        <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30">
+        <Badge className="border-[#C9A95A]/30 bg-[#C9A95A]/15 text-[#C9A95A]">
           <Clock className="w-3 h-3 mr-1" /> Pendente
         </Badge>
       )
     case "processing":
       return (
-        <Badge className="bg-[#7CA98D]/15 text-[#A9C97F] border-[#7CA98D]/30">
+        <Badge className="border-dashboard-accent/30 bg-dashboard-accent/15 text-dashboard-accent">
           <RotateCcw className="w-3 h-3 mr-1 animate-spin" /> Processando
         </Badge>
       )
@@ -80,31 +80,31 @@ function getPostStatusBadge(status: string) {
   switch (status) {
     case "sent":
       return (
-        <Badge className="bg-green-500/15 text-green-400 border-green-500/30 border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <Badge className="border-[#7CA98D]/30 bg-[#7CA98D]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7CA98D]">
           Enviada
         </Badge>
       )
     case "failed":
       return (
-        <Badge className="bg-red-500/15 text-red-400 border-red-500/30 border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <Badge className="border-destructive/30 bg-destructive/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
           Falhou
         </Badge>
       )
     case "queued":
       return (
-        <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <Badge className="border-dashboard-accent/30 bg-dashboard-accent/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-dashboard-accent">
           Na fila
         </Badge>
       )
     case "scheduled":
       return (
-        <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <Badge className="border-[#C9A95A]/30 bg-[#C9A95A]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A95A]">
           Agendada
         </Badge>
       )
     case "draft":
       return (
-        <Badge className="bg-white/10 text-muted-foreground border-white/20 border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <Badge className="border-dashboard-border/30 bg-dashboard-bg/50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-dashboard-text-muted">
           Rascunho
         </Badge>
       )
@@ -116,12 +116,12 @@ function getPostStatusBadge(status: string) {
 export function PostReport({ reports }: { reports: PostReport[] }) {
   if (reports.length === 0) {
     return (
-      <Card className="p-6 text-center bg-slate-900/40 border-white/5 rounded-2xl">
-        <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
-        <p className="text-sm text-muted-foreground font-medium">
+      <Card className="rounded-2xl border-dashboard-border/30 bg-dashboard-card p-8 text-center shadow-xl shadow-black/5">
+          <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-dashboard-accent/30" />
+          <p className="text-sm font-medium text-dashboard-text-muted">
           Nenhum relatório de postagem disponível.
         </p>
-        <p className="text-xs text-muted-foreground/60 mt-1">
+          <p className="mt-1 text-xs text-dashboard-text-muted/60">
           Os relatórios são gerados automaticamente após cada envio.
         </p>
       </Card>
@@ -129,12 +129,12 @@ export function PostReport({ reports }: { reports: PostReport[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-          Relatório de Envios
+      <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between rounded-xl border border-dashboard-border/20 bg-dashboard-surface/45 px-3 py-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-text-muted">
+          Relatório de envios
         </p>
-        <span className="text-[10px] text-muted-foreground/60">
+        <span className="text-[10px] text-dashboard-text-muted/60">
           {reports.length} postagem(s)
         </span>
       </div>
@@ -180,34 +180,34 @@ function ReportCard({
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <Card className="bg-slate-900/40 border-white/5 rounded-2xl overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border-dashboard-border/30 bg-dashboard-card shadow-xl shadow-black/5">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-dashboard-surface/60 sm:p-5"
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-bold text-white truncate">
+            <p className="truncate text-sm font-bold text-dashboard-text">
               {report.title ?? `Postagem #${report.postId}`}
             </p>
             {getPostStatusBadge(report.status)}
           </div>
           {report.sentAt && (
-            <p className="text-[10px] text-muted-foreground/60 mt-1">
+              <p className="mt-1 text-[10px] text-dashboard-text-muted/60">
               Enviada em {new Date(report.sentAt).toLocaleString("pt-BR")}
             </p>
           )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
-            <p className="text-lg font-black text-white leading-none">{successRate}%</p>
-            <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest">sucesso</p>
+            <p className="text-lg font-black leading-none text-dashboard-text">{successRate}%</p>
+            <p className="text-[9px] uppercase tracking-widest text-dashboard-text-muted/60">sucesso</p>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[9px] text-green-400 font-medium">{sent} enviadas</span>
-            {failed > 0 && <span className="text-[9px] text-red-400 font-medium">{failed} falhas</span>}
-            {pending > 0 && <span className="text-[9px] text-yellow-400 font-medium">{pending} pendentes</span>}
+            <span className="text-[9px] font-medium text-[#7CA98D]">{sent} enviadas</span>
+            {failed > 0 && <span className="text-[9px] font-medium text-destructive">{failed} falhas</span>}
+            {pending > 0 && <span className="text-[9px] font-medium text-[#C9A95A]">{pending} pendentes</span>}
           </div>
           {expanded ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -218,23 +218,23 @@ function ReportCard({
       </button>
 
       {/* Barra de progresso */}
-      <div className="px-4 pb-2">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5 flex">
+        <div className="px-4 pb-3 sm:px-5">
+          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-dashboard-bg/60">
           {total > 0 && (
             <>
               <div
-                className="h-full bg-green-500 transition-all"
+                className="h-full bg-[#7CA98D] transition-all"
                 style={{ width: `${(sent / total) * 100}%` }}
               />
               {failed > 0 && (
                 <div
-                  className="h-full bg-red-500 transition-all"
+                  className="h-full bg-destructive transition-all"
                   style={{ width: `${(failed / total) * 100}%` }}
                 />
               )}
               {pending > 0 && (
                 <div
-                  className="h-full bg-yellow-500 transition-all"
+                  className="h-full bg-[#C9A95A] transition-all"
                   style={{ width: `${(pending / total) * 100}%` }}
                 />
               )}
@@ -245,23 +245,23 @@ function ReportCard({
 
       {/* Detalhes expandidos */}
       {expanded && (
-        <div className="border-t border-white/5 p-4">
+        <div className="border-t border-dashboard-border/20 p-4 sm:p-5">
           <div className="flex flex-col gap-2">
             {report.queue.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-dashboard-border/15 bg-dashboard-bg/35 px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white truncate">
+                  <p className="truncate text-xs font-medium text-dashboard-text">
                     {item.chatId}
                   </p>
                   {item.lastError && (
-                    <p className="text-[10px] text-red-400/80 truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-[10px] text-destructive/80">
                       Erro: {item.lastError}
                     </p>
                   )}
-                  <p className="text-[9px] text-muted-foreground/50">
+                  <p className="text-[9px] text-dashboard-text-muted/50">
                     Tentativas: {item.attempts}/5
                     {item.sentMessageId ? ` · Msg ID: ${item.sentMessageId}` : ""}
                   </p>

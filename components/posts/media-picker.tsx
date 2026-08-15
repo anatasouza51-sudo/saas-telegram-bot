@@ -45,7 +45,7 @@ export function MediaAttachment({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {/* File input (hidden) */}
       <input
         ref={fileRef}
@@ -62,16 +62,16 @@ export function MediaAttachment({
           {items.map((m) => (
             <div
               key={m.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5"
+              className="flex items-center gap-2 rounded-xl border border-dashboard-border/25 bg-dashboard-surface/55 px-3 py-2"
             >
-              <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate text-xs text-foreground">
+              <Paperclip className="h-3.5 w-3.5 shrink-0 text-dashboard-accent" />
+              <span className="truncate text-xs text-dashboard-text">
                 {m.fileName ?? m.type}
               </span>
               <button
                 type="button"
                 onClick={() => onRemove(m.id)}
-                className="ml-auto shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                className="ml-auto shrink-0 text-dashboard-text-muted transition-colors hover:text-destructive"
                 aria-label="Remover mídia"
               >
                 <X className="h-3.5 w-3.5" />
@@ -83,9 +83,9 @@ export function MediaAttachment({
 
       {/* Add button or upload in progress */}
       {uploading || isUploading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-xl border border-dashboard-accent/25 bg-dashboard-accent/5 px-3 py-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-dashboard-accent" />
+          <span className="text-xs text-dashboard-text-muted">
             Enviando mídia...
           </span>
         </div>
@@ -94,7 +94,7 @@ export function MediaAttachment({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={!cdnReady}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 hover:border-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 rounded-xl border border-dashed border-dashboard-border/30 bg-dashboard-surface/40 px-3 py-2 text-xs font-bold text-dashboard-text-muted transition-colors hover:border-dashboard-accent/40 hover:bg-dashboard-accent/5 hover:text-dashboard-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Paperclip className="h-3.5 w-3.5" />
           Anexar mídia

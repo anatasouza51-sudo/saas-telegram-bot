@@ -149,9 +149,9 @@ function TemplateTargets({
 
 const BADGE_STYLES: Record<string, string> = {
   draft: "bg-dashboard-bg/50 text-dashboard-text-muted border-dashboard-border/30",
-  scheduled: "bg-warning/15 text-warning border-warning/30",
-  queued: "bg-primary/15 text-primary border-primary/30",
-  sent: "bg-success/15 text-success border-success/30",
+  scheduled: "bg-[#C9A95A]/15 text-[#C9A95A] border-[#C9A95A]/30",
+  queued: "bg-dashboard-accent/15 text-dashboard-accent border-dashboard-accent/30",
+  sent: "bg-[#7CA98D]/15 text-[#7CA98D] border-[#7CA98D]/30",
   failed: "bg-destructive/15 text-destructive border-destructive/30",
   cancelled: "bg-dashboard-bg/50 text-dashboard-text-muted border-dashboard-border/30",
 }
@@ -324,50 +324,68 @@ export function PostsWorkspace({
   }
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-full overflow-hidden">
-      <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="w-full flex flex-col">
-        {/* Abas com scroll horizontal no mobile */}
-        <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
-          <TabsList className="flex h-auto p-1 bg-dashboard-bg/50 border border-dashboard-border/30 rounded-xl w-max min-w-full">
-            <TabsTrigger value="new" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <Megaphone className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Nova postagem</span>
-              <span className="sm:hidden">Nova</span>
+    <div className="flex w-full max-w-full flex-col gap-5 overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-dashboard-border/20 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.24em] text-dashboard-accent">
+            Comunicação da loja
+          </p>
+          <h1 className="text-xl font-black tracking-tight text-dashboard-text sm:text-2xl">
+            Postagens
+          </h1>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-dashboard-text-muted">
+            Crie, agende e acompanhe mensagens enviadas para seus grupos e canais.
+          </p>
+        </div>
+        <div className="flex w-fit items-center gap-2 rounded-full border border-dashboard-border/30 bg-dashboard-surface/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-dashboard-text-muted">
+          <Megaphone className="h-3.5 w-3.5 text-dashboard-accent" />
+          <span>{posts.length} registros</span>
+        </div>
+      </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab((v as string) ?? "new")} className="flex w-full flex-col">
+        <div className="w-full rounded-2xl border border-dashboard-border/30 bg-dashboard-surface/70 p-2 shadow-lg shadow-black/5">
+          <div className="mb-2 flex items-center justify-between gap-3 px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-dashboard-text-muted">
+              Área de trabalho
+            </p>
+            <span className="hidden text-[10px] font-medium text-dashboard-text-muted/60 sm:inline">
+              Selecione uma seção
+            </span>
+          </div>
+          <TabsList className="grid h-auto w-full max-w-none grid-cols-2 gap-1 bg-transparent p-0 sm:grid-cols-4 lg:grid-cols-7">
+            <TabsTrigger value="new" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <Megaphone className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Nova postagem</span>
             </TabsTrigger>
-            <TabsTrigger value="scheduled" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Agendadas</span>
-              <span className="sm:hidden">Agenda</span>
+            <TabsTrigger value="scheduled" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Agendadas</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <History className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Histórico</span>
-              <span className="sm:hidden">Hist.</span>
+            <TabsTrigger value="history" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <History className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Histórico</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <ClipboardList className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Relatórios</span>
-              <span className="sm:hidden">Relat.</span>
+            <TabsTrigger value="reports" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Relatórios</span>
             </TabsTrigger>
-            <TabsTrigger value="drafts" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <FileText className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Rascunhos</span>
-              <span className="sm:hidden">Rasc.</span>
+            <TabsTrigger value="drafts" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Rascunhos</span>
             </TabsTrigger>
-            <TabsTrigger value="templates" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <LayoutTemplate className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Templates</span>
-              <span className="sm:hidden">Templ.</span>
+            <TabsTrigger value="templates" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <LayoutTemplate className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Templates</span>
             </TabsTrigger>
-            <TabsTrigger value="stats" className="rounded-lg py-2 px-3 text-[10px] font-bold gap-1.5 whitespace-nowrap flex-1 flex items-center justify-center text-dashboard-text-muted data-[state=active]:text-dashboard-text data-[state=active]:bg-dashboard-surface-elevated">
-              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Estatísticas</span>
-              <span className="sm:hidden">Stats</span>
+            <TabsTrigger value="stats" className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[10px] font-bold text-dashboard-text-muted transition-colors data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text sm:text-xs">
+              <BarChart3 className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Estatísticas</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="mt-3 w-full">
+        <div className="mt-4 w-full">
           <TabsContent value="new" className="w-full">
             <PostEditor
               key={editing?.id ?? (prefill ? "tpl" : "blank")}
@@ -468,11 +486,11 @@ function TemplateList({
   return (
     <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
       {templates.map((t) => (
-        <Card key={t.id} className="flex flex-col gap-3 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-xl w-full">
+        <Card key={t.id} className="flex w-full flex-col gap-3 rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5 transition-colors hover:border-dashboard-accent/30">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-xs font-black text-dashboard-text truncate">{t.name}</span>
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{t.category}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-dashboard-accent">{t.category}</span>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => onUse(t)} className="h-7 w-7 text-dashboard-text-muted hover:text-dashboard-text">
@@ -483,7 +501,7 @@ function TemplateList({
               </Button>
             </div>
           </div>
-          <div className="bg-dashboard-bg/50 rounded-xl p-2.5 border border-dashboard-border/20">
+          <div className="rounded-xl border border-dashboard-border/20 bg-dashboard-bg/50 p-3">
             <p className="text-[10px] text-dashboard-text-muted line-clamp-3 leading-relaxed">
               {t.text || "(Sem texto)"}
             </p>
@@ -491,7 +509,7 @@ function TemplateList({
           <TemplateTargets tokens={parseTargets(t.defaultTargets)} labelFor={targetLabels} />
           <Button 
             onClick={() => onUse(t)}
-            className="w-full mt-1 bg-dashboard-bg/50 border border-dashboard-border/30 hover:bg-dashboard-bg/80 text-dashboard-text text-[10px] font-black uppercase h-8 rounded-lg"
+            className="mt-1 h-9 w-full rounded-xl border border-dashboard-border/30 bg-dashboard-bg/50 text-[10px] font-black uppercase text-dashboard-text hover:border-dashboard-accent/30 hover:bg-dashboard-accent/5"
           >
             Usar Template
           </Button>
@@ -520,13 +538,13 @@ function ScheduleList({
   return (
     <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 w-full">
       {schedules.map((s) => (
-        <Card key={s.id} className="flex flex-col gap-3 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-xl w-full">
+        <Card key={s.id} className="flex w-full flex-col gap-3 rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5 transition-colors hover:border-[#C9A95A]/30">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-xs font-black text-dashboard-text truncate">
                 {s.postTitle || `Postagem #${s.postId}`}
               </span>
-              <span className="text-[10px] font-bold text-warning uppercase tracking-widest">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#C9A95A]">
                 {s.scheduleType === "once" ? "Uma vez" : "Recorrente"}
               </span>
             </div>
@@ -549,7 +567,7 @@ function ScheduleList({
           <Button 
             variant="ghost" 
             onClick={() => onCancel(s.id)}
-            className="w-full mt-1 border border-destructive/20 hover:bg-destructive/5 text-destructive text-[10px] font-black uppercase h-8 rounded-lg"
+            className="mt-1 h-9 w-full rounded-xl border border-destructive/20 text-[10px] font-black uppercase text-destructive hover:bg-destructive/5"
           >
             Cancelar Agendamento
           </Button>
@@ -586,10 +604,10 @@ function PostList({
   return (
     <div className="flex flex-col gap-3 w-full">
       {posts.map((p) => (
-        <Card key={p.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-dashboard-card border-dashboard-border/30 rounded-2xl shadow-xl w-full">
+        <Card key={p.id} className="flex w-full flex-col items-start justify-between gap-4 rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5 transition-colors hover:border-dashboard-accent/25 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="h-10 w-10 rounded-xl bg-dashboard-bg/50 flex items-center justify-center border border-dashboard-border/20 shrink-0">
-              <Megaphone className="h-5 w-5 text-dashboard-text-muted" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-border/20 bg-dashboard-bg/50">
+              <Megaphone className="h-5 w-5 text-dashboard-accent" />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-2">
@@ -603,7 +621,7 @@ function PostList({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+          <div className="flex w-full items-center justify-end gap-2 border-t border-dashboard-border/15 pt-3 sm:w-auto sm:border-t-0 sm:pt-0">
             <Button variant="ghost" size="icon" onClick={() => onEdit(p)} className="h-8 w-8 text-dashboard-text-muted hover:text-dashboard-text">
               <Pencil className="h-4 w-4" />
             </Button>

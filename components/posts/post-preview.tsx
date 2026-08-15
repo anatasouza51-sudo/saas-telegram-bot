@@ -33,15 +33,15 @@ export function PostPreview({
   })
 
   return (
-    <div className="rounded-xl bg-[#7893b0] p-4">
+    <div className="rounded-2xl border border-dashboard-border/25 bg-[#7893b0]/80 p-3 shadow-inner sm:p-4">
       <div className="mx-auto max-w-sm">
-        <div className="overflow-hidden rounded-2xl rounded-tl-md bg-card shadow-sm">
+        <div className="overflow-hidden rounded-2xl rounded-tl-md border border-black/10 bg-dashboard-card shadow-xl shadow-black/20">
           {/* Bot header */}
           <div className="flex items-center gap-2 px-3 pt-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-dashboard-accent text-[10px] font-black text-dashboard-bg">
               {botName.slice(0, 1).toUpperCase()}
             </div>
-            <span className="text-xs font-semibold text-primary">{botName}</span>
+            <span className="text-xs font-bold text-dashboard-accent">{botName}</span>
           </div>
 
           {/* Media */}
@@ -74,11 +74,11 @@ export function PostPreview({
           {/* Text */}
           {text.trim() ? (
             <div
-              className="px-3 py-2 text-sm leading-relaxed text-card-foreground [word-break:break-word]"
+              className="px-3 py-2 text-sm leading-relaxed text-dashboard-text [word-break:break-word]"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
-            <div className="px-3 py-2 text-sm italic text-muted-foreground">
+            <div className="px-3 py-2 text-sm italic text-dashboard-text-muted">
               Sua mensagem aparecerá aqui...
             </div>
           )}
@@ -87,14 +87,14 @@ export function PostPreview({
           {validRows.length > 0 && (
             <div className="flex flex-col gap-0.5 border-t border-border p-1">
               {validRows.map((row, i) => (
-                <div key={i} className="flex gap-0.5">
+                <div className="flex gap-0.5">
                   {row.map((b, j) => {
                     const href = resolveButtonUrl(b)
                     return (
                       <span
                         key={j}
                         title={href || b.value}
-                        className="flex flex-1 items-center justify-center truncate rounded-md bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary"
+                        className="flex flex-1 items-center justify-center truncate rounded-md bg-dashboard-accent/15 px-2 py-1.5 text-xs font-semibold text-dashboard-accent"
                       >
                         {b.text}
                       </span>
@@ -105,7 +105,7 @@ export function PostPreview({
             </div>
           )}
 
-          <div className="px-3 pb-1.5 text-right text-[10px] text-muted-foreground">
+          <div className="px-3 pb-1.5 text-right text-[10px] text-dashboard-text-muted">
             {now}
           </div>
         </div>

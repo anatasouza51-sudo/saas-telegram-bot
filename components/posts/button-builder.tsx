@@ -98,9 +98,9 @@ export function ButtonBuilder({
   return (
     <div className="flex flex-col gap-3">
       {rows.length === 0 && (
-        <div className="text-center p-5 border border-dashed border-white/10 rounded-xl bg-white/5">
-          <Link2 className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+        <div className="rounded-xl border border-dashed border-dashboard-border/30 bg-dashboard-surface/45 p-5 text-center">
+          <Link2 className="mx-auto mb-2 h-6 w-6 text-dashboard-accent/50" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-dashboard-text-muted/70">
             Nenhum botão configurado.
           </p>
         </div>
@@ -109,10 +109,10 @@ export function ButtonBuilder({
       {rows.map((row, rowIndex) => (
         <div
           key={rowIndex}
-          className="rounded-xl border border-white/5 bg-black/20 p-3 shadow-xl"
+          className="rounded-xl border border-dashboard-border/25 bg-dashboard-surface/55 p-3 shadow-lg shadow-black/5"
         >
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary/70">
+            <div className="mb-3 flex items-center justify-between border-b border-dashboard-border/15 pb-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-dashboard-accent">
               <GripVertical className="h-3.5 w-3.5" />
               Linha {rowIndex + 1}
             </div>
@@ -121,7 +121,7 @@ export function ButtonBuilder({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg hover:bg-white/10"
+                className="h-7 w-7 rounded-lg text-dashboard-text-muted hover:bg-dashboard-accent/10 hover:text-dashboard-accent"
                 onClick={() => moveRow(rowIndex, -1)}
                 disabled={rowIndex === 0}
               >
@@ -131,7 +131,7 @@ export function ButtonBuilder({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg hover:bg-white/10"
+                className="h-7 w-7 rounded-lg text-dashboard-text-muted hover:bg-dashboard-accent/10 hover:text-dashboard-accent"
                 onClick={() => moveRow(rowIndex, 1)}
                 disabled={rowIndex === rows.length - 1}
               >
@@ -144,15 +144,15 @@ export function ButtonBuilder({
             {row.map((btn, btnIndex) => (
               <div
                 key={btnIndex}
-                className="flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-900/40 p-3"
+                className="flex flex-col gap-2 rounded-xl border border-dashboard-border/20 bg-dashboard-bg/35 p-3"
               >
                 {/* Texto do botão e tipo — empilhados no mobile */}
                 <div className="flex flex-col gap-2">
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Texto do Botão</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-dashboard-text-muted/60">Texto do botão</p>
                     <Input
                       placeholder="Ex.: Comprar Agora"
-                      className="h-9 bg-white/5 border-white/10 rounded-xl px-3 text-sm"
+                      className="h-9 rounded-xl border-dashboard-border/25 bg-dashboard-surface/60 px-3 text-sm text-dashboard-text placeholder:text-dashboard-text-muted/50"
                       value={btn.text}
                       onChange={(e) =>
                         updateButton(rowIndex, btnIndex, { text: e.target.value })
@@ -160,7 +160,7 @@ export function ButtonBuilder({
                     />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Tipo</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-dashboard-text-muted/60">Tipo de ação</p>
                     <Select
                       value={btn.type}
                       onValueChange={(v) =>
@@ -169,7 +169,7 @@ export function ButtonBuilder({
                         })
                       }
                     >
-                      <SelectTrigger className="h-9 bg-white/5 border-white/10 rounded-xl px-3 text-sm">
+                      <SelectTrigger                       className="h-9 rounded-xl border-dashboard-border/25 bg-dashboard-surface/60 px-3 text-sm text-dashboard-text">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -185,11 +185,11 @@ export function ButtonBuilder({
 
                 {/* Link/Valor + ações */}
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Link ou Valor</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.14em] text-dashboard-text-muted/60">Link ou valor</p>
                   <div className="flex gap-1.5">
                     <Input
                       placeholder={PLACEHOLDERS[btn.type]}
-                      className="h-9 flex-1 bg-white/5 border-white/10 rounded-xl px-3 text-sm min-w-0"
+                      className="h-9 min-w-0 flex-1 rounded-xl border-dashboard-border/25 bg-dashboard-surface/60 px-3 text-sm text-dashboard-text placeholder:text-dashboard-text-muted/50"
                       value={btn.value}
                       onChange={(e) =>
                         updateButton(rowIndex, btnIndex, { value: e.target.value })
@@ -200,7 +200,7 @@ export function ButtonBuilder({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 rounded-xl hover:bg-white/10 border border-white/5"
+                        className="h-9 w-9 rounded-xl border border-dashboard-border/20 text-dashboard-text-muted hover:bg-dashboard-accent/10 hover:text-dashboard-accent"
                         onClick={() => duplicateButton(rowIndex, btnIndex)}
                         aria-label="Duplicar botão"
                       >
@@ -210,7 +210,7 @@ export function ButtonBuilder({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 rounded-xl hover:bg-red-500/10 hover:text-red-400 border border-white/5"
+                        className="h-9 w-9 rounded-xl border border-dashboard-border/20 text-dashboard-text-muted hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeButton(rowIndex, btnIndex)}
                         aria-label="Remover botão"
                       >
@@ -227,7 +227,7 @@ export function ButtonBuilder({
             type="button"
             variant="ghost"
             size="sm"
-            className="mt-3 w-full h-9 border border-dashed border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+            className="mt-3 h-9 w-full rounded-xl border border-dashed border-dashboard-border/30 text-[10px] font-black uppercase tracking-[0.14em] text-dashboard-text-muted hover:border-dashboard-accent/30 hover:bg-dashboard-accent/5 hover:text-dashboard-accent"
             onClick={() => addButton(rowIndex)}
           >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -240,7 +240,7 @@ export function ButtonBuilder({
         type="button"
         variant="outline"
         onClick={addRow}
-        className="w-full h-10 border-primary/20 bg-primary/5 text-primary font-black uppercase text-xs rounded-xl shadow-lg shadow-primary/5 active:scale-[0.98]"
+        className="h-10 w-full rounded-xl border-dashboard-accent/25 bg-dashboard-accent/10 text-xs font-black uppercase text-dashboard-accent shadow-lg shadow-dashboard-accent/5 active:scale-[0.98] hover:bg-dashboard-accent/15"
       >
         <Plus className="mr-1.5 h-4 w-4" />
         Adicionar nova linha de botões
