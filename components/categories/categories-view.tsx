@@ -31,6 +31,16 @@ import {
 
 type Row = CategoryRow & { productCount: number; createdAt: Date }
 
+type PressState = {
+  category: Row
+  pointerId: number
+  sourceIndex: number
+  startX: number
+  startY: number
+  originRect: DOMRect
+  timer: ReturnType<typeof setTimeout>
+}
+
 type DragState = {
   category: Row
   pointerId: number
@@ -54,6 +64,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const listRef = useRef<HTMLDivElement | null>(null)
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const pressRef = useRef<PressState | null>(null)
   const dragRef = useRef<DragState | null>(null)
 
   useEffect(() => {
@@ -83,7 +94,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     )
   }
 
-  function beginDrag(event: React.PointerEvent<HTMLDivElement>, category: Row) {
+  function beginPress(event: React.PointerEvent<HTMLDivElement>, category: Row) {
     if (event.pointerType === "mouse" || pending || typeof window === "undefined") return
     if (!window.matchMedia("(max-width: 639px)").matches) return
 
@@ -94,27 +105,59 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     const row = rowRefs.current[category.id]
     if (sourceIndex < 0 || !row) return
 
-    event.preventDefault()
-    dragRef.current = {
+    if (pressRef.current) window.clearTimeout(pressRef.current.timer)
+
+    const press: PressState = {
       category,
       pointerId: event.pointerId,
       sourceIndex,
-      dropIndex: sourceIndex,
       startX: event.clientX,
       startY: event.clientY,
       originRect: row.getBoundingClientRect(),
+      timer: setTimeout(() => {
+        const current = pressRef.current
+        if (!current || current.pointerId !== event.pointerId) return
+
+        dragRef.current = {
+          category: current.category,
+          pointerId: current.pointerId,
+          sourceIndex: current.sourceIndex,
+          dropIndex: current.sourceIndex,
+          startX: current.startX,
+          startY: current.startY,
+          originRect: current.originRect,
+        }
+        pressRef.current = null
+        row.setPointerCapture?.(event.pointerId)
+        setDraggingId(category.id)
+        setDropIndex(current.sourceIndex)
+        setDragOffset({ x: 0, y: 0 })
+      }, 350),
     }
-    setDraggingId(category.id)
-    setDropIndex(sourceIndex)
-    setDragOffset({ x: 0, y: 0 })
+
+    pressRef.current = press
   }
 
   useEffect(() => {
-    if (!draggingId) return
+    function cancelPendingPress(pointerId?: number) {
+      const press = pressRef.current
+      if (!press || (pointerId !== undefined && press.pointerId !== pointerId)) return
+      window.clearTimeout(press.timer)
+      pressRef.current = null
+    }
 
     function handlePointerMove(event: PointerEvent) {
+      const press = pressRef.current
       const drag = dragRef.current
       const list = listRef.current
+
+      if (press && !drag && event.pointerId === press.pointerId) {
+        const movedX = event.clientX - press.startX
+        const movedY = event.clientY - press.startY
+        if (Math.hypot(movedX, movedY) > 8) cancelPendingPress(event.pointerId)
+        return
+      }
+
       if (!drag || event.pointerId !== drag.pointerId || !list) return
 
       event.preventDefault()
@@ -160,7 +203,11 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
 
     function finishDrag(event: PointerEvent) {
       const drag = dragRef.current
-      if (!drag || event.pointerId !== drag.pointerId) return
+      if (!drag) {
+        cancelPendingPress(event.pointerId)
+        return
+      }
+      if (event.pointerId !== drag.pointerId) return
 
       const targetIndex = drag.dropIndex
       const remaining = order.filter((item) => item.id !== drag.category.id)
@@ -182,6 +229,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     }
 
     function cancelDrag(event: PointerEvent) {
+      cancelPendingPress(event.pointerId)
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
       dragRef.current = null
@@ -195,11 +243,12 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     window.addEventListener("pointercancel", cancelDrag)
 
     return () => {
+      cancelPendingPress()
       window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerup", finishDrag)
       window.removeEventListener("pointercancel", cancelDrag)
     }
-  }, [action, draggingId, order])
+  }, [action, order])
 
 
   return (
@@ -243,7 +292,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
             <p className="text-xs text-muted-foreground">{order.length} categoria(s) cadastrada(s)</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            <span className="sm:hidden">Segure e arraste para reordenar</span>
+            <span className="sm:hidden">Toque e segure para reordenar</span>
             <span className="hidden sm:inline">Use as setas para alterar a ordem</span>
           </p>
         </div>
@@ -271,13 +320,13 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                   ref={(element) => {
                     rowRefs.current[c.id] = element
                   }}
-                  className={`flex min-w-0 flex-col gap-4 p-4 transition-[transform,background-color,box-shadow] duration-150 hover:bg-muted/30 touch-none select-none sm:flex-row sm:items-center sm:touch-auto sm:select-auto ${
+                  className={`flex min-w-0 flex-col gap-4 p-4 transition-[transform,background-color,box-shadow] duration-150 hover:bg-muted/30 select-none sm:flex-row sm:items-center sm:select-auto ${
                     isDragging
-                      ? "relative z-20 bg-primary/10 shadow-[0_12px_30px_rgba(0,0,0,0.24)] sm:relative sm:z-auto sm:bg-transparent sm:shadow-none"
-                      : ""
+                      ? "relative z-20 touch-none bg-primary/10 shadow-[0_12px_30px_rgba(0,0,0,0.24)] sm:relative sm:z-auto sm:bg-transparent sm:shadow-none"
+                      : "touch-pan-y"
                   }`}
                   style={isDragging ? { transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0)`, transition: "none" } : undefined}
-                  onPointerDown={(event) => beginDrag(event, c)}
+                  onPointerDown={(event) => beginPress(event, c)}
                   aria-grabbed={isDragging}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
