@@ -39,6 +39,7 @@ type PressState = {
   startY: number
   lastX: number
   lastY: number
+  startedAt: number
   originRect: DOMRect
   timer: ReturnType<typeof setTimeout>
 }
@@ -106,6 +107,48 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
     )
   }
 
+  function activateDrag(current: PressState) {
+    const row = rowRefs.current[current.category.id]
+    if (!row) return false
+
+    const currentRect = row.getBoundingClientRect()
+    dragRef.current = {
+      category: current.category,
+      pointerId: current.pointerId,
+      sourceIndex: current.sourceIndex,
+      dropIndex: current.sourceIndex,
+      originRect: currentRect,
+      grabOffsetX: current.lastX - currentRect.left,
+      grabOffsetY: current.lastY - currentRect.top,
+      lastX: current.lastX,
+      lastY: current.lastY,
+    }
+    pressRef.current = null
+
+    const scrollContainer = row.closest("main") as HTMLElement | null
+    scrollContainerRef.current = scrollContainer
+    if (scrollContainer) {
+      originalScrollBehaviorRef.current = scrollContainer.style.scrollBehavior
+      scrollContainer.style.scrollBehavior = "auto"
+    }
+
+    try {
+      row.setPointerCapture?.(current.pointerId)
+    } catch {
+      // The pointer may have ended between the timer and activation.
+    }
+
+    setDraggingId(current.category.id)
+    setDropIndex(current.sourceIndex)
+    setDragPreview({
+      left: currentRect.left,
+      top: currentRect.top,
+      width: currentRect.width,
+      height: currentRect.height,
+    })
+    return true
+  }
+
   function beginPress(event: React.PointerEvent<HTMLDivElement>, category: Row) {
     if (event.pointerType === "mouse" || pending || typeof window === "undefined") return
     if (!window.matchMedia("(max-width: 639px)").matches) return
@@ -127,39 +170,12 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       startY: event.clientY,
       lastX: event.clientX,
       lastY: event.clientY,
+      startedAt: Date.now(),
       originRect: row.getBoundingClientRect(),
       timer: setTimeout(() => {
         const current = pressRef.current
         if (!current || current.pointerId !== event.pointerId) return
-
-        const currentRect = row.getBoundingClientRect()
-        dragRef.current = {
-          category: current.category,
-          pointerId: current.pointerId,
-          sourceIndex: current.sourceIndex,
-          dropIndex: current.sourceIndex,
-          originRect: currentRect,
-          grabOffsetX: current.lastX - currentRect.left,
-          grabOffsetY: current.lastY - currentRect.top,
-          lastX: current.lastX,
-          lastY: current.lastY,
-        }
-        pressRef.current = null
-        const scrollContainer = row.closest("main") as HTMLElement | null
-        scrollContainerRef.current = scrollContainer
-        if (scrollContainer) {
-          originalScrollBehaviorRef.current = scrollContainer.style.scrollBehavior
-          scrollContainer.style.scrollBehavior = "auto"
-        }
-        row.setPointerCapture?.(event.pointerId)
-        setDraggingId(category.id)
-        setDropIndex(current.sourceIndex)
-        setDragPreview({
-          left: current.originRect.left,
-          top: current.originRect.top,
-          width: current.originRect.width,
-          height: current.originRect.height,
-        })
+        activateDrag(current)
       }, 140),
     }
 
@@ -310,17 +326,36 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       if (press && !drag && event.pointerId === press.pointerId) {
         press.lastX = event.clientX
         press.lastY = event.clientY
-        const movedX = event.clientX - press.startX
-        const movedY = event.clientY - press.startY
-        if (Math.hypot(movedX, movedY) > 40) cancelPendingPress(event.pointerId)
+        const movedY = Math.abs(event.clientY - press.startY)
+        const elapsed = Date.now() - press.startedAt
+
+        if (movedY >= 6 && elapsed >= 45) {
+          window.clearTimeout(press.timer)
+          if (activateDrag(press)) {
+            const activeDrag = dragRef.current
+            if (activeDrag) {
+              event.preventDefault()
+              activeDrag.lastX = event.clientX
+              activeDrag.lastY = event.clientY
+              updateDragPosition(event.clientX, event.clientY)
+              scheduleAutoScroll()
+            }
+          }
+          return
+        }
+
+        if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 40) {
+          cancelPendingPress(event.pointerId)
+        }
         return
       }
 
-      if (!drag || event.pointerId !== drag.pointerId) return
+      const activeDrag = dragRef.current
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId) return
 
       event.preventDefault()
-      drag.lastX = event.clientX
-      drag.lastY = event.clientY
+      activeDrag.lastX = event.clientX
+      activeDrag.lastY = event.clientY
       updateDragPosition(event.clientX, event.clientY)
       scheduleAutoScroll()
     }
