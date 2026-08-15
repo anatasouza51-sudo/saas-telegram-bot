@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     // não derrube todo o carregamento do dashboard.
     const [statsResult, recentOrdersResult, salesDataResult] = await Promise.allSettled([
       getDashboardPeriodStats(user.storeId, period),
-      getDashboardPeriodOrders(user.storeId, 8, period),
+      getDashboardPeriodOrders(user.storeId, 5, period),
       getDashboardPeriodChart(user.storeId, period),
     ])
 
