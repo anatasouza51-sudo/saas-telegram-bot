@@ -147,7 +147,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
           width: current.originRect.width,
           height: current.originRect.height,
         })
-      }, 350),
+      }, 240),
     }
 
     pressRef.current = press
@@ -258,9 +258,12 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
         return
       }
 
-      const before = window.scrollY
-      window.scrollBy({ top: step, left: 0, behavior: "auto" })
-      const after = window.scrollY
+      const scrollTarget = document.scrollingElement ?? document.documentElement
+      const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - window.innerHeight)
+      const before = scrollTarget.scrollTop
+      const nextScrollTop = Math.min(maxScrollTop, Math.max(0, before + step))
+      scrollTarget.scrollTop = nextScrollTop
+      const after = scrollTarget.scrollTop
       if (after === before) {
         stopAutoScroll()
         return
@@ -283,7 +286,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
       if (press && !drag && event.pointerId === press.pointerId) {
         const movedX = event.clientX - press.startX
         const movedY = event.clientY - press.startY
-        if (Math.hypot(movedX, movedY) > 8) cancelPendingPress(event.pointerId)
+        if (Math.hypot(movedX, movedY) > 14) cancelPendingPress(event.pointerId)
         return
       }
 
@@ -533,7 +536,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
 
       {dragPreview && draggingId !== null && (
         <div
-          className="pointer-events-none fixed left-0 top-0 z-[70] hidden max-w-[calc(100vw-2rem)] flex-col gap-4 rounded-xl border border-primary/30 bg-card/95 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:hidden"
+          className="pointer-events-none fixed left-0 top-0 z-[70] flex max-w-[calc(100vw-2rem)] flex-col gap-4 rounded-xl border border-primary/30 bg-card/95 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:hidden"
           style={{
             width: dragPreview.width,
             minHeight: dragPreview.height,
