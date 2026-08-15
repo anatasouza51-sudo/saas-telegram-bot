@@ -17,6 +17,7 @@ import {
   Copy,
   ClipboardList,
   MessagesSquare,
+  CircleHelp,
 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -382,7 +383,10 @@ export function PostsWorkspace({
               <BarChart3 className="h-5 w-5 shrink-0 sm:h-3.5 sm:w-3.5" />
               <span className="whitespace-nowrap text-center leading-tight">Estatísticas</span>
             </TabsTrigger>
-            <div aria-hidden="true" className="block min-h-[78px] rounded-xl border border-dashed border-dashboard-border/20 bg-dashboard-surface/20 sm:hidden" />
+            <TabsTrigger value="help" className="!h-auto !w-full !flex-none min-h-[78px] flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashboard-border/25 bg-dashboard-surface/45 px-1 py-3 text-center text-[10px] font-bold text-dashboard-text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_0_rgba(20,36,29,0.7),0_6px_10px_rgba(0,0,0,0.16)] transition-all active:translate-y-[2px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2),0_1px_0_rgba(20,36,29,0.7)] hover:border-dashboard-accent/30 hover:bg-dashboard-accent/5 data-[state=active]:border-dashboard-accent/45 data-[state=active]:bg-dashboard-accent/15 data-[state=active]:text-dashboard-text data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_2px_0_rgba(20,36,29,0.75),0_6px_12px_rgba(169,201,127,0.12)] sm:hidden">
+              <CircleHelp className="h-5 w-5 shrink-0" />
+              <span className="whitespace-nowrap text-center leading-tight">Ajuda</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -442,6 +446,47 @@ export function PostsWorkspace({
 
           <TabsContent value="stats" className="w-full">
             <PostStatsCards stats={stats} channelCount={channels.length} />
+          </TabsContent>
+
+          <TabsContent value="help" className="w-full sm:hidden">
+            <Card className="rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5">
+              <div className="flex items-start gap-3 border-b border-dashboard-border/20 pb-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-dashboard-accent/25 bg-dashboard-accent/10 text-dashboard-accent">
+                  <CircleHelp className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-dashboard-accent">Central rápida</p>
+                  <h2 className="mt-1 text-base font-black text-dashboard-text">Como criar uma postagem</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-dashboard-text-muted">Use este guia para revisar o fluxo antes de publicar ou agendar uma mensagem.</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2">
+                <div className="flex items-start gap-3 rounded-xl border border-dashboard-border/20 bg-dashboard-bg/35 p-3">
+                  <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-dashboard-accent" />
+                  <div>
+                    <p className="text-xs font-bold text-dashboard-text">1. Monte o conteúdo</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-dashboard-text-muted">Escreva a mensagem, escolha o formato e adicione mídia ou botões quando necessário.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-xl border border-dashboard-border/20 bg-dashboard-bg/35 p-3">
+                  <MessagesSquare className="mt-0.5 h-4 w-4 shrink-0 text-dashboard-accent" />
+                  <div>
+                    <p className="text-xs font-bold text-dashboard-text">2. Escolha os destinos</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-dashboard-text-muted">Selecione os grupos e canais que devem receber a postagem.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-xl border border-dashboard-border/20 bg-dashboard-bg/35 p-3">
+                  <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-dashboard-accent" />
+                  <div>
+                    <p className="text-xs font-bold text-dashboard-text">3. Publique ou agende</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-dashboard-text-muted">Publique agora, programe uma data ou salve como rascunho para continuar depois.</p>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={() => setTab("new")} className="mt-4 h-10 w-full rounded-xl border border-dashboard-accent/30 bg-dashboard-accent/15 text-xs font-black text-dashboard-text hover:bg-dashboard-accent/25">
+                Voltar para Nova postagem
+              </Button>
+            </Card>
           </TabsContent>
         </div>
       </Tabs>
