@@ -19,7 +19,7 @@ export function MobilePanelNav() {
 
   return (
     <nav
-      className="fixed inset-x-3 z-40 flex items-center gap-1.5 rounded-[22px] border border-dashboard-border bg-dashboard-sidebar/95 p-2 pt-2 shadow-2xl shadow-black/30 backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-3 z-40 flex items-center justify-around rounded-[22px] border border-dashboard-border bg-dashboard-sidebar/95 px-1.5 pt-2 shadow-2xl shadow-black/30 backdrop-blur-xl lg:hidden"
       style={{
         bottom: "max(0.75rem, env(safe-area-inset-bottom))",
         paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
@@ -35,7 +35,7 @@ export function MobilePanelNav() {
             href={href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "dashboard-3d-control flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl border border-dashboard-border/80 px-1 py-1.5 text-[10px] font-semibold transition-colors",
+              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
               isActive
                 ? "text-dashboard-accent"
                 : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
@@ -53,7 +53,7 @@ export function MobilePanelNav() {
         type="button"
         onClick={toggleMobileMenu}
         className={cn(
-          "dashboard-3d-control flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl border border-dashboard-border/80 px-1 py-1.5 text-[10px] font-semibold transition-colors",
+          "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors",
           mobileMenuOpen
             ? "bg-dashboard-surface-elevated text-dashboard-text"
             : "text-dashboard-text-muted hover:bg-dashboard-surface-elevated hover:text-dashboard-text",
