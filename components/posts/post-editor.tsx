@@ -480,7 +480,7 @@ export function PostEditor({
         <Button
           onClick={handlePublish}
           disabled={isPending}
-          className="h-12 w-full rounded-xl bg-dashboard-accent text-dashboard-bg shadow-lg shadow-dashboard-accent/15 hover:bg-dashboard-accent/90"
+          className="h-12 w-full rounded-xl border border-dashboard-accent/70 bg-dashboard-accent text-dashboard-bg shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_3px_0_rgba(20,36,29,0.75),0_8px_16px_rgba(169,201,127,0.18)] transition-all active:translate-y-[2px] active:shadow-[inset_0_2px_5px_rgba(20,36,29,0.3),0_1px_0_rgba(20,36,29,0.75)] hover:bg-dashboard-accent/90"
         >
           <Send className="mr-2 h-4 w-4" />
           Publicar agora
@@ -489,7 +489,7 @@ export function PostEditor({
           variant="outline"
           onClick={() => setScheduleOpen((s) => !s)}
           disabled={isPending}
-          className="h-11 w-full rounded-xl border-dashboard-border/30 bg-dashboard-bg/50 text-xs font-black uppercase text-dashboard-text hover:border-dashboard-accent/40 hover:bg-dashboard-accent/5"
+          className="h-11 w-full rounded-xl border border-dashboard-border/35 bg-dashboard-bg/50 text-xs font-black uppercase text-dashboard-text shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_3px_0_rgba(20,36,29,0.8),0_6px_12px_rgba(0,0,0,0.14)] transition-all active:translate-y-[2px] active:shadow-[inset_0_2px_5px_rgba(0,0,0,0.2),0_1px_0_rgba(20,36,29,0.8)] hover:border-dashboard-accent/40 hover:bg-dashboard-accent/5"
         >
           <CalendarClock className="mr-2 h-4 w-4" />
           Agendar
@@ -499,7 +499,7 @@ export function PostEditor({
             variant="ghost"
             onClick={handleSaveDraft}
             disabled={isPending}
-            className="h-10 rounded-xl text-[10px] font-bold uppercase text-dashboard-text-muted hover:bg-dashboard-bg/60 hover:text-dashboard-text"
+            className="h-10 rounded-xl border border-dashboard-border/25 bg-dashboard-bg/35 text-[10px] font-bold uppercase text-dashboard-text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_2px_0_rgba(20,36,29,0.7),0_4px_8px_rgba(0,0,0,0.12)] transition-all active:translate-y-[1px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.18),0_1px_0_rgba(20,36,29,0.7)] hover:border-dashboard-accent/30 hover:bg-dashboard-bg/60 hover:text-dashboard-text"
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
             Salvar rascunho
@@ -508,7 +508,7 @@ export function PostEditor({
             variant="ghost"
             onClick={handleSaveTemplate}
             disabled={isPending}
-            className="h-10 rounded-xl text-[10px] font-bold uppercase text-dashboard-text-muted hover:bg-dashboard-bg/60 hover:text-dashboard-text"
+            className="h-10 rounded-xl border border-dashboard-border/25 bg-dashboard-bg/35 text-[10px] font-bold uppercase text-dashboard-text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_2px_0_rgba(20,36,29,0.7),0_4px_8px_rgba(0,0,0,0.12)] transition-all active:translate-y-[1px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.18),0_1px_0_rgba(20,36,29,0.7)] hover:border-dashboard-accent/30 hover:bg-dashboard-bg/60 hover:text-dashboard-text"
           >
             <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
             Salvar template
