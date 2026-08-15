@@ -1,10 +1,12 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Card,
   CardContent,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -18,8 +20,11 @@ import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/format"
 import type { DeliveryRow } from "@/lib/queries/records"
 
+const PAGE_SIZE = 10
+
 export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -33,6 +38,10 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
     )
   }, [deliveries, search])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -44,7 +53,10 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
             <Input
               placeholder="Buscar por produto, cliente, pedido..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               className="sm:max-w-xs"
             />
           </div>
@@ -56,7 +68,7 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
               Nenhuma entrega registrada.
             </div>
           ) : (
-            filtered.map((d) => (
+            pageItems.map((d) => (
               <article key={d.id} className="overflow-hidden rounded-xl border border-border bg-card">
                 <div className="flex items-start justify-between gap-3 border-b border-border/70 p-4">
                   <div className="min-w-0">
@@ -118,7 +130,7 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((d) => (
+                pageItems.map((d) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       #{String(d.orderId).padStart(4, "0")}
@@ -145,6 +157,36 @@ export function DeliveriesView({ deliveries }: { deliveries: DeliveryRow[] }) {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-5 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </span>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none"
+                disabled={currentPage === 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="mr-1 size-4" aria-hidden="true" />
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none"
+                disabled={currentPage === totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Próxima
+                <ChevronRight className="ml-1 size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
