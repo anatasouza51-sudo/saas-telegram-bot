@@ -275,7 +275,7 @@ export function ProductsView({
           </CardContent>
         </Card>
 
-        <Card className="border-warning/20 bg-warning/[0.04] shadow-sm">
+        <Card className="border-warning/20 bg-warning/[0.04]">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Alertas de estoque</CardTitle>
             <div className="rounded-lg bg-warning/10 p-2 text-warning"><AlertCircle className="h-4 w-4" /></div>

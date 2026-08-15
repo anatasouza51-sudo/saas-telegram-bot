@@ -233,7 +233,7 @@ export function OrdersView({
                     </div>
                   </div>
 
-                  <div className="mt-5 grid min-w-0 gap-3 border-t border-dashboard-border/60 pt-4 sm:grid-cols-2">
+                  <div className="mt-5 grid min-w-0 gap-3 pt-4 sm:grid-cols-2">
                     <div className="flex min-w-0 items-start gap-2">
                       <UserRound className="mt-0.5 size-4 shrink-0 text-dashboard-accent" aria-hidden="true" />
                       <div className="min-w-0">
@@ -254,7 +254,7 @@ export function OrdersView({
                     </div>
                   </div>
 
-                  <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 border-t border-dashboard-border/60 pt-4">
+                  <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 pt-4">
                     <div className="flex min-w-0 items-center gap-2">
                       <CreditCard className="size-3.5 shrink-0 text-dashboard-text-muted" aria-hidden="true" />
                       <PaymentStatusBadge status={order.paymentStatus} />
