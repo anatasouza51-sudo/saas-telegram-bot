@@ -14,7 +14,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  ShieldCheck,
   User,
 } from "lucide-react"
 import { GhostLogo } from "@/components/ghost-logo"
@@ -141,10 +140,6 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 sm:gap-10">
       <section className="w-full max-w-2xl px-2 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-dashboard-accent-secondary/30 bg-dashboard-accent-secondary/10 px-3 py-1.5 font-space text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-accent-secondary backdrop-blur">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.9)]" />
-          Operação Ghost online
-        </div>
         <div className="mb-6 flex flex-col items-center gap-3">
           <GhostLogo className="h-16 w-16" />
           <div>
@@ -164,20 +159,21 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent-secondary/18 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-dashboard-accent/16 blur-3xl" />
           <div className="relative">
-            <div className="mb-8">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-accent-secondary/80">
-                  {isSignUp ? "Novo operador" : "Acesso restrito"}
-                </span>
-                <ShieldCheck className="h-4 w-4 text-emerald-200/70" />
+            {isSignUp && (
+              <div className="mb-8">
+                <div className="mb-3">
+                  <span className="font-space text-[10px] font-bold uppercase tracking-[0.2em] text-dashboard-accent-secondary/80">
+                    Novo operador
+                  </span>
+                </div>
+                <h2 className="font-space text-2xl font-black sm:text-3xl tracking-[-0.04em] text-white">
+                  Comece sua operação
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-white/50 sm:mt-2 sm:text-sm sm:leading-6">
+                  Crie seu acesso e coloque seu bot para trabalhar.
+                </p>
               </div>
-              <h2 className="font-space text-2xl font-black sm:text-3xl tracking-[-0.04em] text-white">
-                {isSignUp ? "Comece sua operação" : "Bem-vindo de volta"}
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-white/50 sm:mt-2 sm:text-sm sm:leading-6">
-                {isSignUp ? "Crie seu acesso e coloque seu bot para trabalhar." : "Entre no seu centro de comando e continue de onde parou."}
-              </p>
-            </div>
+            )}
 
             <div className="flex flex-col gap-5">
               {isSignUp && (
