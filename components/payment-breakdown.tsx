@@ -28,6 +28,10 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
   const selectedIndex = selectedName ? data.findIndex((entry) => entry.name === selectedName) : -1
   const selectedEntry = selectedIndex >= 0 ? data[selectedIndex] : undefined
   const selectedPercentage = selectedEntry && total > 0 ? Math.round((selectedEntry.value / total) * 100) : 0
+  const handleSliceClick = (name: string) => {
+    setSelectedName((current) => current === name ? null : name)
+  }
+
 
   let selectedLabelStyle: { left?: string; right?: string; top: string } = { top: "50%" }
   if (selectedEntry && total > 0) {
@@ -80,8 +84,7 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
                     animationBegin={0}
                     animationDuration={420}
                     animationEasing="ease-out"
-                    onClick={(entry) => setSelectedName(String(entry.name))}
-                    onMouseEnter={(entry) => setSelectedName(String(entry.name))}
+                    onClick={(entry) => handleSliceClick(String(entry.name))}
                   >
                     {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}
                   </Pie>
