@@ -48,7 +48,7 @@ const FormInput = memo(({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className={`${Icon ? "pl-11" : "px-4"} ${inputRightElement ? "pr-11" : ""} h-10 rounded-xl sm:h-12 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-dashboard-accent/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-dashboard-accent/20`}
+        className={`${Icon ? "pl-11" : "px-4"} ${inputRightElement ? "pr-11" : ""} h-12 rounded-xl sm:h-14 border-white/15 bg-white/[0.07] text-sm text-white shadow-inner shadow-black/10 transition-all placeholder:text-white/30 focus:border-dashboard-accent/70 focus:bg-white/[0.11] focus:ring-2 focus:ring-dashboard-accent/20`}
       />
       {inputRightElement && (
         <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
@@ -138,9 +138,9 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const togglePassword = useCallback(() => setShowPassword((prev) => !prev), [])
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 sm:gap-10">
-      <section className="w-full max-w-2xl px-2 text-center">
-        <div className="mb-6 flex flex-col items-center gap-3">
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-6 sm:gap-12">
+      <section className="w-full max-w-3xl px-3 text-center">
+        <div className="mb-8 flex flex-col items-center gap-3">
           <GhostLogo className="h-16 w-16" />
           <div>
             <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
@@ -151,14 +151,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         </div>
       </section>
 
-      <section className="w-full max-w-[440px]">
+      <section className="w-full max-w-[540px] px-3 sm:px-0">
           <form
             onSubmit={handleSubmit}
-            className="relative overflow-hidden rounded-[2rem] bg-dashboard-sidebar/85 p-6 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:p-8"
+            className="flex min-h-[520px] flex-col overflow-hidden rounded-[2.25rem] bg-dashboard-sidebar/85 p-7 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:min-h-[560px] sm:p-10"
           >
           <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent-secondary/18 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-dashboard-accent/16 blur-3xl" />
-          <div className="relative">
+          <div className="relative flex flex-1 flex-col">
             {isSignUp && (
               <div className="mb-8">
                 <div className="mb-3">
@@ -175,7 +175,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               </div>
             )}
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6 sm:gap-7">
               {isSignUp && (
                 <FormInput id="name" label="Nome completo" icon={User} value={name} onChange={setName} placeholder="Seu nome" required />
               )}
@@ -212,7 +212,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             <button
               type="submit"
               disabled={loading}
-              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-dashboard-accent via-[#C9DC9D] to-dashboard-accent-secondary px-4 py-3.5 font-space text-sm font-black uppercase tracking-wider text-dashboard-bg shadow-[0_12px_30px_-10px_rgba(169,201,127,0.42)] transition-all hover:brightness-110 hover:shadow-[0_16px_36px_-10px_rgba(169,201,127,0.52)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-9 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-dashboard-accent via-[#C9DC9D] to-dashboard-accent-secondary px-4 py-3.5 font-space text-sm font-black uppercase tracking-wider text-dashboard-bg shadow-[0_12px_30px_-10px_rgba(169,201,127,0.42)] transition-all hover:brightness-110 hover:shadow-[0_16px_36px_-10px_rgba(169,201,127,0.52)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <span className="flex items-center gap-2">
@@ -222,7 +222,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               )}
             </button>
 
-            <div className="mt-6 text-center text-xs text-white/45">
+            <div className="mt-8 text-center text-xs text-white/45">
               {isSignUp ? (
                 <>Já tem conta? <Link href="/sign-in" className="font-bold text-dashboard-accent-secondary transition-colors hover:text-white">Entrar</Link></>
               ) : (
@@ -231,7 +231,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             </div>
           </div>
           </form>
-        <p className="mt-4 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Seu dinheiro vai direto pro gateway — sem retenção.</p>
+        <p className="mt-5 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Seu dinheiro vai direto pro gateway — sem retenção.</p>
       </section>
     </div>
   )
