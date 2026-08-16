@@ -139,26 +139,23 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-6 sm:gap-12">
-      <section className="w-full max-w-3xl px-3 text-center">
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <GhostLogo className="h-16 w-16" />
-          <div>
-            <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
-            <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
-              GHOST <span className="text-dashboard-accent drop-shadow-[0_0_22px_rgba(169,201,127,0.38)]">BOT</span>
-            </h1>
-          </div>
-        </div>
-      </section>
-
       <section className="w-full max-w-[540px] px-3 sm:px-0">
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col overflow-hidden rounded-[2.25rem] bg-dashboard-sidebar/85 p-7 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:p-10"
-          >
+        <form
+          onSubmit={handleSubmit}
+          className="relative flex flex-col overflow-hidden rounded-[2.25rem] bg-dashboard-sidebar/85 p-7 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:p-10"
+        >
           <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent-secondary/18 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-dashboard-accent/16 blur-3xl" />
           <div className="relative flex flex-1 flex-col">
+            <div className="mb-8 flex flex-col items-center gap-3 text-center sm:mb-10">
+              <GhostLogo className="h-16 w-16" />
+              <div>
+                <p className="font-space text-xs font-bold uppercase tracking-[0.24em] text-white/45">Central de comando</p>
+                <h1 className="motion-safe:animate-bounce-slow motion-reduce:animate-none font-space text-4xl font-black tracking-[-0.05em] text-white sm:text-5xl">
+                  GHOST <span className="text-dashboard-accent drop-shadow-[0_0_22px_rgba(169,201,127,0.38)]">BOT</span>
+                </h1>
+              </div>
+            </div>
             {isSignUp && (
               <div className="mb-8">
                 <div className="mb-3">
@@ -230,7 +227,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               )}
             </div>
           </div>
-          </form>
+        </form>
         <p className="mt-5 text-center font-space text-[9px] font-bold uppercase tracking-[0.18em] text-white/25">Seu dinheiro vai direto pro gateway — sem retenção.</p>
       </section>
     </div>
