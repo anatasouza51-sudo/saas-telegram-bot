@@ -1,7 +1,7 @@
 "use client"
 
-import { memo } from "react"
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { memo, useState } from "react"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { CreditCard } from "lucide-react"
 import { DashboardBeam } from "@/components/dashboard-beam"
 
@@ -21,6 +21,9 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
   ].filter((item) => item.value > 0)
   const total = data.reduce((sum, item) => sum + item.value, 0)
   const conversion = total > 0 ? Math.round((approved / total) * 100) : 0
+  const [selectedName, setSelectedName] = useState<string | null>(null)
+  const selectedEntry = selectedName ? data.find((entry) => entry.name === selectedName) : undefined
+  const selectedPercentage = selectedEntry && total > 0 ? Math.round((selectedEntry.value / total) * 100) : 0
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
@@ -42,29 +45,48 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
         </div>
       ) : (
         <>
-          <div className="relative z-10 mx-auto h-44 w-44 [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie rootTabIndex={-1} data={data} cx="50%" cy="50%" innerRadius={53} outerRadius={74} paddingAngle={2} dataKey="value" strokeWidth={0}>
-                  {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}
-                </Pie>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null
-                    const value = Number(payload[0].value || 0)
-                    return (
-                      <div className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated px-3 py-2 shadow-xl">
-                        <p className="text-xs font-bold text-dashboard-text">{payload[0].name}</p>
-                        <p className="text-[10px] text-dashboard-text-muted">{value} ({total ? ((value / total) * 100).toFixed(1) : 0}%)</p>
-                      </div>
-                    )
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-space text-3xl font-bold text-dashboard-text">{conversion}%</span>
-              <span className="text-[10px] uppercase tracking-wider text-dashboard-text-muted">aprovados</span>
+          <div className="relative z-10 mx-auto flex w-full max-w-[360px] flex-col items-center gap-2">
+            <div className="relative h-44 w-44 shrink-0 [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    rootTabIndex={-1}
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={53}
+                    outerRadius={74}
+                    paddingAngle={2}
+                    dataKey="value"
+                    strokeWidth={0}
+                    isAnimationActive
+                    animationBegin={0}
+                    animationDuration={420}
+                    animationEasing="ease-out"
+                    onClick={(entry) => setSelectedName(String(entry.name))}
+                    onMouseEnter={(entry) => setSelectedName(String(entry.name))}
+                  >
+                    {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-space text-3xl font-bold text-dashboard-text">{conversion}%</span>
+                <span className="text-[10px] uppercase tracking-wider text-dashboard-text-muted">aprovados</span>
+              </div>
+            </div>
+            <div
+              aria-live="polite"
+              className={`flex min-h-[52px] w-full items-center justify-center rounded-xl border border-dashboard-border/70 bg-dashboard-surface-elevated/80 px-4 py-2 text-center transition-[opacity,transform] duration-200 ease-out ${selectedEntry ? "translate-y-0 opacity-100" : "translate-y-1 opacity-70"}`}
+            >
+              {selectedEntry ? (
+                <div>
+                  <p className="text-xs font-bold text-dashboard-text">{selectedEntry.name}</p>
+                  <p className="mt-0.5 text-[10px] text-dashboard-text-muted">{selectedEntry.value} ({selectedPercentage}%)</p>
+                </div>
+              ) : (
+                <span className="text-[10px] text-dashboard-text-muted">Toque em uma fatia para ver os detalhes</span>
+              )}
             </div>
           </div>
           <div className="relative z-10 mt-5 space-y-2.5">

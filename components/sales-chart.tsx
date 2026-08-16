@@ -88,6 +88,9 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
                 <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(v) => compactCurrency.format(v as number)} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
                 <ChartTooltip
                   cursor={false}
+                  isAnimationActive
+                  animationDuration={180}
+                  animationEasing="ease-out"
                   content={
                     <ChartTooltipContent
                       className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated shadow-xl"
@@ -96,7 +99,7 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
                     />
                   }
                 />
-                <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive animationBegin={0} animationDuration={420} animationEasing="ease-out" />
               </AreaChart>
             </ResponsiveContainer>
           </ChartContainer>
