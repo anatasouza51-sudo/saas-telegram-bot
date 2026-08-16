@@ -50,7 +50,7 @@ export const PaymentMetrics = memo(({ metrics, title = "Saúde dos pagamentos", 
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
       <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10"><Percent className="size-4 shrink-0 text-dashboard-accent" strokeWidth={1.8} /></div>
+        <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 text-dashboard-accent"><Percent className="size-4 shrink-0" strokeWidth={1.8} /></div>
         <div><h3 className="text-sm font-bold text-dashboard-text">{title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{subtitle}</p></div>
       </div>
       <div className="relative z-10 grid grid-cols-1 gap-3 sm:grid-cols-3">

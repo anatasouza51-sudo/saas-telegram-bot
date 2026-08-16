@@ -55,7 +55,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
+            "dashboard-3d-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110",
             iconToneMap[tone],
           )}
         >

@@ -153,7 +153,7 @@ export function TelegramForm({
         <div className="min-w-0">
           <div className="flex min-w-0 flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 max-w-full items-start gap-3 sm:items-center sm:gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(169,201,127,0.16)]">
+              <div className="dashboard-3d-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Bot className="h-7 w-7" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">

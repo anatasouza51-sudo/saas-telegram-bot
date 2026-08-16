@@ -515,7 +515,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
                 >
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
+                      <span className="dashboard-3d-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
                         {c.emoji || "📁"}
                       </span>
                       <div className="min-w-0">
@@ -648,7 +648,7 @@ export function CategoriesView({ categories }: { categories: Row[] }) {
               <>
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
+                    <span className="dashboard-3d-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg leading-none">
                       {draggedCategory.emoji || "📁"}
                     </span>
                     <div className="min-w-0">

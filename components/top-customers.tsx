@@ -24,12 +24,12 @@ export const TopCustomers = memo(({ customers, title = "Principais clientes" }: 
   return (
     <section className="rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
       <div className="mb-5 flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10 shadow-[0_0_14px_rgba(169,201,127,0.16)]"><Users className="size-4 shrink-0 text-dashboard-accent" strokeWidth={1.8} /></div>
+        <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 text-dashboard-accent"><Users className="size-4 shrink-0" strokeWidth={1.8} /></div>
         <div><h3 className="text-sm font-bold text-dashboard-text">{title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{customers.length} cliente{customers.length === 1 ? "" : "s"} em destaque</p></div>
       </div>
 
       {customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-12 text-center"><Users className="mb-3 size-6 shrink-0 text-dashboard-text-muted/40" strokeWidth={1.8} /><p className="text-xs text-dashboard-text-muted">Comece a vender para ver seus clientes</p></div>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-12 text-center"><span className="dashboard-3d-icon mb-3 flex size-12 items-center justify-center rounded-2xl text-dashboard-text-muted/40"><Users className="size-6 shrink-0" strokeWidth={1.8} /></span><p className="text-xs text-dashboard-text-muted">Comece a vender para ver seus clientes</p></div>
       ) : (
         <div className="space-y-2">
           {customers.map((customer, index) => {

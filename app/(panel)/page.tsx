@@ -216,7 +216,7 @@ export default function DashboardPage() {
       <section className="overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface">
         <div className="flex items-center justify-between border-b border-dashboard-border/70 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 aspect-square items-center justify-center rounded-xl border border-dashboard-accent/20 bg-dashboard-accent/10 shadow-[0_0_14px_rgba(169,201,127,0.16)]">
+            <div className="dashboard-3d-icon flex size-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-dashboard-accent/10 text-dashboard-accent">
               <ShoppingCart className="size-[18px] shrink-0 text-dashboard-accent" strokeWidth={1.8} aria-hidden="true" />
             </div>
             <div>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
 
         {!recentOrders || recentOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-dashboard-border bg-dashboard-surface-elevated">
+            <div className="dashboard-3d-icon mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-dashboard-surface-elevated">
               <ShoppingCart className="size-6 shrink-0 text-dashboard-text-muted/40" strokeWidth={1.8} />
             </div>
             <h3 className="text-sm font-bold text-dashboard-text">Nenhum pedido ainda</h3>
@@ -263,7 +263,7 @@ export default function DashboardPage() {
                     <tr key={order.id} className="transition-colors hover:bg-dashboard-surface-elevated/50">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-dashboard-accent/20 bg-dashboard-accent/10 text-[10px] font-black text-dashboard-accent">
+                          <div className="dashboard-3d-icon flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-black text-dashboard-accent">
                             {(order.customerName || order.customerUsername || "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="max-w-[140px] truncate text-xs font-bold text-dashboard-text">

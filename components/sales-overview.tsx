@@ -39,7 +39,7 @@ export const SalesOverview = memo(({ metrics }: SalesOverviewProps) => {
                 <p className="mt-5 font-space text-[2rem] font-bold leading-none tracking-tight text-dashboard-text sm:text-[2.15rem]">{metric.value}</p>
                 {metric.helper && <p className={cn("mt-3 text-[11px] font-medium", colors.accent)}>{metric.helper}</p>}
               </div>
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-accent/20 shadow-[0_0_14px_rgba(169,201,127,0.16)]", colors.iconBg, colors.icon)}>
+              <div className={cn("dashboard-3d-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", colors.iconBg, colors.icon)}>
                 <span className="flex size-5 shrink-0 items-center justify-center [&>svg]:size-4">{metric.icon}</span>
               </div>
             </div>

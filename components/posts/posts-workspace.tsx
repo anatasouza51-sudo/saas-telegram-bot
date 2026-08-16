@@ -652,8 +652,8 @@ function PostList({
       {posts.map((p) => (
         <Card key={p.id} className="flex w-full flex-col items-start justify-between gap-4 rounded-2xl border-dashboard-border/30 bg-dashboard-card p-4 shadow-xl shadow-black/5 transition-colors hover:border-dashboard-accent/25 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashboard-border/20 bg-dashboard-bg/50">
-              <Megaphone className="h-5 w-5 text-dashboard-accent" />
+            <div className="dashboard-3d-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-dashboard-bg/50 text-dashboard-accent">
+              <Megaphone className="h-5 w-5" />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-2">

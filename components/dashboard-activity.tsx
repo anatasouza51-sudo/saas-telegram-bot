@@ -37,7 +37,7 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
       <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#7CA98D]/25 bg-[#7CA98D]/10">
+          <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#7CA98D]/10">
             <Activity className="size-4 shrink-0 text-[#7CA98D]" strokeWidth={1.8} />
           </div>
           <div>
@@ -60,14 +60,14 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
 
       {recentActions.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border px-4 py-12 text-center">
-          <Activity className="mb-3 size-6 shrink-0 text-dashboard-text-muted/40" strokeWidth={1.8} />
+          <span className="dashboard-3d-icon mb-3 flex size-12 items-center justify-center rounded-2xl text-dashboard-text-muted/40"><Activity className="size-6 shrink-0" strokeWidth={1.8} /></span>
           <p className="text-xs text-dashboard-text-muted">Nenhuma atividade recente</p>
         </div>
       ) : (
         <div className="relative z-10 space-y-2">
           {recentActions.map((action) => (
             <div key={action.id} className="flex items-center gap-3 rounded-2xl border border-dashboard-border/70 bg-dashboard-bg/45 p-3 transition-colors hover:border-dashboard-border-active hover:bg-dashboard-surface-elevated/60 sm:p-3.5">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#7CA98D]/25 bg-[#7CA98D]/10">
+              <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#7CA98D]/10">
                 <ShoppingCart className="size-4 shrink-0 text-[#7CA98D]" strokeWidth={1.8} />
               </div>
               <div className="min-w-0 flex-1">
