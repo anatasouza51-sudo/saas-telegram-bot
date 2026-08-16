@@ -87,7 +87,7 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={12} minTickGap={20} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
                 <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(v) => compactCurrency.format(v as number)} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
                 <ChartTooltip
-                  cursor={{ stroke: "rgba(59, 130, 246, 0.35)", strokeWidth: 1.5 }}
+                  cursor={false}
                   content={
                     <ChartTooltipContent
                       className="rounded-xl border border-dashboard-border bg-dashboard-surface-elevated shadow-xl"
