@@ -157,7 +157,7 @@ export function OrdersView({
               {pageItems.map((order) => (
                 <article
                   key={order.id}
-                  className="min-w-0 rounded-2xl border border-dashboard-border/80 bg-dashboard-bg/45 p-4 transition-colors hover:border-dashboard-accent/40 hover:bg-dashboard-bg/70 sm:p-5"
+                  className="isolate min-w-0 rounded-2xl border border-transparent bg-dashboard-surface p-4 shadow-none transition-colors hover:border-dashboard-border/30 hover:bg-dashboard-surface-elevated/20 sm:p-5"
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
