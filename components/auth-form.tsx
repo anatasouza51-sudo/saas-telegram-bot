@@ -154,7 +154,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       <section className="w-full max-w-[540px] px-3 sm:px-0">
           <form
             onSubmit={handleSubmit}
-            className="flex min-h-[520px] flex-col overflow-hidden rounded-[2.25rem] bg-dashboard-sidebar/85 p-7 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:min-h-[560px] sm:p-10"
+            className="flex flex-col overflow-hidden rounded-[2.25rem] bg-dashboard-sidebar/85 p-7 shadow-[0_24px_90px_-28px_rgba(20,36,29,0.92)] backdrop-blur-2xl sm:p-10"
           >
           <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-dashboard-accent-secondary/18 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-16 h-48 w-48 rounded-full bg-dashboard-accent/16 blur-3xl" />
