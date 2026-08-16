@@ -15,7 +15,7 @@ export default async function LoginPage() {
       <div className="pointer-events-none absolute inset-0 bg-black/20" />
       <GhostBg />
 
-      <div className="relative z-10 flex min-h-[100svh] w-full items-start justify-center px-4 py-4 sm:min-h-screen sm:items-center sm:px-8 sm:py-8 lg:px-12">
+      <div className="relative z-10 flex min-h-[100svh] w-full items-center justify-center px-4 py-4 sm:min-h-screen sm:px-8 sm:py-8 lg:px-12">
         <AuthForm mode="sign-in" />
       </div>
     </main>
