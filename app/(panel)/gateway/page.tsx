@@ -33,7 +33,6 @@ export default async function GatewayPage() {
       `${provider.id}.publicKey`,
       `${provider.id}.secretKey`,
       `${provider.id}.enabled`,
-      ...(provider.id === "misticpay" ? ["misticpay.splitUser"] : []),
     ]),
   ]
 
@@ -72,8 +71,6 @@ export default async function GatewayPage() {
         initial={{
           publicKey: saved[`${provider.id}.publicKey`] ?? "",
           hasSecretKey,
-          splitUser: "",
-          hasSplitUser: provider.id === "misticpay" && saved["misticpay.splitUser"] === "[REDACTED]",
         }}
         maskedWebhookUrl={maskedWebhookUrl}
       />

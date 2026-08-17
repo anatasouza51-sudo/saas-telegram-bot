@@ -21,6 +21,13 @@ const SENSITIVE_SETTING_KEYS = new Set([
   "misticpay.splitUser",
 ])
 const SENSITIVE_SETTING_PATTERNS = [/^(veopag|misticpay|gateway2|gateway3|gateway4|gateway5)\.secretKey$/]
+const PLATFORM_ONLY_SETTING_KEYS = new Set([
+  "misticpay.clientId",
+  "misticpay.clientSecret",
+  "misticpay.splitUser",
+  "misticpay.commissionCents",
+  "misticpay.commissionPercent",
+])
 
 export function isSensitiveSettingKey(key: string): boolean {
   return SENSITIVE_SETTING_KEYS.has(key) || SENSITIVE_SETTING_PATTERNS.some((pattern) => pattern.test(key))
@@ -98,6 +105,9 @@ async function runBootstrap(): Promise<void> {
 }
 
 export async function saveSetting(storeId: string, key: string, value: string) {
+  if (PLATFORM_ONLY_SETTING_KEYS.has(key)) {
+    throw new Error(`A configuração ${key} pertence ao control plane da plataforma.`)
+  }
   const valueToSave = isSensitiveSettingKey(key) ? encrypt(value) : value
 
   try {

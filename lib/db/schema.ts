@@ -227,6 +227,19 @@ export const settings = pgTable(
   }),
 )
 
+export const platformSettings = pgTable(
+  "platform_settings",
+  {
+    id: serial("id").primaryKey(),
+    key: text("key").notNull(),
+    value: text("value"),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    keyUnique: uniqueIndex("platform_settings_key_uidx").on(t.key),
+  }),
+)
+
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
   ownerId: text("ownerId").notNull(),

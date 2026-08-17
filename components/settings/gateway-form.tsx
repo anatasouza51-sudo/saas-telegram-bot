@@ -24,14 +24,13 @@ export function GatewayForm({
   provider: string
   providerName: string
   logoUrl: string
-  initial: { publicKey: string; hasSecretKey: boolean; splitUser?: string; hasSplitUser?: boolean }
+  initial: { publicKey: string; hasSecretKey: boolean }
   maskedWebhookUrl: string
   configured: boolean
   enabled: boolean
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
-  const [splitUser, setSplitUser] = useState(initial.splitUser ?? "")
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const isCompact = !configured && !enabled
@@ -47,7 +46,6 @@ export function GatewayForm({
           provider,
           publicKey,
           secretKey: secretKey.trim() || undefined,
-          splitUser: provider === "misticpay" ? splitUser.trim() || undefined : undefined,
           enabled: nextEnabled,
         })
 
@@ -153,14 +151,6 @@ export function GatewayForm({
               <Input id={`${provider}-secret`} type="password" autoComplete="new-password" placeholder={initial.hasSecretKey ? "•••••••• (salvo — preencha para alterar)" : `seu client_secret da ${providerName}`} value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
               <p className="text-xs leading-relaxed text-white/40">Gere as credenciais no painel oficial da {providerName}.{initial.hasSecretKey ? " Deixe em branco para manter o atual." : ""}</p>
             </div>
-            {provider === "misticpay" && (
-              <div className="grid gap-2 lg:col-span-2">
-                <Label htmlFor={`${provider}-split-user`} className="text-xs font-bold uppercase tracking-wider text-white/50">splitUser da comissão</Label>
-                <Input id={`${provider}-split-user`} placeholder={initial.hasSplitUser ? "•••••••• (salvo — preencha para alterar)" : "e-mail da conta Mistic Pay que recebe a comissão"} value={splitUser} onChange={(e) => setSplitUser(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
-                <p className="text-xs leading-relaxed text-white/40">A comissão fixa será enviada pela Mistic Pay para este destinatário, quando o contrato da conta permitir. Deixe em branco para manter o destinatário salvo.</p>
-
-              </div>
-            )}
             <div className="grid gap-2 lg:col-span-2">
               <Label htmlFor={`${provider}-webhook`} className="text-xs font-bold uppercase tracking-wider text-white/50">Endpoint de webhook</Label>
               <div className="flex gap-2">

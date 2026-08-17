@@ -41,6 +41,7 @@ import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
 import { validateCoupon, incrementCouponUsage } from "@/app/actions/coupons"
+import { getPlatformSetting, PLATFORM_SETTING_KEYS } from "@/lib/platform-settings"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -184,6 +185,16 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
   const token = map["telegram.botToken"]
   if (!token) return null
 
+  let platformMisticPay = { splitUser: "" }
+  try {
+    const splitUser = await getPlatformSetting(PLATFORM_SETTING_KEYS.misticPaySplitUser, { revealSensitive: true })
+    platformMisticPay = { splitUser: splitUser ?? "" }
+  } catch (error) {
+    // A missing/unapplied control-plane migration must not break VeoPag.
+    // Mistic Pay remains disabled until the global split configuration exists.
+    console.error("[bot] Configuração global Mistic Pay indisponível; gateway desativado para esta execução", error instanceof Error ? error.name : "unknown")
+  }
+
   const adminIds = (map["telegram.adminIds"] ?? "")
     .split(/[,\n]/)
     .map((s) => s.trim())
@@ -202,7 +213,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     misticpay: {
       clientId: map["misticpay.publicKey"] ?? "",
       clientSecret: map["misticpay.secretKey"] ?? "",
-      splitUser: map["misticpay.splitUser"] ?? "",
+      splitUser: platformMisticPay.splitUser,
       enabled: map["misticpay.enabled"] === "true",
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
