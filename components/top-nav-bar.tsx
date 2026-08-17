@@ -1,13 +1,10 @@
 "use client"
 
-import { memo, useState, useCallback, useEffect } from "react"
+import { memo, useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { authClient } from "@/lib/auth-client"
 import {
   Settings,
-  LogOut,
   Bell
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,15 +21,8 @@ export const TopNavBar = memo(({
 }: {
   user: { name: string; email: string; role: Role; id: string; storeId: string; image?: string | null }
 }) => {
-  const router = useRouter()
   const { mobileMenuOpen, setMobileMenuOpen } = useMobileMenu()
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
-
-  const handleSignOut = useCallback(async () => {
-    await authClient.signOut()
-    router.push("/sign-in")
-    router.refresh()
-  }, [router])
 
   // Mobile scroll lock
   useEffect(() => {
@@ -77,36 +67,6 @@ export const TopNavBar = memo(({
             <Settings className="w-5 h-5" />
           </Button>
 
-          <div className="h-8 w-[1px] bg-dashboard-border/30 mx-1 hidden md:block" />
-
-          {/* User Profile */}
-          <div className="hidden md:flex items-center gap-3 pl-2">
-            <div className="flex flex-col items-end">
-              <span className="text-xs font-bold text-dashboard-text">{user.name}</span>
-              <button 
-                onClick={handleSignOut}
-                className="text-[10px] text-dashboard-accent hover:text-dashboard-accent/80 font-bold transition-colors"
-              >
-                Sair
-              </button>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-sm font-black shadow-lg shadow-dashboard-accent/20 overflow-hidden">
-              {user.image ? (
-                <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                user.name.charAt(0).toUpperCase()
-              )}
-            </div>
-          </div>
-          
-          {/* Mobile User Avatar */}
-          <div className="md:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-dashboard-accent to-dashboard-accent-secondary flex items-center justify-center text-white text-xs font-black overflow-hidden">
-            {user.image ? (
-              <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              user.name.charAt(0).toUpperCase()
-            )}
-          </div>
         </div>
       </header>
 
@@ -149,17 +109,6 @@ export const TopNavBar = memo(({
             />
           </div>
           
-          {/* Mobile Logout at bottom of sidebar */}
-          <div className="shrink-0 border-t border-dashboard-border/30 bg-dashboard-sidebar px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start gap-3 rounded-xl px-3 py-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="font-bold">Encerrar Sessão</span>
-            </Button>
-          </div>
         </div>
       </div>
     </>
