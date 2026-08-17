@@ -50,11 +50,11 @@ export const TopNavBar = memo(({
     <>
       <header className="sticky top-0 z-40 flex w-full shrink-0 items-center justify-between gap-4 border-0 bg-transparent p-0 px-4 pb-2 pt-4 shadow-none outline-none before:hidden after:hidden md:px-8 md:pb-3 md:pt-6">
         {/* DYNORBOT brand, replacing the previous Ghost Bot mark while preserving the topbar actions. */}
-        <Link href="/" className="group flex h-12 w-[136px] shrink-0 items-center md:h-14 md:w-[190px]" aria-label="DYNORBOT — Dashboard">
+        <Link href="/" className="group flex h-12 w-[148px] shrink-0 items-center md:h-14 md:w-[208px]" aria-label="DYNORBOT — Dashboard">
           <Image
             src="/dynorbot-logo-clean-alpha.png"
             alt="DYNORBOT"
-            width={190}
+            width={208}
             height={82}
             className="h-auto max-h-full w-full object-contain object-left"
             priority
