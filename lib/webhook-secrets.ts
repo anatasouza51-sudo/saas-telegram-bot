@@ -11,7 +11,7 @@ import { encrypt, decrypt, isEncrypted } from "./crypto"
  * leave the server except embedded in the provider-facing callback URL /
  * Telegram secret_token, and are used to authenticate inbound webhooks.
  */
-export type WebhookProvider = "veopag" | "telegram"
+export type WebhookProvider = "veopag" | "misticpay" | "telegram"
 
 function key(provider: WebhookProvider) {
   return `${provider}.webhookSecret`

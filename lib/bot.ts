@@ -17,6 +17,8 @@ import {
   type TelegramUpdate,
 } from "@/lib/telegram"
 import { createCharge, getDepositStatus, mapPaymentStatus, type VeoPagCredentials } from "@/lib/veopag"
+import { MisticPayAdapter, type MisticPayCredentials } from "@/lib/misticpay"
+import { amountToCents, centsToAmount, type PaymentProvider } from "@/lib/payment-provider"
 import {
   parsePixConfig,
   generatePixQrPng,
@@ -66,11 +68,85 @@ type StoreContext = {
   botId: number | null
   adminIds: string[]
   veopag: VeoPagCredentials & { enabled: boolean }
+  misticpay: MisticPayCredentials & { enabled: boolean }
   welcomeMessage: string
   welcomeImageUrl: string
   support: SupportConfig
   pix: PixConfig
   catalog: CatalogConfig
+}
+
+type GatewayChargeResult =
+  | { ok: true; gateway: "misticpay" | "veopag"; paymentId: string; pixCode: string }
+  | { ok: false; error: string }
+
+function activeGateway(ctx: StoreContext): "misticpay" | "veopag" | null {
+  if (ctx.misticpay.enabled && ctx.misticpay.clientId && ctx.misticpay.clientSecret && ctx.misticpay.splitUser) return "misticpay"
+  if (ctx.veopag.enabled && ctx.veopag.publicKey && ctx.veopag.secretKey) return "veopag"
+  return null
+}
+
+async function createGatewayCharge(
+  ctx: StoreContext,
+  input: {
+    amount: number
+    externalId: string
+    description: string
+    customerName?: string
+    payer?: { name?: string; email?: string; document?: string }
+  },
+): Promise<GatewayChargeResult> {
+  const gateway = activeGateway(ctx)
+  if (!gateway) return { ok: false, error: "Nenhum gateway de pagamento está configurado." }
+  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, gateway)
+  const callbackUrl = gateway === "misticpay"
+    ? `${getAppBaseUrl()}/api/misticpay/webhook/${ctx.storeId}/${webhookSecret}`
+    : `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`
+
+  if (gateway === "misticpay") {
+    const amountCents = amountToCents(input.amount)
+    if (amountCents == null) return { ok: false, error: "Valor de pagamento inválido." }
+    const charge = await new MisticPayAdapter(ctx.misticpay).createPayment({
+      amountCents,
+      externalId: input.externalId,
+      description: input.description,
+      customerName: input.customerName,
+      callbackUrl,
+      payer: input.payer,
+    })
+    return charge.ok ? { ok: true, gateway, paymentId: charge.paymentId, pixCode: charge.pixCode } : { ok: false, error: charge.error }
+  }
+
+  const charge = await createCharge(ctx.veopag, {
+    amount: input.amount,
+    externalId: input.externalId,
+    description: input.description,
+    customerName: input.customerName,
+    callbackUrl,
+    payer: input.payer,
+  })
+  return charge.ok ? { ok: true, gateway, paymentId: charge.paymentId, pixCode: charge.pixCode ?? "" } : { ok: false, error: charge.error }
+}
+
+type GatewayStatusResult =
+  | { ok: true; status: "approved" | "pending" | "refused"; amountCents?: number; paymentId?: string }
+  | { ok: false; error: string }
+
+async function checkGatewayPayment(ctx: StoreContext, order: { gateway: string | null; paymentId: string | null; id: string }): Promise<GatewayStatusResult> {
+  if (order.gateway === "misticpay") {
+    if (!ctx.misticpay.clientId || !ctx.misticpay.clientSecret || !ctx.misticpay.splitUser) return { ok: false, error: "Mistic Pay não está configurada." }
+    const result = await new MisticPayAdapter(ctx.misticpay).checkPayment(order.paymentId ?? order.id)
+    return result.ok ? { ok: true, status: result.status, amountCents: result.amountCents, paymentId: result.paymentId } : { ok: false, error: result.error }
+  }
+
+  const result = await getDepositStatus(ctx.veopag, order.id)
+  if (!result.ok) return { ok: false, error: result.error }
+  return {
+    ok: true,
+    status: mapPaymentStatus(result.status),
+    amountCents: result.amount == null ? undefined : amountToCents(result.amount) ?? undefined,
+    paymentId: result.transactionId,
+  }
 }
 
 type InlineButton = {
@@ -94,7 +170,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     .from(settings)
     .where(eq(settings.ownerId, storeId))
 
-  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "pix.config"]
+  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "misticpay.secretKey", "pix.config"]
 
   const map: Record<string, string> = {}
   for (const r of rows) {
@@ -121,7 +197,13 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     veopag: {
       publicKey: map["veopag.publicKey"] ?? "",
       secretKey: map["veopag.secretKey"] ?? "",
-      enabled: map["veopag.enabled"] !== "false",
+      enabled: map["veopag.enabled"] === "true",
+    },
+    misticpay: {
+      clientId: map["misticpay.publicKey"] ?? "",
+      clientSecret: map["misticpay.secretKey"] ?? "",
+      splitUser: map["misticpay.splitUser"] ?? "",
+      enabled: map["misticpay.enabled"] === "true",
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
     welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",
@@ -675,7 +757,7 @@ async function handleRecharge(
   from: { id: number; username?: string; first_name?: string },
 ) {
   // Callback data vem do Telegram, portanto valide antes de tocar no banco ou
-  if (!ctx.veopag.enabled) {
+  if (!activeGateway(ctx)) {
     await ctx.tg.sendMessage(chatId, "⚠️ Os pagamentos estão temporariamente indisponíveis. Tente novamente mais tarde.")
     return
   }
@@ -698,16 +780,14 @@ async function handleRecharge(
       paymentStatus: "pending",
       deliveryStatus: "pending",
       type: "recharge",
-      gateway: "veopag",
+      gateway: activeGateway(ctx) ?? "veopag",
     })
     .returning()
 
-  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
-  const charge = await createCharge(ctx.veopag, {
+  const charge = await createGatewayCharge(ctx, {
     amount,
     externalId: String(order.id),
     description: `Recarga de Saldo - ${customer.name || customer.username}`,
-    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
     payer: { name: customer.name ?? customer.username ?? "Cliente" },
   })
 
@@ -720,7 +800,7 @@ async function handleRecharge(
     return
   }
 
-  const pixCode = charge.pixCode ?? ""
+  const pixCode = charge.pixCode
   const publicToken = randomBytes(24).toString("base64url")
   const expiresAt = new Date(Date.now() + ctx.pix.expireMinutes * 60_000)
 
@@ -801,6 +881,12 @@ async function startPurchase(
     .where(and(eq(products.ownerId, ctx.storeId), eq(products.id, productId)))
   if (!product) return
 
+  const selectedGateway = activeGateway(ctx)
+  if (!selectedGateway) {
+    await ctx.tg.sendMessage(chatId, "⚠️ Os pagamentos estão temporariamente indisponíveis. Tente novamente mais tarde.")
+    return
+  }
+
   const customer = await upsertCustomer(ctx.storeId, from)
 
   // Apply active coupon if the customer has one set.
@@ -836,7 +922,7 @@ async function startPurchase(
       couponCode: appliedCouponCode,
       paymentStatus: "pending",
       deliveryStatus: "pending",
-      gateway: "veopag",
+      gateway: selectedGateway,
     })
     .returning()
 
@@ -849,20 +935,13 @@ async function startPurchase(
     // Increment coupon usage counter.
     await incrementCouponUsage(ctx.storeId, appliedCouponCode)
   }
-  if (!ctx.veopag.enabled) {
-    await ctx.tg.sendMessage(chatId, "⚠️ Os pagamentos estão temporariamente indisponíveis. Tente novamente mais tarde.")
-    return
-  }
-
-  const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, "veopag")
-  const charge = await createCharge(ctx.veopag, {
+  const charge = await createGatewayCharge(ctx, {
     amount: finalAmount,
     externalId: String(order.id),
     description: appliedCouponCode
       ? `${product.name} (${discountPercent}% OFF com ${appliedCouponCode})`
       : product.name,
     customerName: customer.name ?? undefined,
-    callbackUrl: `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`,
     payer: {
       name: customer.name ?? customer.username ?? "Cliente",
     },
@@ -1191,20 +1270,20 @@ async function handlePixVerify(
     return
   }
 
-  // Webhooks can be delayed or lost. Reconcile directly with VeoPag before
-  // telling the customer that the payment is still pending.
-  const gatewayStatus = await getDepositStatus(ctx.veopag, String(order.id))
-  if (gatewayStatus.ok && mapPaymentStatus(gatewayStatus.status) === "approved") {
-    const expectedAmount = Number(order.amount)
-    if (gatewayStatus.amount != null && Math.abs(gatewayStatus.amount - expectedAmount) > 0.01) {
-      console.error(`[bot/pix] amount mismatch for order ${order.id}: expected=${expectedAmount} gateway=${gatewayStatus.amount}`)
+  // Webhooks can be delayed or lost. Reconcile directly with the configured
+  // gateway before telling the customer that the payment is still pending.
+  const gatewayStatus = await checkGatewayPayment(ctx, order)
+  if (gatewayStatus.ok && gatewayStatus.status === "approved") {
+    const expectedAmountCents = amountToCents(Number(order.amount))
+    if (expectedAmountCents == null || (gatewayStatus.amountCents != null && gatewayStatus.amountCents !== expectedAmountCents)) {
+      console.error(`[bot/pix] amount mismatch for order ${order.id}`)
       await ctx.tg.answerCallbackQuery(callbackId, "Pagamento identificado, mas o valor não confere. Suporte foi avisado.")
       return
     }
 
     await db
       .update(orders)
-      .set({ paymentStatus: "approved", paymentId: gatewayStatus.transactionId ?? order.paymentId, updatedAt: new Date() })
+      .set({ paymentStatus: "approved", paymentId: gatewayStatus.paymentId ?? order.paymentId, updatedAt: new Date() })
       .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
     const result = await fulfillOrder(order.id, ctx.storeId)
     if (result.ok || result.code === "already_delivered") {

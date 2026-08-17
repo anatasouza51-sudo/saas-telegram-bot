@@ -16,8 +16,11 @@ const SENSITIVE_SETTING_KEYS = new Set([
   "telegram.botToken",
   "telegram.webhookSecret",
   "veopag.webhookSecret",
+  "misticpay.webhookSecret",
+  "misticpay.secretKey",
+  "misticpay.splitUser",
 ])
-const SENSITIVE_SETTING_PATTERNS = [/^(veopag|gateway2|gateway3|gateway4|gateway5)\.secretKey$/]
+const SENSITIVE_SETTING_PATTERNS = [/^(veopag|misticpay|gateway2|gateway3|gateway4|gateway5)\.secretKey$/]
 
 export function isSensitiveSettingKey(key: string): boolean {
   return SENSITIVE_SETTING_KEYS.has(key) || SENSITIVE_SETTING_PATTERNS.some((pattern) => pattern.test(key))

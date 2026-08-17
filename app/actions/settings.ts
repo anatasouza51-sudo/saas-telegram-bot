@@ -100,6 +100,7 @@ export async function saveGatewaySettings(input: {
   provider: string
   publicKey: string
   secretKey?: string
+  splitUser?: string
   enabled?: boolean
 }) {
   const user = await requireCapability("gateway.manage")
@@ -117,6 +118,16 @@ export async function saveGatewaySettings(input: {
   const secret = input.secretKey ? validateGatewayKey(input.secretKey, "Chave secreta") : undefined
   if (secret) {
     await saveSetting(user.storeId, `${provider}.secretKey`, secret)
+  }
+
+  if (provider === "misticpay" && !isDisabling) {
+    const splitUser = input.splitUser?.trim()
+    if (splitUser && splitUser !== "[REDACTED]") {
+      await saveSetting(user.storeId, "misticpay.splitUser", validateGatewayKey(splitUser, "splitUser"))
+    } else {
+      const existingSplitUser = await getSetting(user.storeId, "misticpay.splitUser", { revealSensitive: true })
+      if (!existingSplitUser) throw new Error("Informe o splitUser da conta que receberá a comissão.")
+    }
   }
 
   if (typeof input.enabled === "boolean") {

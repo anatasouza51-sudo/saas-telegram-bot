@@ -24,13 +24,14 @@ export function GatewayForm({
   provider: string
   providerName: string
   logoUrl: string
-  initial: { publicKey: string; hasSecretKey: boolean }
+  initial: { publicKey: string; hasSecretKey: boolean; splitUser?: string; hasSplitUser?: boolean }
   maskedWebhookUrl: string
   configured: boolean
   enabled: boolean
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
+  const [splitUser, setSplitUser] = useState(initial.splitUser ?? "")
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const isCompact = !configured && !enabled
@@ -46,8 +47,10 @@ export function GatewayForm({
           provider,
           publicKey,
           secretKey: secretKey.trim() || undefined,
+          splitUser: provider === "misticpay" ? splitUser.trim() || undefined : undefined,
           enabled: nextEnabled,
         })
+
         setSecretKey("")
         setIsEnabled(nextEnabled)
         setConfirmDisableOpen(false)
@@ -81,7 +84,7 @@ export function GatewayForm({
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className={`relative shrink-0 items-center justify-center [transform:perspective(500px)_rotateY(-7deg)_rotateX(3deg)] ${isCompact ? "flex h-14 w-14" : "flex h-[68px] w-[68px]"}`}>
-              <Image src={logoUrl} alt={providerName} fill sizes={isCompact ? "56px" : "68px"} className="object-contain" />
+              {logoUrl ? <Image src={logoUrl} alt={providerName} fill sizes={isCompact ? "56px" : "68px"} className="object-contain" /> : <KeyRound className="h-8 w-8 text-dashboard-accent" />}
             </div>
             <div className="min-w-0">
               {!isCompact && (
@@ -150,6 +153,14 @@ export function GatewayForm({
               <Input id={`${provider}-secret`} type="password" autoComplete="new-password" placeholder={initial.hasSecretKey ? "•••••••• (salvo — preencha para alterar)" : `seu client_secret da ${providerName}`} value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
               <p className="text-xs leading-relaxed text-white/40">Gere as credenciais no painel oficial da {providerName}.{initial.hasSecretKey ? " Deixe em branco para manter o atual." : ""}</p>
             </div>
+            {provider === "misticpay" && (
+              <div className="grid gap-2 lg:col-span-2">
+                <Label htmlFor={`${provider}-split-user`} className="text-xs font-bold uppercase tracking-wider text-white/50">splitUser da comissão</Label>
+                <Input id={`${provider}-split-user`} placeholder={initial.hasSplitUser ? "•••••••• (salvo — preencha para alterar)" : "e-mail da conta Mistic Pay que recebe a comissão"} value={splitUser} onChange={(e) => setSplitUser(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
+                <p className="text-xs leading-relaxed text-white/40">A comissão fixa será enviada pela Mistic Pay para este destinatário, quando o contrato da conta permitir. Deixe em branco para manter o destinatário salvo.</p>
+
+              </div>
+            )}
             <div className="grid gap-2 lg:col-span-2">
               <Label htmlFor={`${provider}-webhook`} className="text-xs font-bold uppercase tracking-wider text-white/50">Endpoint de webhook</Label>
               <div className="flex gap-2">
@@ -171,7 +182,7 @@ export function GatewayForm({
       <Dialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
         <DialogContent className="border border-dashboard-accent/25 bg-dashboard-surface-elevated text-white shadow-[0_20px_80px_rgba(0,0,0,0.55)]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white"><PowerOff className="h-5 w-5 text-amber-300" />Desativar o gateway VeoPag?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-white"><PowerOff className="h-5 w-5 text-amber-300" />Desativar o gateway {providerName}?</DialogTitle>
             <DialogDescription className="text-white/60">Novas cobranças PIX deixarão de ser iniciadas enquanto o gateway estiver desativado. As credenciais e o webhook serão preservados para uma futura reativação.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="border-white/10 bg-white/[0.03]">
