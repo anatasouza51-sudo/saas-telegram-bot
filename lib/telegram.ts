@@ -57,30 +57,22 @@ export class TelegramClient {
       
       const elapsed = Date.now() - startedAt
       
-      // Log essential data without exposing the full token
-      const botId = this.botId
       const status = res.status
       
       if (!data.ok) {
-        console.error(`[TelegramAPI] Method: ${method} | Bot: ${botId} | Status: ${status} | Elapsed: ${elapsed}ms | Error: ${data.description || "Unknown error"}`)
-        if (data.error_code) console.error(`[TelegramAPI] Error Code: ${data.error_code}`, data.parameters || "")
-        // Log sanitized payload (exclude sensitive fields if any, though Telegram payload is usually safe)
-        const sanitizedPayload = { ...payload }
-        if (sanitizedPayload.text) sanitizedPayload.text = (sanitizedPayload.text as string).substring(0, 100) + "..."
-        console.error(`[TelegramAPI] Payload:`, JSON.stringify(sanitizedPayload))
+        console.error(`[TelegramAPI] request failed | method=${method} | status=${status} | elapsed=${elapsed}ms`)
       } else if (elapsed > 2000) {
-        console.warn(`[TelegramAPI] SLOW Method: ${method} | Bot: ${botId} | Elapsed: ${elapsed}ms`)
+        console.warn(`[TelegramAPI] slow request | method=${method} | elapsed=${elapsed}ms`)
       }
 
       return data
-    } catch (err) {
+    } catch {
       const elapsed = Date.now() - startedAt
-      const errorMessage = err instanceof Error ? err.message : "Erro de rede"
-      console.error(`[TelegramAPI] CRITICAL Method: ${method} | Bot: ${this.botId} | Elapsed: ${elapsed}ms | Exception: ${errorMessage}`)
+      console.error(`[TelegramAPI] request exception | method=${method} | elapsed=${elapsed}ms`)
       
       return {
         ok: false,
-        description: errorMessage,
+        description: "Falha de comunicação com o Telegram",
       }
     } finally {
       clearTimeout(timeout)

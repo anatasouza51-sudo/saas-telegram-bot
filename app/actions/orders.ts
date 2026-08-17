@@ -35,7 +35,7 @@ export async function approveAndDeliver(orderId: string) {
   if (order.deliveryStatus === "delivered") {
     throw new Error("Pedido já entregue")
   }
-  const result = await fulfillOrder(orderId)
+  const result = await fulfillOrder(orderId, user.storeId)
   if (!result.ok) {
     throw new Error(result.reason)
   }

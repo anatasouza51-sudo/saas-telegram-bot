@@ -29,10 +29,11 @@ export async function getWebhookSecret(
     .limit(1)
   
   const val = row?.value ?? null
-  if (val && isEncrypted(val)) {
-    return decrypt(val)
+  if (!val) return null
+  if (!isEncrypted(val)) {
+    throw new Error("Webhook secret is not encrypted")
   }
-  return val
+  return decrypt(val)
 }
 
 function isRelationNotFound(err: unknown): boolean {
@@ -56,21 +57,9 @@ export async function getOrCreateWebhookSecret(
       .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
   } catch (err) {
     if (isRelationNotFound(err)) {
-      console.warn("[webhook-secrets] Tabela 'settings' não encontrada, executando bootstrap...")
-      const { ensureDbStructure } = await import("@/lib/db/migrate")
-      await ensureDbStructure()
-      // BUGFIX: sempre armazenar o valor criptografado para manter consistência
-      // com os outros caminhos de inserção. Se armazenarmos em plaintext, a
-      // leitura posterior via isEncrypted() vai retornar o valor bruto, mas
-      // se o código depois tentar descriptografar um valor que não é criptografado,
-      // pode causar falhas de validação do webhook.
-      await db
-        .insert(settings)
-        .values({ ownerId: storeId, key: key(provider), value: encrypted })
-        .onConflictDoNothing({ target: [settings.ownerId, settings.key] })
-    } else {
-      throw err
+      throw new Error("Webhook secret storage is unavailable; apply database migrations before serving traffic")
     }
+    throw err
   }
   // Re-read in case of a concurrent insert winning the race.
   return (await getWebhookSecret(storeId, provider)) ?? secret

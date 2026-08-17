@@ -85,19 +85,19 @@ export async function createAdmin(input: {
 
     revalidatePath("/admins")
     return { ok: true }
-  } catch (e) {
-    console.error("[admins] could not create admin, rolling back user:", e)
+  } catch {
+    console.error("[admins] could not create admin, rolling back user")
     // Compensação: se o vínculo falhou, removemos o usuário órfão criado pelo signup
     if (newUserId) {
       try {
         await db.delete(user).where(eq(user.id, newUserId))
-      } catch (cleanupErr) {
-        console.error("[admins] failed to cleanup orphaned user after transaction failure:", cleanupErr)
+      } catch {
+        console.error("[admins] failed to cleanup orphaned user after transaction failure")
       }
     }
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Erro ao criar administrador",
+      error: "Não foi possível criar o administrador",
     }
   }
 }
@@ -165,7 +165,7 @@ export async function deleteAdmin(userId: string) {
     .where(and(eq(user.id, userId), storeMembers(actor.storeId)))
   await logActivity({
     storeId: actor.storeId,
-    action: `Administrador removido: ${target.email ?? userId}`,
+    action: "Administrador removido",
     category: "admin",
     actor,
   })

@@ -1,5 +1,6 @@
 import "server-only"
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
+import { isIP } from "node:net"
 import { Redis } from "@upstash/redis"
 import { Ratelimit } from "@upstash/ratelimit"
 import RedisIO from "ioredis"
@@ -60,6 +61,8 @@ type RateLimitResult = {
 // In-memory fallback for development
 type Bucket = { count: number; resetAt: number }
 const buckets = new Map<string, Bucket>()
+const FAIL_CLOSED_RATE_LIMIT_NAMESPACES = new Set(["webhook", "repair", "honeypot", "paystatus", "payment"])
+const DEVELOPMENT_SALT = randomBytes(32).toString("hex")
 
 /**
  * Rate limiter distribuído com suporte a Redis e Upstash.
@@ -69,8 +72,11 @@ export async function rateLimit(
   key: string,
   opts: { max: number; windowMs: number; namespace?: string },
 ): Promise<RateLimitResult> {
-  const fullKey = `${opts.namespace ?? "rl"}:${key}`
+  const namespace = opts.namespace ?? "rl"
+  const fullKey = `${namespace}:${key}`
   const now = Date.now()
+  const failClosed = process.env.NODE_ENV === "production" && FAIL_CLOSED_RATE_LIMIT_NAMESPACES.has(namespace)
+  let distributedAvailable = false
 
   // 1. Tentar Upstash Redis (Serverless HTTP)
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
@@ -82,6 +88,7 @@ export async function rateLimit(
         prefix: "@upstash/ratelimit",
       })
       const { success, limit, remaining, reset } = await ratelimit.limit(fullKey)
+      distributedAvailable = true
       return {
         ok: success,
         retryAfterMs: success ? 0 : reset - now,
@@ -89,8 +96,8 @@ export async function rateLimit(
         remaining,
         reset,
       }
-    } catch (err) {
-      console.error("[security] Upstash rate limiting failed, falling back:", err)
+    } catch {
+      console.error("[security] Upstash rate limiting failed")
     }
   }
 
@@ -110,6 +117,7 @@ export async function rateLimit(
       // Cleanup connection if not persistent (optional, but good for serverless)
       // Em um app real, usaríamos um singleton para o cliente Redis
       
+      distributedAvailable = true
       return {
         ok: isOk,
         retryAfterMs: isOk ? 0 : Math.max(0, ttl),
@@ -117,8 +125,18 @@ export async function rateLimit(
         remaining: Math.max(0, opts.max - current),
         reset: now + (ttl > 0 ? ttl : opts.windowMs),
       }
-    } catch (err) {
-      console.error("[security] Redis rate limiting failed, falling back:", err)
+    } catch {
+      console.error("[security] Redis rate limiting failed")
+    }
+  }
+
+  if (failClosed && !distributedAvailable) {
+    return {
+      ok: false,
+      retryAfterMs: 5_000,
+      limit: 0,
+      remaining: 0,
+      reset: now + 5_000,
     }
   }
 
@@ -159,17 +177,27 @@ if (typeof setInterval !== "undefined") {
  * CF-Connecting-IP é definido pelo Cloudflare e não pode ser falsificado pelo usuário final.
  */
 export function clientIpFrom(req: Request): string {
-  // 1. Cloudflare — IP real do cliente (não falsificável)
-  const cfIp = req.headers.get("cf-connecting-ip")
-  if (cfIp) return cfIp.trim()
+  const trustedProxy = process.env.TRUSTED_PROXY
 
-  // 2. Vercel — headers próprios da plataforma
-  const vercelIp = req.headers.get("x-vercel-proxied-for") || req.headers.get("x-real-ip")
-  if (vercelIp) return vercelIp.split(",")[0].trim()
+  if (trustedProxy === "cloudflare") {
+    const cfIp = req.headers.get("cf-connecting-ip")?.trim() ?? ""
+    if (isIP(cfIp)) return cfIp
+  }
 
-  // 3. Proxy genérico
-  const fwd = req.headers.get("x-forwarded-for")
-  if (fwd) return fwd.split(",")[0].trim()
+  if (trustedProxy === "vercel") {
+    const vercelIp = (req.headers.get("x-vercel-proxied-for") || req.headers.get("x-real-ip") || "")
+      .split(",")[0]
+      .trim()
+    if (isIP(vercelIp)) return vercelIp
+  }
+
+  // Headers genéricos são aceitos apenas fora de produção, onde o proxy é
+  // explicitamente configurado pelo operador. Em produção, um header enviado
+  // pelo cliente não pode definir a identidade usada pelo rate limiter.
+  if (process.env.NODE_ENV !== "production") {
+    const forwarded = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim()
+    if (isIP(forwarded)) return forwarded
+  }
 
   return "unknown"
 }
@@ -178,11 +206,11 @@ export function clientIpFrom(req: Request): string {
  * Gera um hash do IP para privacidade em logs persistentes ou rate limiting.
  * Usa um segredo do servidor para evitar rainbow tables.
  */
-const IP_SALT = process.env.RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET
-if (!IP_SALT) {
-  throw new Error("[security] RATE_LIMIT_SECRET or BETTER_AUTH_SECRET must be configured")
+const IP_SALT = process.env.RATE_LIMIT_SECRET
+if (!IP_SALT && process.env.NODE_ENV === "production") {
+  throw new Error("[security] RATE_LIMIT_SECRET must be configured in production")
 }
-const DYNAMIC_SALT = IP_SALT
+const DYNAMIC_SALT = IP_SALT ?? DEVELOPMENT_SALT
 
 export function hashIp(ip: string): string {
   return createHmac("sha256", DYNAMIC_SALT).update(ip).digest("hex").slice(0, 16)

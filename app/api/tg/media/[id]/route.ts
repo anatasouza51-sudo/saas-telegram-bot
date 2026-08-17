@@ -50,8 +50,11 @@ export async function GET(
 
   // Prefer the lightweight thumbnail when present (faster gallery loads).
   const targetFileId = row.thumbFileId ?? row.fileId
-  const decryptedFileId = decrypt(targetFileId) ?? targetFileId
-  const url = await getFileUrl(client, decryptedFileId)
+  const decryptedFileId = decrypt(targetFileId)
+  if (!decryptedFileId) {
+    return new NextResponse("Mídia indisponível", { status: 415 })
+  }
+  const url = await getFileUrl(client, decryptedFileId, user.storeId)
   if (!url) {
     // Files over 20MB can't be fetched via getFile; that's expected.
     return new NextResponse("Pré-visualização indisponível", { status: 415 })

@@ -32,7 +32,7 @@ export async function ensureDbStructure() {
         email TEXT NOT NULL UNIQUE,
         "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE,
         image TEXT,
-        role TEXT NOT NULL DEFAULT 'admin',
+        role TEXT NOT NULL DEFAULT 'support',
         "ownerId" TEXT,
         "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
@@ -68,7 +68,7 @@ export async function ensureDbStructure() {
             console.log("[db/migrate] Sincronizando neon_auth.user -> public.user...");
             await client.query(`
               INSERT INTO public."user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
-              SELECT id::TEXT, name, email, "emailVerified", image, COALESCE(role, 'admin'), "createdAt", "updatedAt"
+              SELECT id::TEXT, name, email, "emailVerified", image, COALESCE(role, 'support'), "createdAt", "updatedAt"
               FROM neon_auth."user"
               WHERE email IS NOT NULL
               ON CONFLICT (email) DO UPDATE SET

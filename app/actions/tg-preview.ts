@@ -3,6 +3,7 @@
 import { requireCapability } from "@/lib/session"
 import { TelegramClient } from "@/lib/telegram"
 import { validateBotToken } from "@/lib/validation"
+import { getSetting } from "@/lib/settings"
 
 export type BotPreview = {
   name: string
@@ -69,4 +70,10 @@ export async function getBotPreview(tokenInput: string): Promise<BotPreview | nu
     console.error("Error fetching bot preview (token redacted)")
     return null
   }
+}
+
+export async function getCurrentBotPreview(): Promise<BotPreview | null> {
+  const user = await requireCapability("telegram.manage")
+  const token = await getSetting(user.storeId, "telegram.botToken", { revealSensitive: true })
+  return token ? getBotPreview(token) : null
 }

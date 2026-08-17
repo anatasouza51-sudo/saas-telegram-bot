@@ -40,7 +40,7 @@ export async function getStoreTelegram(
     TG_KEYS.cdnChatId,
     TG_KEYS.managementChatId,
     TG_KEYS.backupChatId,
-  ], dctx)
+  ], dctx, { revealSensitive: true })
   const token = map[TG_KEYS.botToken] || ""
   return {
     token,

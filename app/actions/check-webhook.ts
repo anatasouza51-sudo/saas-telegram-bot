@@ -25,7 +25,7 @@ export async function checkWebhookRegistration(): Promise<{
   error?: string
 }> {
   const user = await requireCapability("telegram.manage")
-  const token = await getSetting(user.storeId, "telegram.botToken")
+  const token = await getSetting(user.storeId, "telegram.botToken", { revealSensitive: true })
   if (!token) {
     return { ok: false, error: "Token do bot não configurado." }
   }
@@ -35,9 +35,7 @@ export async function checkWebhookRegistration(): Promise<{
   if (!info.ok || !info.result) {
     return {
       ok: false,
-      error:
-        info.description ??
-        "Não foi possível consultar o status do webhook no Telegram.",
+      error: "Não foi possível consultar o status do webhook no Telegram.",
     }
   }
   const registered = info.result.url ?? ""

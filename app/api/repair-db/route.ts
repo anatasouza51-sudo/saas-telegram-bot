@@ -14,22 +14,22 @@ export async function GET(req: Request) {
     return new Response("Service Unavailable: REPAIR_TOKEN not configured", { status: 503 })
   }
 
-  const { searchParams } = new URL(req.url)
-  const token = searchParams.get("token")
+  const authorization = req.headers.get("authorization") ?? ""
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : null
 
   // Rate limit para evitar brute force do token
   const ip = clientIpFrom(req)
   const limit = await rateLimit(`repair:${hashIp(ip)}`, {
     max: 3,
     windowMs: 300_000, // 3 tentativas a cada 5 minutos
-    namespace: "maintenance",
+    namespace: "repair",
   })
   if (!limit.ok) {
     return new Response("Too Many Requests", { status: 429 })
   }
 
   if (!token || !safeEqual(token, expectedToken)) {
-    return new Response("Unauthorized: Invalid REPAIR_TOKEN", { status: 401 })
+    return new Response("Unauthorized", { status: 401 })
   }
 
   const results: string[] = []
@@ -171,13 +171,13 @@ export async function GET(req: Request) {
       WHERE table_name = 'user' AND column_name = 'role'
     `)
     if (roleCheck.rows[0]?.column_default === null) {
-      await client.query("ALTER TABLE \"user\" ALTER COLUMN \"role\" SET DEFAULT 'admin'")
-      results.push("Adicionado DEFAULT 'admin' na coluna role")
+      await client.query("ALTER TABLE \"user\" ALTER COLUMN \"role\" SET DEFAULT 'support'")
+      results.push("Adicionado DEFAULT 'support' na coluna role")
     }
 
     return NextResponse.json({ success: true, message: "Banco reparado com sucesso" })
-  } catch (err: any) {
-    console.error("[repair-db] Erro crítico:", err)
+  } catch {
+    console.error("[repair-db] Erro crítico")
     return NextResponse.json({ success: false, error: "Erro interno ao reparar banco" }, { status: 500 })
   } finally {
     client.release()

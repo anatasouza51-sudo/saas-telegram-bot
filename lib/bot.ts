@@ -657,7 +657,7 @@ async function handlePayWithBalance(
     
     await ctx.tg.sendMessage(chatId, `✅ <b>Pagamento com Saldo realizado!</b>\n\nValor de ${formatCurrency(price)} descontado. Seu novo saldo é ${formatCurrency(newBalance)}.`)
     
-    await fulfillOrder(order.id)
+    await fulfillOrder(order.id, ctx.storeId)
 
   } catch (err) {
     await client.query("ROLLBACK")
@@ -1169,7 +1169,7 @@ async function handlePixVerify(
     // Safety net: if the webhook approved payment but delivery didn't complete,
     // deliver now (fulfillOrder is idempotent).
     if (order.deliveryStatus !== "delivered") {
-      const result = await fulfillOrder(orderId)
+      const result = await fulfillOrder(orderId, ctx.storeId)
       // "already_delivered" only means another flow won the race — not an error.
       if (!result.ok && result.code !== "already_delivered") {
         console.error(
@@ -1206,7 +1206,7 @@ async function handlePixVerify(
       .update(orders)
       .set({ paymentStatus: "approved", paymentId: gatewayStatus.transactionId ?? order.paymentId, updatedAt: new Date() })
       .where(and(eq(orders.ownerId, ctx.storeId), eq(orders.id, order.id)))
-    const result = await fulfillOrder(order.id)
+    const result = await fulfillOrder(order.id, ctx.storeId)
     if (result.ok || result.code === "already_delivered") {
       await ctx.tg.answerCallbackQuery(callbackId, "Pagamento aprovado! Saldo atualizado. ✅")
       return

@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session"
 import { can } from "@/lib/roles"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { db } from "@/lib/db"
-import { telegramMedia } from "@/lib/db/schema"
+import { telegramMedia, telegramMediaFolders } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import type { TelegramMediaKind } from "@/lib/telegram"
 import { sanitizeFileName } from "@/lib/validation"
@@ -63,6 +63,10 @@ function kindFor(mime: string, forceDocument: boolean): TelegramMediaKind {
 }
 
 // Helper to always return JSON — prevents Vercel HTML error pages.
+function publicMedia(row: Record<string, unknown>) {
+  return { ...row, fileId: "", thumbFileId: null }
+}
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -78,14 +82,8 @@ export async function POST(req: Request) {
   if (guard) return guard
   try {
     return await handleUpload(req)
-  } catch (err: any) {
-    const msg = err?.message ?? "unknown"
-    const stack = err?.stack?.split("\n").slice(0, 5).join("\n")
-    console.error("[upload] CRITICAL — Unhandled error (full stack):", {
-      message: msg,
-      stack,
-      name: err?.constructor?.name,
-    })
+  } catch {
+    console.error("[upload] CRITICAL — Unhandled error")
     // MUST return JSON — otherwise Vercel/Next.js sends HTML "This page couldn't load".
     return jsonResponse(
       { error: "Erro interno no servidor. Verifique os logs para detalhes." },
@@ -99,8 +97,8 @@ async function handleUpload(req: Request) {
   let user
   try {
     user = await getSessionUser()
-  } catch (err: any) {
-    console.error("[upload] getSessionUser threw:", err)
+  } catch {
+    console.error("[upload] getSessionUser threw")
     return jsonResponse({ error: "Sessão inválida. Recarregue a página." }, 401)
   }
 
@@ -117,8 +115,8 @@ async function handleUpload(req: Request) {
     const cfg = await getStoreTelegram(user.storeId)
     client = cfg.client
     cdnChatId = cfg.cdnChatId
-  } catch (err: any) {
-    console.error("[upload] getStoreTelegram threw:", err)
+  } catch {
+    console.error("[upload] getStoreTelegram threw")
     return jsonResponse({ error: "Erro ao carregar configuração do Telegram." }, 500)
   }
 
@@ -149,9 +147,22 @@ async function handleUpload(req: Request) {
 
   const file = form.get("file")
   const forceDocument = form.get("asDocument") === "true"
-  const folderId = form.get("folderId")
-    ? Number(form.get("folderId"))
-    : null
+  const rawFolderId = form.get("folderId")
+  const folderId = rawFolderId ? Number(rawFolderId) : null
+
+  if (folderId !== null) {
+    if (!Number.isSafeInteger(folderId) || folderId <= 0) {
+      return jsonResponse({ error: "Pasta inválida" }, 400)
+    }
+    const [folder] = await db
+      .select({ id: telegramMediaFolders.id })
+      .from(telegramMediaFolders)
+      .where(and(eq(telegramMediaFolders.id, folderId), eq(telegramMediaFolders.ownerId, user.storeId)))
+      .limit(1)
+    if (!folder) {
+      return jsonResponse({ error: "Pasta não encontrada" }, 403)
+    }
+  }
 
   if (!(file instanceof File)) {
     return jsonResponse({ error: "Arquivo ausente" }, 400)
@@ -166,21 +177,22 @@ async function handleUpload(req: Request) {
     )
   }
 
-  // Validate MIME type against whitelist; block dangerous types.
+  // Validate MIME type against a positive whitelist; never rely only on a
+  // blacklist because unknown executable types can bypass it.
   const declaredMime = (file.type || "").toLowerCase()
   const isBlocked = BLOCKED_MIME_PREFIXES.some((p) => declaredMime.startsWith(p))
   if (isBlocked) {
     return jsonResponse({ error: "Tipo de arquivo não permitido" }, 400)
   }
 
-  console.log(`[upload] Receiving file: ${file.name} (${file.size} bytes, ${declaredMime})`)
+  console.log("[upload] receiving media", { size: file.size })
 
   // Read file into buffer
   let buffer: Buffer
   try {
     buffer = Buffer.from(await file.arrayBuffer())
-  } catch (err: any) {
-    console.error("[upload] arrayBuffer failed:", err)
+  } catch {
+    console.error("[upload] arrayBuffer failed")
     return jsonResponse({ error: "Falha ao ler o arquivo." }, 400)
   }
 
@@ -191,17 +203,38 @@ async function handleUpload(req: Request) {
   }
 
   const finalMime = detected ?? declaredMime
+  const isAllowed = ALLOWED_MIME_PREFIXES.some((prefix) => finalMime === prefix || finalMime.startsWith(prefix))
+  if (!isAllowed) {
+    return jsonResponse({ error: "Tipo de arquivo não permitido" }, 400)
+  }
+  if (detected && declaredMime && declaredMime.split("/")[0] !== detected.split("/")[0]) {
+    return jsonResponse({ error: "Conteúdo não corresponde ao tipo declarado" }, 400)
+  }
   const kind = kindFor(finalMime, forceDocument)
-  console.log(`[upload] Detected kind: ${kind}, MIME: ${finalMime}`)
+  console.log("[upload] media type detected", { kind })
 
   // Use original buffer directly — no sharp dependency needed.
   const processedBuffer = buffer
   const finalFileName = sanitizeFileName(file.name)
-  const extension = finalFileName.split(".").pop() || "bin"
+  const extension = (finalFileName.split(".").pop() || "").toLowerCase()
+  const allowedExtensions: Record<string, string[]> = {
+    "image/png": ["png"],
+    "image/jpeg": ["jpg", "jpeg"],
+    "image/gif": ["gif"],
+    "image/webp": ["webp"],
+    "video/mp4": ["mp4"],
+    "audio/mpeg": ["mp3"],
+    "audio/ogg": ["ogg"],
+    "audio/wav": ["wav"],
+    "application/pdf": ["pdf"],
+  }
+  if (!extension || !allowedExtensions[finalMime]?.includes(extension)) {
+    return jsonResponse({ error: "Extensão incompatível com o tipo de arquivo" }, 400)
+  }
   const secureName = `${randomBytes(16).toString("hex")}.${extension}`
 
   // Push the bytes to the private CDN chat; Telegram returns a reusable file_id.
-  console.log(`[upload] Uploading to Telegram CDN chat ${cdnChatId}...`)
+  console.log("[upload] uploading media to Telegram CDN")
   let result: { ok: boolean; description?: string; media?: any }
   try {
     result = await client.uploadMedia(cdnChatId, kind, {
@@ -209,19 +242,19 @@ async function handleUpload(req: Request) {
       filename: secureName,
       mimeType: finalMime,
     })
-  } catch (err: any) {
-    console.error("[upload] uploadMedia threw:", err)
+  } catch {
+    console.error("[upload] uploadMedia threw")
     return jsonResponse(
       { error: "Falha ao conectar com o Telegram. Verifique se o token do bot e o Chat ID estão corretos." },
       502,
     )
   }
 
-  console.log(`[upload] Telegram response: ok=${result.ok}, hasMedia=${!!result.media}, description=${result.description ?? "(none)"}`)
+  console.log("[upload] Telegram upload completed", { ok: result.ok, hasMedia: Boolean(result.media) })
 
   if (!result.ok || !result.media) {
-    const desc = result.description ?? "Falha ao enviar para o Telegram"
-    let friendlyError = desc
+    const desc = result.description ?? ""
+    let friendlyError = "Falha ao enviar o arquivo para o Telegram."
     if (desc.includes("chat not found") || desc.includes("Bad Request: chat not found")) {
       friendlyError = "Chat ID não encontrado. Verifique se o bot foi adicionado ao grupo/canal de armazenamento e o Chat ID está correto."
     } else if (desc.includes("Forbidden")) {
@@ -250,16 +283,16 @@ async function handleUpload(req: Request) {
         )
         .limit(1)
       if (existing.length > 0) {
-        return jsonResponse({ media: existing[0], deduped: true })
+        return jsonResponse({ media: publicMedia(existing[0]), deduped: true })
       }
-    } catch (err: any) {
-      console.error("[upload] Dedupe check failed:", err)
+    } catch {
+      console.error("[upload] Dedupe check failed")
       // Continue to insert — duplicate detection is best-effort.
     }
   }
 
   // Insert into DB
-  console.log(`[upload] Inserting into DB: fileUniqueId=${m.fileUniqueId}, type=${m.type}`)
+  console.log("[upload] storing media metadata", { type: m.type })
   let row: any
   try {
     const [inserted] = await db
@@ -283,7 +316,7 @@ async function handleUpload(req: Request) {
       .returning()
     row = inserted
   } catch (err: any) {
-    console.error("[upload] DB insert failed:", err)
+    console.error("[upload] DB insert failed")
     // If it's a unique constraint violation (duplicate fileUniqueId), try dedupe again
     if (err?.message?.includes("unique") || err?.message?.includes("duplicate")) {
       const [existing] = await db
@@ -297,7 +330,7 @@ async function handleUpload(req: Request) {
         )
         .limit(1)
       if (existing) {
-        return jsonResponse({ media: existing, deduped: true })
+        return jsonResponse({ media: publicMedia(existing), deduped: true })
       }
     }
     return jsonResponse({ error: "Erro ao salvar no banco de dados." }, 500)
@@ -315,6 +348,6 @@ async function handleUpload(req: Request) {
     // Ignore — logging is not critical.
   }
 
-  console.log(`[upload] Success: media id=${row.id}, fileUniqueId=${m.fileUniqueId}`)
-  return jsonResponse({ media: row })
+  console.log("[upload] media stored")
+  return jsonResponse({ media: publicMedia(row) })
 }

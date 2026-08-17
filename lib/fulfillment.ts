@@ -10,7 +10,7 @@ import {
 import { and, eq } from "drizzle-orm"
 import { logActivity } from "@/lib/log"
 import { TelegramClient } from "@/lib/telegram"
-import { settings, telegramChats } from "@/lib/db/schema"
+import { telegramChats } from "@/lib/db/schema"
 import { getSettings } from "@/lib/settings"
 import { escapeHtml } from "@/lib/security"
 import { parsePixConfig } from "@/lib/pix"
@@ -42,8 +42,8 @@ export type FulfillErrorCode =
  * using `FOR UPDATE SKIP LOCKED`, so two simultaneous approvals can never grab
  * the same item. The item is flipped to `sold` in the same transaction.
  */
-export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
-  const claim = await claimStockItem(orderId)
+export async function fulfillOrder(orderId: string, ownerId: string): Promise<FulfillResult> {
+  const claim = await claimStockItem(orderId, ownerId)
   if (!claim.ok) return claim
 
   const { order, content, stockItemId } = claim
@@ -54,15 +54,12 @@ export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
     ? await notifyRecharge(order)
     : await deliverToCustomer(order, content)
   if (!notify.ok) {
-    console.error(
-      `[fulfillment] order ${orderId} delivered but customer notification failed:`,
-      notify.error,
-    )
+    console.error("[fulfillment] customer notification failed after delivery")
     await logActivity({
       storeId: order.ownerId,
       action: `Pedido #${orderId} entregue, mas o cliente não foi notificado no Telegram`,
       category: "delivery",
-      details: notify.error,
+      details: "Falha genérica ao notificar o cliente após a entrega",
     })
   }
 
@@ -75,8 +72,8 @@ export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
   // Public sales log (Sales Proof)
   try {
     await broadcastSale(order)
-  } catch (err) {
-    console.error(`[fulfillment] failed to broadcast sale for order ${orderId}:`, err)
+  } catch {
+    console.error("[fulfillment] failed to broadcast sale")
   }
 
   return {
@@ -84,7 +81,7 @@ export async function fulfillOrder(orderId: string): Promise<FulfillResult> {
     delivered: content,
     orderId,
     notified: notify.ok,
-    notifyError: notify.ok ? undefined : notify.error,
+    notifyError: notify.ok ? undefined : "Falha ao notificar o cliente após a entrega",
   }
 }
 
@@ -99,7 +96,7 @@ type ClaimResult =
 
 // Runs the transactional part of fulfillment: claims a stock item, flips the
 // order to approved/delivered and records the delivery. No side effects.
-async function claimStockItem(orderId: string): Promise<ClaimResult> {
+async function claimStockItem(orderId: string, ownerId: string): Promise<ClaimResult> {
   const client = await pool.connect()
   let committed = false
   try {
@@ -107,8 +104,8 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
 
     // Lock the order row so a concurrent webhook can't double-process it.
     const orderRes = await client.query(
-      `SELECT * FROM orders WHERE id = $1 FOR UPDATE`,
-      [orderId],
+      `SELECT * FROM orders WHERE id = $1 AND "ownerId" = $2 FOR UPDATE`,
+      [orderId, ownerId],
     )
     const order = orderRes.rows[0]
     if (!order) {
@@ -141,8 +138,8 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
 
       // Lock the customer row so concurrent/replayed approvals serialize.
       const customerRes = await client.query(
-        `SELECT balance FROM customers WHERE id = $1 FOR UPDATE`,
-        [order.customerId],
+        `SELECT balance FROM customers WHERE id = $1 AND "ownerId" = $2 FOR UPDATE`,
+        [order.customerId, ownerId],
       )
       const customer = customerRes.rows[0]
       if (!customer) {
@@ -170,8 +167,8 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
         await client.query(
           `UPDATE customers
            SET balance = $1, "updatedAt" = now()
-           WHERE id = $2`,
-          [newBalance.toString(), order.customerId],
+           WHERE id = $2 AND "ownerId" = $3`,
+          [newBalance.toString(), order.customerId, ownerId],
         )
 
         // Record transaction
@@ -236,8 +233,8 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
          SET "totalSpent" = "totalSpent" + $1,
              "purchaseCount" = "purchaseCount" + 1,
              "lastPurchaseAt" = now()
-         WHERE id = $2`,
-        [order.amount, order.customerId],
+         WHERE id = $2 AND "ownerId" = $3`,
+        [order.amount, order.customerId, ownerId],
       )
     }
 
@@ -245,23 +242,20 @@ async function claimStockItem(orderId: string): Promise<ClaimResult> {
     committed = true
 
     return { ok: true, order, content: item.content, stockItemId: item.id }
-  } catch (err) {
+  } catch {
     if (!committed) {
       // The rollback itself can fail (e.g. the connection dropped); that must
       // not mask the original error.
       try {
         await client.query("ROLLBACK")
-      } catch (rollbackErr) {
-        console.error(
-          `[fulfillment] rollback failed for order ${orderId}:`,
-          rollbackErr,
-        )
+      } catch {
+        console.error("[fulfillment] rollback failed")
       }
     }
-    console.error(`[fulfillment] order ${orderId} failed:`, err)
+    console.error("[fulfillment] order fulfillment failed")
     return {
       ok: false,
-      reason: err instanceof Error ? err.message : "Erro na entrega",
+      reason: "Falha na entrega",
       code: "error",
     }
   } finally {
@@ -303,12 +297,12 @@ async function notifyRecharge(
   const [customer] = await db
     .select()
     .from(customers)
-    .where(eq(customers.id, order.customerId))
+    .where(and(eq(customers.id, order.customerId), eq(customers.ownerId, order.ownerId)))
   if (!customer?.telegramId) {
     return { ok: false, error: "Cliente sem Telegram vinculado" }
   }
 
-  const config = await getSettings(order.ownerId, ["telegram.botToken"])
+  const config = await getSettings(order.ownerId, ["telegram.botToken"], undefined, { revealSensitive: true })
   const token = config["telegram.botToken"]
   if (!token) return { ok: false, error: "Token do bot não configurado" }
 
@@ -340,13 +334,13 @@ async function sendDeliveryMessage(
   const [customer] = await db
     .select()
     .from(customers)
-    .where(eq(customers.id, order.customerId))
+    .where(and(eq(customers.id, order.customerId), eq(customers.ownerId, order.ownerId)))
   if (!customer?.telegramId) {
     return { ok: false, error: "Cliente sem Telegram vinculado" }
   }
 
   // Load this store's bot token + PIX config (for the approved message text).
-  const config = await getSettings(order.ownerId, ["telegram.botToken", "pix.config"])
+  const config = await getSettings(order.ownerId, ["telegram.botToken", "pix.config"], undefined, { revealSensitive: true })
   const token = config["telegram.botToken"]
   if (!token) return { ok: false, error: "Token do bot não configurado" }
   const pix = parsePixConfig(config["pix.config"])
@@ -417,31 +411,27 @@ async function broadcastSale(order: any) {
 
   if (!logChat) return
 
-  // 2. Load bot token
-  const [setting] = await db
-    .select({ value: settings.value })
-    .from(settings)
-    .where(
-      and(
-        eq(settings.ownerId, order.ownerId),
-        eq(settings.key, "telegram.botToken"),
-      ),
-    )
-    .limit(1)
-
-  if (!setting?.value) return
+  // 2. Load bot token through the server-only settings boundary.
+  const setting = await getSettings(
+    order.ownerId,
+    ["telegram.botToken"],
+    undefined,
+    { revealSensitive: true },
+  )
+  const token = setting["telegram.botToken"]
+  if (!token) return
 
   // 3. Get customer name
   const [customer] = await db
     .select()
     .from(customers)
-    .where(eq(customers.id, order.customerId))
+    .where(and(eq(customers.id, order.customerId), eq(customers.ownerId, order.ownerId)))
 
   const customerName = customer?.username 
     ? `@${customer.username}` 
     : (customer?.name || "Cliente")
 
-  const client = new TelegramClient(setting.value)
+  const client = new TelegramClient(token)
   const message = [
     `🔥 <b>NOVA VENDA REALIZADA!</b>`,
     ``,

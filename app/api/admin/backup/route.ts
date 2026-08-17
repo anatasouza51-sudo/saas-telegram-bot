@@ -8,9 +8,7 @@ import { logActivity } from "@/lib/log"
  */
 export async function GET(req: Request) {
   const ip = clientIpFrom(req)
-  const userAgent = req.headers.get("user-agent") ?? "unknown"
   const method = req.method
-  const path = new URL(req.url).pathname
 
   // 1. Registrar a tentativa no log de atividades (sem storeId específico, usamos "system" ou "admin")
   // Como o honeypot é global e não sabemos a qual loja o atacante está tentando acessar,
@@ -20,7 +18,7 @@ export async function GET(req: Request) {
     storeId: "system",
     action: "Tentativa de acesso ao honeypot administrativo",
     category: "security",
-    details: `IP_Hash: ${hashIp(ip)} | Method: ${method} | Path: ${path} | UA: ${userAgent}`,
+    details: `ip_hash=${hashIp(ip)} method=${method}`,
   })
 
   // 2. Aplicar bloqueio temporário via rate limiter distribuído
@@ -28,7 +26,7 @@ export async function GET(req: Request) {
   await rateLimit(`honeypot:${hashIp(ip)}`, {
     max: 1,
     windowMs: 3600_000, // 1 hora de bloqueio para este IP neste namespace
-    namespace: "security",
+    namespace: "honeypot",
   })
 
   // 3. Retornar resposta genérica (404 Not Found) para não revelar o honeypot

@@ -192,7 +192,7 @@ export async function testTopic(
     messageThreadId: threadId,
   })
   if (!res.ok) {
-    return { ok: false, error: res.description ?? "Falha ao enviar." }
+    return { ok: false, error: "Falha ao enviar a mensagem de teste ao tópico." }
   }
   if (res.result?.message_id) {
     await client.deleteMessage(chatId, res.result.message_id)

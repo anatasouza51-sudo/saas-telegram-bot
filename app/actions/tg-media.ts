@@ -8,6 +8,10 @@ import { logActivity } from "@/lib/log"
 import { revalidatePath } from "next/cache"
 import { validateTitle } from "@/lib/validation"
 
+function publicMedia<T extends { fileId?: unknown; thumbFileId?: unknown }>(row: T) {
+  return { ...row, fileId: "", thumbFileId: null }
+}
+
 export async function listFolders() {
   const user = await requireCapability("posts.manage")
   return db
@@ -36,14 +40,15 @@ export async function listMedia(opts?: {
     if (opts?.search) {
       conds.push(sql`${telegramMedia.fileName} ILIKE ${"%" + opts.search + "%"}`)
     }
-    return await db
+    const rows = await db
       .select()
       .from(telegramMedia)
       .where(and(...conds))
       .orderBy(desc(telegramMedia.createdAt))
       .limit(500)
-  } catch (err) {
-    console.error("[tg/media] listMedia failed:", err)
+    return rows.map(publicMedia)
+  } catch {
+    console.error("[tg/media] listMedia failed")
     return []
   }
 }
@@ -51,9 +56,19 @@ export async function listMedia(opts?: {
 export async function createFolder(name: string, parentId?: number | null) {
   const user = await requireCapability("posts.manage")
   const clean = validateTitle(name, "Nome da pasta")
+  let safeParentId: number | null = null
+  if (parentId != null) {
+    const [parent] = await db
+      .select({ id: telegramMediaFolders.id })
+      .from(telegramMediaFolders)
+      .where(and(eq(telegramMediaFolders.id, parentId), eq(telegramMediaFolders.ownerId, user.storeId)))
+      .limit(1)
+    if (!parent) throw new Error("Pasta pai não encontrada")
+    safeParentId = parent.id
+  }
   const [row] = await db
     .insert(telegramMediaFolders)
-    .values({ ownerId: user.storeId, name: clean, parentId: parentId ?? null })
+    .values({ ownerId: user.storeId, name: clean, parentId: safeParentId })
     .returning()
   revalidatePath("/media")
   return row
@@ -99,6 +114,14 @@ export async function deleteFolder(id: number) {
 
 export async function moveMedia(mediaId: number, folderId: number | null) {
   const user = await requireCapability("posts.manage")
+  if (folderId != null) {
+    const [folder] = await db
+      .select({ id: telegramMediaFolders.id })
+      .from(telegramMediaFolders)
+      .where(and(eq(telegramMediaFolders.id, folderId), eq(telegramMediaFolders.ownerId, user.storeId)))
+      .limit(1)
+    if (!folder) throw new Error("Pasta não encontrada")
+  }
   await db
     .update(telegramMedia)
     .set({ folderId })

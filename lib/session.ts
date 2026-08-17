@@ -3,7 +3,7 @@ import { cache } from "react"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { can, type Role } from "@/lib/roles"
+import { can, ROLES, type Role } from "@/lib/roles"
 import { db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -59,16 +59,24 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     }
 
     const u = session.user as typeof session.user & {
-      role?: string
-      ownerId?: string | null
       image?: string | null
-      onboardingSeen?: boolean
     }
-    
-    // Se por algum motivo o Better Auth ainda retornar o nome antigo da sessão,
-    // buscamos diretamente no banco de dados para garantir a verdade absoluta.
-    // Usamos Promise.race para garantir timeout se o banco estiver lento.
-    let dbUser: { name: string; image: string | null; onboardingSeen: boolean | null } | undefined
+    if (!u.id) return null
+
+    // A sessão só é aceita quando o registro atual do usuário é confirmado no banco.
+    // Role, ownerId e demais atributos de autorização nunca são obtidos de claims antigas.
+    type CurrentDbUser = {
+      id: string
+      name: string
+      email: string
+      image: string | null
+      role: string | null
+      ownerId: string | null
+      onboardingSeen: boolean | null
+    }
+
+    // Usamos timeout para evitar que uma consulta lenta mantenha uma autorização ambígua.
+    let dbUser: CurrentDbUser | undefined
     try {
       dbUser = await new Promise<typeof dbUser>((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -76,10 +84,14 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
         }, 8000)
         
         db
-          .select({ 
-            name: userTable.name, 
-            image: userTable.image, 
-            onboardingSeen: userTable.onboardingSeen 
+          .select({
+            id: userTable.id,
+            name: userTable.name,
+            email: userTable.email,
+            image: userTable.image,
+            role: userTable.role,
+            ownerId: userTable.ownerId,
+            onboardingSeen: userTable.onboardingSeen,
           })
           .from(userTable)
           .where(eq(userTable.id, u.id))
@@ -94,23 +106,30 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
           })
       })
     } catch (dbErr) {
-      // Se o banco falhar, usamos os dados da sessão como fallback
-      console.warn("[getSessionUser] DB query failed, using session data as fallback:", dbErr)
+      // Falha de infraestrutura não pode virar autorização permissiva.
+      console.error("[getSessionUser] DB query failed; denying session", dbErr instanceof Error ? dbErr.name : "unknown")
+      return null
     }
 
-    const ownerId = u.ownerId ?? null
-    return {
-      id: u.id,
-      name: dbUser?.name || u.name,
-      email: u.email,
-      image: dbUser?.image || u.image,
-      role: (u.role as Role) || "support",
-      ownerId,
-      storeId: ownerId ?? u.id,
-      onboardingSeen: dbUser?.onboardingSeen ?? false,
+    if (!dbUser) return null
+    if (!ROLES.includes(dbUser.role as Role)) {
+      console.error("[getSessionUser] User has invalid role; denying session")
+      return null
     }
-  } catch (error) {
-    console.error("[getSessionUser] Session lookup failed:", error)
+
+    const ownerId = dbUser.ownerId ?? null
+    return {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      image: dbUser.image,
+      role: dbUser.role as Role,
+      ownerId,
+      storeId: ownerId ?? dbUser.id,
+      onboardingSeen: dbUser.onboardingSeen ?? false,
+    }
+  } catch {
+    console.error("[getSessionUser] Session lookup failed")
     return null
   }
 })

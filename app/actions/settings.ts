@@ -36,7 +36,7 @@ export async function saveTelegramSettings(input: {
   // This guarantees the bot always stays connected — no need for a separate
   // "Connect" step. If the webhook registration fails we still return success
   // for the settings save (the admin can retry from the panel).
-  const storedToken = await getSetting(user.storeId, "telegram.botToken")
+  const storedToken = await getSetting(user.storeId, "telegram.botToken", { revealSensitive: true })
   if (storedToken) {
     try {
       const url = `${getAppBaseUrl()}/api/telegram/webhook/${user.storeId}`
@@ -59,7 +59,7 @@ export async function saveTelegramSettings(input: {
           action: "Falha ao registrar o webhook do Telegram ao salvar configurações",
           category: "settings",
           actor: user,
-          details: res.description ?? "Erro desconhecido",
+          details: "O provedor recusou o registro do webhook; consulte o status no painel.",
         })
       }
     } catch (err) {
@@ -70,7 +70,7 @@ export async function saveTelegramSettings(input: {
         action: "Falha ao registrar o webhook do Telegram ao salvar configurações",
         category: "settings",
         actor: user,
-        details: err instanceof Error ? err.message : "Erro desconhecido",
+        details: "O registro automático do webhook falhou; nenhum segredo foi armazenado no log.",
       })
     }
   }
@@ -192,7 +192,7 @@ export async function registerTelegramWebhook(): Promise<{
   error?: string
 }> {
   const user = await requireCapability("telegram.manage")
-  const token = await getSetting(user.storeId, "telegram.botToken")
+  const token = await getSetting(user.storeId, "telegram.botToken", { revealSensitive: true })
   if (!token) {
     return { ok: false, error: "Configure o token do bot antes de conectar." }
   }
@@ -201,7 +201,7 @@ export async function registerTelegramWebhook(): Promise<{
   const client = new TelegramClient(token)
   const res = await client.setWebhook(url, secretToken)
   if (!res.ok) {
-    return { ok: false, error: res.description ?? "Falha ao registrar webhook" }
+    return { ok: false, error: "Falha ao registrar o webhook. Verifique o token e tente novamente." }
   }
   await logActivity({
     storeId: user.storeId,

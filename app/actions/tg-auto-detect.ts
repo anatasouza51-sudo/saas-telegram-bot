@@ -45,7 +45,7 @@ export async function autoDetectTelegramGroups(): Promise<{
   try {
     // Importar o token salvo
     const { getSetting } = await import("@/lib/settings")
-    const botToken = await getSetting(user.storeId, "telegram.botToken")
+    const botToken = await getSetting(user.storeId, "telegram.botToken", { revealSensitive: true })
     
     if (!botToken) {
       return { 
@@ -124,7 +124,7 @@ export async function autoDetectTelegramGroups(): Promise<{
       action: `Auto-detecção de grupos do Telegram realizada: ${groupDetails.length} grupo(s) encontrado(s)`,
       category: "settings",
       actor: user,
-      details: `Bot: @${meRes.result.username || "desconhecido"}`,
+      details: "Sincronização concluída no servidor",
     })
 
     return {
@@ -132,11 +132,11 @@ export async function autoDetectTelegramGroups(): Promise<{
       groupsCount: groupDetails.length,
       groups: groupDetails,
     }
-  } catch (error) {
-    console.error("[tg/auto-detect] falha ao detectar grupos:", error)
+  } catch {
+    console.error("[tg/auto-detect] falha ao detectar grupos")
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Erro ao auto-detectar grupos",
+      error: "Não foi possível concluir a auto-detecção dos grupos.",
     }
   }
 }
@@ -183,11 +183,11 @@ export async function syncGroupToAudience(groupId: number): Promise<{
     })
 
     return { ok: true }
-  } catch (error) {
-    console.error("[tg/auto-detect] falha ao sincronizar grupo:", error)
+  } catch {
+    console.error("[tg/auto-detect] falha ao sincronizar grupo")
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Erro ao sincronizar grupo",
+      error: "Não foi possível sincronizar o grupo.",
     }
   }
 }

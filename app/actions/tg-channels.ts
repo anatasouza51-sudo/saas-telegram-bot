@@ -96,22 +96,19 @@ export async function syncAllChannels(): Promise<{
     const secret = await getOrCreateWebhookSecret(user.storeId, "telegram")
     const hook = await client.setWebhook(url, secret)
     if (!hook.ok) {
-      console.error(
-        "[tg/channels] setWebhook rejected during sync:",
-        hook.description,
-      )
+      console.error("[tg/channels] setWebhook rejected during sync")
     }
-  } catch (err) {
+  } catch {
     // Non-fatal: revalidation of known chats can still proceed.
-    console.error("[tg/channels] setWebhook failed during sync:", err)
+    console.error("[tg/channels] setWebhook failed during sync")
   }
 
   let res = { updated: 0, removed: 0, total: 0 }
   try {
     res = await syncKnownChats(user.storeId, me.result.id, client)
     await syncPurposeSettings(user.storeId)
-  } catch (err) {
-    console.error("[tg/channels] syncKnownChats failed:", err)
+  } catch {
+    console.error("[tg/channels] syncKnownChats failed")
     return { ok: false, error: "Erro ao sincronizar chats com o banco de dados." }
   }
 
@@ -166,13 +163,11 @@ export async function restartTelegramIntegration(): Promise<{
     steps.push(
       hook.ok
         ? "Webhook reiniciado"
-        : `Falha ao reiniciar o webhook: ${hook.description ?? "erro desconhecido"}`,
+        : "Falha ao reiniciar o webhook.",
     )
-  } catch (err) {
-    console.error("[tg/channels] webhook restart failed:", err)
-    steps.push(
-      `Falha ao reiniciar o webhook: ${err instanceof Error ? err.message : "erro desconhecido"}`,
-    )
+  } catch {
+    console.error("[tg/channels] webhook restart failed")
+    steps.push("Falha ao reiniciar o webhook.")
   }
 
   // 3. Purge invalid rows (bot itself / private chats).
@@ -180,8 +175,8 @@ export async function restartTelegramIntegration(): Promise<{
   try {
     purged = await purgeInvalidChats(user.storeId, me.result.id)
     steps.push(`${purged} registro(s) inválido(s) removido(s)`)
-  } catch (err) {
-    console.error("[tg/channels] purgeInvalidChats failed:", err)
+  } catch {
+    console.error("[tg/channels] purgeInvalidChats failed")
     steps.push("Falha ao remover registros inválidos.")
   }
 

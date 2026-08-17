@@ -6,7 +6,7 @@ import { getSettings } from "@/lib/settings"
 import { parseCatalogConfig } from "@/lib/catalog-config"
 import { safeLoad } from "@/lib/safe-load"
 import { ErrorView } from "@/components/error-view"
-import { getBotPreview } from "@/app/actions/tg-preview"
+import { getCurrentBotPreview } from "@/app/actions/tg-preview"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default async function TelegramPage() {
@@ -34,7 +34,7 @@ export default async function TelegramPage() {
   const botIdentity = botConfigured
     ? await safeLoad(
         "getBotPreview",
-        () => getBotPreview(saved["telegram.botToken"] ?? ""),
+        () => getCurrentBotPreview(),
         null,
       )
     : null

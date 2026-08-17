@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { orders } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { and, eq, ne } from "drizzle-orm"
 import { mapPaymentStatus } from "@/lib/veopag"
 import { fulfillOrder } from "@/lib/fulfillment"
 import { logActivity } from "@/lib/log"
@@ -61,7 +61,7 @@ export async function POST(
   const externalId = payload.external_id ?? payload.externalId
   const paymentId = String(
     payload.transaction_id ?? payload.transactionId ?? payload.id ?? "",
-  )
+  ).slice(0, 200)
   const rawStatus = String(payload.status ?? payload.payment_status ?? "")
   const status = mapPaymentStatus(rawStatus)
 
@@ -123,20 +123,34 @@ export async function POST(
     }
   }
 
-  await db
+  const [updated] = await db
     .update(orders)
     .set({ paymentStatus: status, paymentId, updatedAt: new Date() })
-    .where(and(eq(orders.id, orderId), eq(orders.ownerId, storeId)))
+    .where(
+      and(
+        eq(orders.id, orderId),
+        eq(orders.ownerId, storeId),
+        ne(orders.deliveryStatus, "delivered"),
+        ne(orders.paymentStatus, "approved"),
+      ),
+    )
+    .returning({ id: orders.id })
+
+  // Another concurrent webhook may have already approved or delivered this
+  // order. Never let a late non-approved event overwrite that terminal state.
+  if (!updated && status !== "approved") {
+    return NextResponse.json({ received: true, idempotent: true })
+  }
 
   await logActivity({
     storeId,
     action: `Webhook VeoPag: pedido #${orderId} -> ${status}`,
     category: "payment",
-    details: `paymentId=${paymentId} status_bruto=${rawStatus}`,
+    details: `status=${status}`,
   })
 
   if (status === "approved") {
-    const result = await fulfillOrder(orderId)
+    const result = await fulfillOrder(orderId, storeId)
     if (!result.ok) {
       await logActivity({
         storeId,

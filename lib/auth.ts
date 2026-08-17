@@ -25,8 +25,8 @@ async function sendVerificationEmail({ user, url }: { user: { email: string; nam
     }),
   })
   if (!resp.ok) {
-    const text = await resp.text()
-    throw new Error(`Resend send failed: ${resp.status} ${text}`)
+    await resp.text()
+    throw new Error(`Resend send failed with status ${resp.status}`)
   }
 }
 
@@ -99,7 +99,7 @@ export const auth = betterAuth({
       role: {
         type: "string",
         required: false,
-        defaultValue: "admin",
+        defaultValue: "support",
         input: false,
       },
       ownerId: {
@@ -123,7 +123,7 @@ export const auth = betterAuth({
           return {
             data: {
               ...userData,
-              role: "admin",
+              role: "support",
               ownerId: null,
             },
           }

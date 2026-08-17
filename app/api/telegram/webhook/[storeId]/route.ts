@@ -18,45 +18,27 @@ function getRedis() {
   return { url, token }
 }
 
-async function isReplay(storeId: string, updateId: number): Promise<boolean> {
-  const redis = getRedis()
-  if (!redis) return false // No Redis — skip replay check (degraded)
-  const key = `${replayPrefix}${storeId}:${updateId}`
-  try {
-    const resp = await fetch(`${redis.url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${redis.token}` },
-    })
-    const data = await resp.json()
-    return data.result !== null && data.result !== undefined
-  } catch {
-    return false // Redis failure — don't block legitimate updates
-  }
-}
+type ReplayClaim = "new" | "replay" | "unavailable"
 
-async function markProcessed(storeId: string, updateId: number): Promise<void> {
+async function claimReplay(storeId: string, updateId: number): Promise<ReplayClaim> {
   const redis = getRedis()
-  if (!redis) return
+  if (!redis) return "unavailable"
+
   const key = `${replayPrefix}${storeId}:${updateId}`
   try {
-    // Set with 24h expiry (86400s)
-    await fetch(`${redis.url}/set/${key}/1?EX=86400`, {
+    const resp = await fetch(`${redis.url}/set/${encodeURIComponent(key)}/1?NX=true&EX=86400`, {
       headers: { Authorization: `Bearer ${redis.token}` },
+      signal: AbortSignal.timeout(2_000),
     })
+    if (!resp.ok) return "unavailable"
+    const data = await resp.json()
+    return data.result === "OK" ? "new" : "replay"
   } catch {
-    // Best-effort: failure to mark doesn't break functionality
+    return "unavailable"
   }
 }
 import { processSchedules } from "@/lib/tg/scheduler"
 import { expireDuePixOrders } from "@/lib/bot"
-import { ensureDbStructure } from "@/lib/db/migrate"
-
-// BUGFIX: run DB migrations once per cold start so the unique index on
-// customers(ownerId, telegramId) — required for the atomic upsert in
-// upsertCustomer — is always present before any /start is processed.
-// Fire-and-forget: a failure here must never block the webhook response.
-ensureDbStructure().catch((err) => {
-  console.error("[telegram/webhook] ensureDbStructure failed:", err)
-})
 
 /**
  * Telegram webhook — authenticated per store.
@@ -125,14 +107,18 @@ export async function POST(
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
-  // Replay attack protection: skip already-processed update_ids
-  if (update.update_id != null) {
-    if (await isReplay(storeId, update.update_id)) {
-      console.log(`[telegram/webhook] Replay detected, skipping update_id=${update.update_id}`)
-      return NextResponse.json({ ok: true })
-    }
-    // Mark as processed (fire-and-forget)
-    markProcessed(storeId, update.update_id).catch(() => {})
+  // Replay protection is mandatory. If Redis is unavailable, fail closed rather
+  // than processing the same signed payload without an atomic claim.
+  if (update.update_id == null || !Number.isInteger(update.update_id)) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+  }
+  const replayClaim = await claimReplay(storeId, update.update_id)
+  if (replayClaim === "unavailable") {
+    console.error("[telegram/webhook] replay protection unavailable")
+    return NextResponse.json({ error: "Temporarily unavailable" }, { status: 503 })
+  }
+  if (replayClaim === "replay") {
+    return NextResponse.json({ ok: true })
   }
 
   // Record diagnostics. Fire-and-forget: diagnostics are best-effort and must
@@ -140,7 +126,7 @@ export async function POST(
   // single entry is acceptable.
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   recordWebhookEvent(storeId, update).catch((err) => {
-    console.error("[telegram/webhook] recordWebhookEvent failed:", err)
+      console.error("[telegram/webhook] recordWebhookEvent failed")
   })
 
   // Process the update (this is the only operation we must await, because
@@ -153,12 +139,12 @@ export async function POST(
     handled = false
     // Log server-side only; never leak internals to the caller. The activity
     // log makes the failure visible to the store admin in the panel.
-    console.error("[telegram/webhook] update handling failed:", err)
+    console.error("[telegram/webhook] update handling failed")
     await logActivity({
       storeId,
       action: "Falha ao processar uma atualização do Telegram",
       category: "system",
-      details: err instanceof Error ? err.message : "Erro desconhecido",
+      details: "A atualização do Telegram falhou no processamento; detalhes foram omitidos por segurança.",
     })
   }
   const handleElapsed = Date.now() - handleStarted
@@ -176,7 +162,7 @@ export async function POST(
       }
     })
     .catch((err) => {
-      console.error("[telegram/webhook] processSchedules failed:", err)
+      console.error("[telegram/webhook] processSchedules failed")
     })
 
   // Sweep for expired PIX orders — fire-and-forget.
@@ -191,7 +177,7 @@ export async function POST(
       }
     })
     .catch((err) => {
-      console.error("[telegram/webhook] expireDuePixOrders failed:", err)
+      console.error("[telegram/webhook] expireDuePixOrders failed")
     })
 
   // Always ack immediately so Telegram doesn't retry. Total time logged.

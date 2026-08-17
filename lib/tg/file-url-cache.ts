@@ -42,14 +42,17 @@ setInterval(
  * Returns the Telegram download URL for a given file_id, using the cache
  * when available and calling `getFile` otherwise.
  *
- * The cache key is the file_id itself — since the bot token is fixed per
- * store, the same file_id always maps to the same download URL.
+ * The cache key includes an explicit tenant namespace. Telegram file IDs are
+ * not a sufficient isolation boundary when different bots can resolve them to
+ * URLs containing different bot tokens.
  */
 export async function getFileUrl(
   client: TelegramClient,
   fileId: string,
+  namespace = "default",
 ): Promise<string | null> {
-  const cached = cache.get(fileId)
+  const cacheKey = `${namespace}:${fileId}`
+  const cached = cache.get(cacheKey)
   if (cached && Date.now() < cached.expiresAt) {
     return cached.url
   }
@@ -57,7 +60,7 @@ export async function getFileUrl(
   const url = await client.getFileUrl(fileId)
   if (!url) return null
 
-  cache.set(fileId, {
+  cache.set(cacheKey, {
     url,
     expiresAt: Date.now() + TTL_MS,
   })
@@ -65,8 +68,8 @@ export async function getFileUrl(
 }
 
 /** Removes a specific file_id from the cache (e.g. after a media deletion). */
-export function invalidateFileUrl(fileId: string): void {
-  cache.delete(fileId)
+export function invalidateFileUrl(fileId: string, namespace = "default"): void {
+  cache.delete(`${namespace}:${fileId}`)
 }
 
 /** Clears the entire cache (useful for testing or admin resets). */
