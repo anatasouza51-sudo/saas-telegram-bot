@@ -80,10 +80,7 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
                     paddingAngle={2}
                     dataKey="value"
                     strokeWidth={0}
-                    isAnimationActive
-                    animationBegin={0}
-                    animationDuration={420}
-                    animationEasing="ease-out"
+                    isAnimationActive={false}
                     onClick={(entry) => handleSliceClick(String(entry.name))}
                   >
                     {data.map((entry, index) => <Cell key={entry.name} fill={COLORS[index]} />)}

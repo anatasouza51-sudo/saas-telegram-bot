@@ -7,6 +7,7 @@ import {
   integer,
   numeric,
   uniqueIndex,
+  index,
   uuid,
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
@@ -167,7 +168,9 @@ export const customers = pgTable(
   }),
 )
 
-export const orders = pgTable("orders", {
+export const orders = pgTable(
+  "orders",
+  {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   ownerId: text("ownerId").notNull(),
   customerId: text("customerId"), // Referência a UUID
@@ -199,7 +202,11 @@ export const orders = pgTable("orders", {
   pixMessageId: integer("pixMessageId"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-})
+  },
+  (t) => ({
+    ownerCreatedAtIdx: index("orders_owner_createdat_idx").on(t.ownerId, t.createdAt),
+  }),
+)
 
 export const deliveries = pgTable("deliveries", {
   id: serial("id").primaryKey(),

@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useId, useMemo } from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   ChartContainer,
   ChartTooltip,
@@ -75,7 +75,6 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
       <div className="relative z-10 h-[250px] sm:h-[285px]">
         {hasRevenue ? (
           <ChartContainer config={chartConfig} className="h-full w-full">
-            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={formatted} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -88,8 +87,8 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
                 <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(v) => compactCurrency.format(v as number)} tick={{ fill: "var(--dashboard-text-muted)", fontSize: 10, fontWeight: 600 }} />
                 <ChartTooltip
                   cursor={false}
-                  isAnimationActive
-                  animationDuration={180}
+                  isAnimationActive={false}
+                  animationDuration={0}
                   animationEasing="ease-out"
                   content={
                     <ChartTooltipContent
@@ -99,9 +98,8 @@ export const SalesChart = memo(({ data, periodLabel }: { data: SalesPoint[]; per
                     />
                   }
                 />
-                <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive animationBegin={0} animationDuration={420} animationEasing="ease-out" />
+                <Area dataKey="revenue" type="monotone" fill={`url(#${gradientId})`} stroke="var(--dashboard-accent)" strokeWidth={2.5} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
-            </ResponsiveContainer>
           </ChartContainer>
         ) : (
           <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-dashboard-border/70 bg-dashboard-bg/30 px-6 text-center">

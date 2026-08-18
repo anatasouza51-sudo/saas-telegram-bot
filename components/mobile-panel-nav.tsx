@@ -19,7 +19,7 @@ export function MobilePanelNav() {
 
   return (
     <nav
-      className="fixed inset-x-3 z-40 flex items-center justify-around rounded-[22px] border border-dashboard-border bg-dashboard-sidebar/95 px-1.5 pt-2 shadow-2xl shadow-black/30 backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-3 z-40 flex items-center justify-around rounded-[22px] border border-dashboard-border bg-dashboard-sidebar px-1.5 pt-2 shadow-lg shadow-black/20 lg:hidden"
       style={{
         bottom: "max(0.75rem, env(safe-area-inset-bottom))",
         paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",

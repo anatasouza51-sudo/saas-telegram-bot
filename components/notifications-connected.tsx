@@ -24,18 +24,19 @@ function useConnectedNotifications() {
   })
 
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: StorageEvent) => {
+      if (event.key !== "ghostbot_notifications") return
       try {
-        const stored = localStorage.getItem("ghostbot_notifications")
-        const notifications = stored ? JSON.parse(stored) : []
+        const notifications = event.newValue ? JSON.parse(event.newValue) : []
         setState({
           notifications,
           unreadCount: notifications.filter((n: any) => !n.read).length,
         })
       } catch {}
     }
-    const interval = setInterval(handler, 2000)
-    return () => clearInterval(interval)
+
+    window.addEventListener("storage", handler)
+    return () => window.removeEventListener("storage", handler)
   }, [])
 
   const markAsRead = useCallback((id: string) => {

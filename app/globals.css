@@ -147,7 +147,7 @@
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: dashboard-beam-border 7s linear infinite;
+  animation: none;
 }
 
 @keyframes dashboard-beam-border {
@@ -157,7 +157,6 @@
 @media (max-width: 639px) {
   .dashboard-beam-border {
     opacity: 0.72;
-    animation-duration: 9s;
   }
 }
 
@@ -396,7 +395,7 @@ html:not(.dark) body {
 
   body { 
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
-    background-attachment: fixed;
+    background-attachment: scroll;
   }
   
   /* Tabular numbers for metrics */

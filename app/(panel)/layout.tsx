@@ -51,7 +51,7 @@ export default async function PanelLayout({
         <TopNavBar user={user} />
 
         {/* Conteúdo Principal com Scroll */}
-        <main className="-mt-[92px] flex min-h-0 flex-1 relative bg-grain pt-[92px]">
+        <main className="-mt-[92px] flex min-h-0 flex-1 relative pt-[92px]">
           <div className="w-full min-w-0 max-w-none px-2 pb-32 pt-0 sm:px-3 md:px-4 md:pb-32 md:pt-4 lg:pb-8">
             <PageTransition>{children}</PageTransition>
           </div>

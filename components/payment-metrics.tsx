@@ -1,7 +1,6 @@
 "use client"
 
 import { memo } from "react"
-import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Percent } from "lucide-react"
 import { DashboardBeam } from "@/components/dashboard-beam"
@@ -36,7 +35,7 @@ const CircularProgress = memo(({ value, color, size = 82 }: { value: number; col
     <div className="relative flex items-center justify-center">
       <svg width={size} height={size} className="-rotate-90 transform">
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-        <motion.circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.stroke} strokeWidth="3" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: offset }} transition={{ duration: 0.9, ease: "easeInOut" }} strokeLinecap="round" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.stroke} strokeWidth="3" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: "stroke-dashoffset 180ms cubic-bezier(0.23, 1, 0.32, 1)" }} />
       </svg>
       <div className="absolute flex flex-col items-center justify-center"><span className={cn("font-space text-lg font-bold", colors.light)}>{value}%</span></div>
     </div>
