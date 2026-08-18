@@ -5,7 +5,6 @@ import { ShoppingCart, ArrowRight, Activity, Clock3 } from "lucide-react"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { formatCurrency, formatDateTime } from "@/lib/format"
-import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface RecentOrder {
   id: string
@@ -34,7 +33,6 @@ export const DashboardActivity = memo(({ recentOrders, stats, periodLabel }: Das
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#7CA98D]/10">

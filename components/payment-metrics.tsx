@@ -3,7 +3,6 @@
 import { memo } from "react"
 import { cn } from "@/lib/utils"
 import { Percent } from "lucide-react"
-import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface PaymentMetric {
   label: string
@@ -47,7 +46,6 @@ CircularProgress.displayName = "CircularProgress"
 export const PaymentMetrics = memo(({ metrics, title = "Saúde dos pagamentos", subtitle = "Acompanhe aprovação, pendências e recusas" }: PaymentMetricsProps) => {
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center gap-3">
         <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-dashboard-accent/10 text-dashboard-accent"><Percent className="size-4 shrink-0" strokeWidth={1.8} /></div>
         <div><h3 className="text-sm font-bold text-dashboard-text">{title}</h3><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-dashboard-text-muted">{subtitle}</p></div>

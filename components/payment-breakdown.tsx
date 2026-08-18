@@ -3,7 +3,6 @@
 import { memo, useState } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { CreditCard } from "lucide-react"
-import { DashboardBeam } from "@/components/dashboard-beam"
 
 interface PaymentBreakdownProps {
   approved: number
@@ -48,7 +47,6 @@ export const PaymentBreakdown = memo(({ approved, pending, refused }: PaymentBre
 
   return (
     <section className="relative overflow-hidden rounded-[22px] border border-dashboard-border bg-dashboard-surface p-4 sm:p-5">
-      <DashboardBeam />
       <div className="relative z-10 mb-5 flex items-center gap-3">
         <div className="dashboard-3d-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
           <CreditCard className="size-4 shrink-0 text-emerald-400" strokeWidth={1.8} />

@@ -119,54 +119,6 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-@property --dashboard-beam-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-.dashboard-beam-border {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  contain: paint;
-  border-radius: inherit;
-  padding: 1px;
-  opacity: 0.9;
-  background: conic-gradient(
-    from var(--dashboard-beam-angle),
-    transparent 0deg 326deg,
-    rgba(169, 201, 127, 0.10) 334deg,
-    rgba(169, 201, 127, 0.88) 348deg,
-    rgba(228, 238, 191, 0.78) 355deg,
-    transparent 360deg
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: none;
-}
-
-@keyframes dashboard-beam-border {
-  to { --dashboard-beam-angle: 360deg; }
-}
-
-@media (max-width: 639px) {
-  .dashboard-beam-border {
-    opacity: 0.72;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-beam-border {
-    animation: none;
-    opacity: 0.28;
-  }
-}
-
 /* Campo Operacional — relevo 3D reservado para controles acionáveis. */
 :is(button, a, [role="button"]).dashboard-3d-control {
   border-color: var(--dashboard-border-active);
