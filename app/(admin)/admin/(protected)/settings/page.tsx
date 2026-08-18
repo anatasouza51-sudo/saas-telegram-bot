@@ -1,0 +1,22 @@
+import Link from "next/link"
+import { ArrowUpRight, Gauge, KeyRound, LockKeyhole, Settings2, WalletCards } from "lucide-react"
+import { redirect } from "next/navigation"
+import { requirePlatformAdmin } from "@/lib/platform-admin"
+import { getPlatformMisticPayConfig } from "@/lib/platform-settings"
+import { AdminBadge, AdminKpi, AdminPageIntro, AdminPanel } from "@/components/admin-ui"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function AdminSettingsPage() {
+  try {
+    await requirePlatformAdmin()
+    const config = await getPlatformMisticPayConfig()
+    const configured = Boolean(config.clientId && config.clientSecret && config.splitUser)
+
+    return <div className="space-y-7"><AdminPageIntro eyebrow="Control plane / configuração" title="Configurações globais" description="Parâmetros da plataforma que não pertencem a um tenant individual e nunca devem aparecer no painel de vendedor." /><section className="grid gap-4 sm:grid-cols-3"><AdminKpi label="Mistic Pay" value={config.enabled ? "Ativa" : "Desativada"} detail={configured ? "Credenciais globais configuradas" : "Aguardando configuração"} icon={WalletCards} tone={config.enabled ? "lime" : "gold"} /><AdminKpi label="Comissão fixa" value={`R$ ${(config.commissionCents / 100).toFixed(2).replace('.', ',')}`} detail={`${config.commissionCents} centavos por aprovação`} icon={Gauge} tone="copper" /><AdminKpi label="Segredos" value="Protegidos" detail="Mascarados no painel" icon={LockKeyhole} tone="blue" /></section><div className="grid gap-5 xl:grid-cols-2"><AdminPanel title="Pagamentos da plataforma" description="Configuração global do control plane para split e gateway."><div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-admin-lime/20 bg-admin-lime/10 text-admin-lime"><WalletCards className="h-5 w-5" /></span><div><p className="font-bold text-white/80">Mistic Pay global</p><p className="text-xs text-white/40">Client ID, Client Secret e splitUser do control plane</p></div></div><AdminBadge tone={configured ? "success" : "warning"}>{configured ? "Configurada" : "Pendente"}</AdminBadge></div><Link href="/admin/gateways" className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-admin-lime hover:text-white">Abrir gateways <ArrowUpRight className="h-4 w-4" /></Link></AdminPanel><AdminPanel title="Política de comissão" description="A comissão fica isolada da configuração financeira de cada vendedor."><div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-admin-gold/20 bg-admin-gold/10 text-admin-gold"><Gauge className="h-5 w-5" /></span><div><p className="font-bold text-white/80">Split operacional</p><p className="text-xs text-white/40">Percentual informativo: {config.commissionPercent}%</p></div></div><AdminBadge tone="warning">R$ {(config.commissionCents / 100).toFixed(2).replace('.', ',')}</AdminBadge></div><Link href="/admin/commission" className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-admin-gold hover:text-white">Abrir política <ArrowUpRight className="h-4 w-4" /></Link></AdminPanel></div><section className="rounded-[1.35rem] border border-white/[0.08] bg-admin-surface p-5"><div className="flex items-start gap-3"><KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-admin-lime" /><div><h2 className="font-black text-white">Princípio de segurança</h2><p className="mt-2 text-sm leading-6 text-white/50">Esta página mostra somente estados e valores não secretos. Client Secret e splitUser continuam protegidos pelo serviço server-only de configurações. A edição ocorre apenas nos formulários Admin específicos.</p><div className="mt-4 flex flex-wrap gap-2"><AdminBadge tone="success">Server-only</AdminBadge><AdminBadge tone="success">Sem secrets no cliente</AdminBadge><AdminBadge tone="success">Admin principal</AdminBadge></div></div></div></section></div>
+  } catch (error) {
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || error.stack?.includes("redirect"))) throw error
+    redirect("/admin")
+  }
+}

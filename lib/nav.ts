@@ -117,8 +117,6 @@ export const SYSTEM_NAV: NavItem[] = [
   { title: "Telegram Bot", href: "/telegram", icon: "Send", capability: "telegram.manage" },
   { title: "Gateways", href: "/gateway", icon: "Wallet", capability: "gateway.manage" },
   { title: "Logs", href: "/logs", icon: "ScrollText", capability: "logs.view" },
-  { title: "Admin · Gateways", href: "/admin/gateways", icon: "ShieldCheck", capability: "settings.manage" },
-  { title: "Admin · Comissão", href: "/admin/commission", icon: "Coins", capability: "settings.manage" },
 ]
 
 // Returns a section's tab list by its title (used by the tabbed layouts).

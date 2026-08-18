@@ -72,6 +72,15 @@
   --color-dashboard-accent-secondary: var(--dashboard-accent-secondary);
   --color-dashboard-glow: var(--dashboard-glow);
   --color-dashboard-card: var(--dashboard-card);
+  --color-admin-ink: var(--admin-ink);
+  --color-admin-sidebar: var(--admin-sidebar);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-surface-elevated: var(--admin-surface-elevated);
+  --color-admin-border: var(--admin-border);
+  --color-admin-lime: var(--admin-lime);
+  --color-admin-copper: var(--admin-copper);
+  --color-admin-gold: var(--admin-gold);
+  --color-admin-muted: var(--admin-muted);
 }
 
 @keyframes bounce-slow {
@@ -276,6 +285,17 @@
   --radius: 0.75rem;
   --dashboard-card: rgba(29, 51, 39, 0.72);
 
+  /* Control plane Admin — mesma família visual, composição independente */
+  --admin-ink: #0B1712;
+  --admin-sidebar: #0F2118;
+  --admin-surface: #163124;
+  --admin-surface-elevated: #1D3D2C;
+  --admin-border: rgba(169, 201, 127, 0.16);
+  --admin-lime: #B4D985;
+  --admin-copper: #D58A64;
+  --admin-gold: #D8B968;
+  --admin-muted: #A8B8AA;
+
   /* Chart Colors — paleta Campo Operacional */
   --chart-1: #A9C97F;
   --chart-2: #D17D55;
@@ -333,6 +353,16 @@ html:not(.dark) {
   --ring: #5E7E45;
   --radius: 0.75rem;
   --dashboard-card: #FFFFFF;
+
+  --admin-ink: #EFF3E9;
+  --admin-sidebar: #F8FAF3;
+  --admin-surface: #FFFFFF;
+  --admin-surface-elevated: #EEF3E7;
+  --admin-border: rgba(38, 65, 48, 0.14);
+  --admin-lime: #5E7E45;
+  --admin-copper: #B96849;
+  --admin-gold: #A98537;
+  --admin-muted: #5C6A61;
 }
 
 html:not(.dark) body {

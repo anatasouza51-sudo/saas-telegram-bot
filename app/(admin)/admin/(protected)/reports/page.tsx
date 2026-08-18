@@ -1,0 +1,22 @@
+import { redirect } from "next/navigation"
+import { BarChart3, CircleDollarSign, FileBarChart, Layers3, Store, UsersRound } from "lucide-react"
+import { requirePlatformAdmin } from "@/lib/platform-admin"
+import { getPlatformOverview } from "@/lib/queries/platform-admin"
+import { AdminKpi, AdminPageIntro, AdminPanel, adminCurrency, adminNumber } from "@/components/admin-ui"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function AdminReportsPage() {
+  try {
+    await requirePlatformAdmin()
+    const { totals, stores, memberStats } = await getPlatformOverview()
+    const averageTicket = totals.approvedOrders > 0 ? totals.grossRevenue / totals.approvedOrders : 0
+    const activeStores = stores.filter((store) => store.totalOrders > 0).length
+
+    return <div className="space-y-7"><AdminPageIntro eyebrow="Control plane / inteligência" title="Relatórios da plataforma" description="Indicadores operacionais consolidados para acompanhar a saúde do ecossistema e orientar decisões administrativas." /><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><AdminKpi label="Ticket médio" value={adminCurrency.format(averageTicket)} detail="Entre pedidos aprovados" icon={CircleDollarSign} /><AdminKpi label="Tenants operando" value={`${adminNumber.format(activeStores)} / ${adminNumber.format(stores.length)}`} detail="Com pelo menos um pedido" icon={Store} tone="lime" /><AdminKpi label="Clientes atendidos" value={adminNumber.format(totals.customers)} detail="Soma tenant-scoped" icon={UsersRound} tone="blue" /><AdminKpi label="Produtos cadastrados" value={adminNumber.format(totals.products)} detail="Soma tenant-scoped" icon={Layers3} tone="gold" /></section><div className="grid gap-5 xl:grid-cols-2"><AdminPanel title="Resumo financeiro" description="Os valores são calculados apenas sobre pagamentos aprovados."><div className="space-y-4"><div className="flex items-center justify-between border-b border-white/[0.08] pb-4"><span className="text-sm text-white/50">Receita bruta aprovada</span><strong className="text-xl font-black text-white">{adminCurrency.format(totals.grossRevenue)}</strong></div><div className="flex items-center justify-between border-b border-white/[0.08] pb-4"><span className="text-sm text-white/50">Comissão estimada da plataforma</span><strong className="text-xl font-black text-admin-gold">{adminCurrency.format(totals.commissionCents / 100)}</strong></div><div className="flex items-center justify-between"><span className="text-sm text-white/50">Pedidos aprovados</span><strong className="text-xl font-black text-admin-lime">{adminNumber.format(totals.approvedOrders)}</strong></div></div></AdminPanel><AdminPanel title="Base de membros" description="Distribuição atual da base Better Auth."><div className="space-y-4"><div className="flex items-center justify-between border-b border-white/[0.08] pb-4"><span className="flex items-center gap-2 text-sm text-white/50"><Store className="h-4 w-4 text-admin-lime" /> Proprietários</span><strong className="text-xl font-black text-white">{adminNumber.format(memberStats.summary.storeOwners)}</strong></div><div className="flex items-center justify-between border-b border-white/[0.08] pb-4"><span className="flex items-center gap-2 text-sm text-white/50"><UsersRound className="h-4 w-4 text-sky-200" /> Membros tenant</span><strong className="text-xl font-black text-white">{adminNumber.format(memberStats.summary.tenantMembers)}</strong></div><div className="flex items-center justify-between"><span className="flex items-center gap-2 text-sm text-white/50"><FileBarChart className="h-4 w-4 text-admin-copper" /> Total de contas</span><strong className="text-xl font-black text-white">{adminNumber.format(memberStats.summary.total)}</strong></div></div></AdminPanel></div><div className="rounded-[1.35rem] border border-white/[0.08] bg-admin-surface p-5 text-sm leading-6 text-white/45"><BarChart3 className="mb-3 h-5 w-5 text-admin-lime" /><strong className="block text-white/75">Próxima camada de relatórios</strong><p className="mt-2">Exportações CSV/PDF, filtros por período e séries históricas exigem definição de retenção e auditoria de dados antes de serem habilitados. A visão atual utiliza somente dados existentes e não inventa períodos sem registros.</p></div></div>
+  } catch (error) {
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || error.stack?.includes("redirect"))) throw error
+    redirect("/admin")
+  }
+}
