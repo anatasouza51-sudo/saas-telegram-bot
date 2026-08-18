@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { GhostLogo } from "@/components/ghost-logo"
 import { AdminLoginForm } from "@/components/admin-login-form"
 import { getSessionUser } from "@/lib/session"
+import { isPlatformAdmin } from "@/lib/platform-admin"
 import { ShieldCheck } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -10,7 +11,7 @@ export const revalidate = 0
 export default async function AdminLoginPage() {
   const user = await getSessionUser()
 
-  if (user?.role === "admin" && user.ownerId === null) redirect("/admin")
+  if (user && isPlatformAdmin(user)) redirect("/admin")
   if (user) redirect("/admin/forbidden")
 
   return (

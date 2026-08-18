@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import { AdminShell } from "@/components/admin-shell"
 import { getSessionUser } from "@/lib/session"
+import { isPlatformAdmin } from "@/lib/platform-admin"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -13,7 +14,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
     redirect("/admin/login")
   }
 
-  if (user.role !== "admin" || user.ownerId !== null) {
+  if (!isPlatformAdmin(user)) {
     redirect("/admin/forbidden")
   }
 

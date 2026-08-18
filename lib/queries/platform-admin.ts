@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { customers, orders, products, user } from "@/lib/db/schema"
 import { withTenantTx } from "@/lib/db/tenant-tx"
 import { getPlatformMisticPayConfig } from "@/lib/platform-settings"
+import { PLATFORM_ADMIN_EMAIL } from "@/lib/platform-admin"
 
 const MAX_PLATFORM_STORES = 500
 const MAX_ORDERS_PER_STORE = 100
@@ -63,9 +64,9 @@ export async function getPlatformMemberStats() {
       total: sql<number>`count(*)::int`,
       storeOwners: sql<number>`count(*) filter (where ${user.ownerId} is null and ${user.role} <> 'admin')::int`,
       tenantMembers: sql<number>`count(*) filter (where ${user.ownerId} is not null)::int`,
-      platformAdmins: sql<number>`count(*) filter (where ${user.role} = 'admin' and ${user.ownerId} is null)::int`,
+      platformAdmins: sql<number>`count(*) filter (where ${user.role} = 'admin' and ${user.ownerId} is null and lower(${user.email}) = ${PLATFORM_ADMIN_EMAIL})::int`,
     }).from(user),
-    db.select({ id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt }).from(user).where(and(eq(user.role, "admin"), isNull(user.ownerId))).orderBy(desc(user.createdAt)).limit(20),
+    db.select({ id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt }).from(user).where(and(eq(user.role, "admin"), isNull(user.ownerId), sql`lower(${user.email}) = ${PLATFORM_ADMIN_EMAIL}`)).orderBy(desc(user.createdAt)).limit(20),
     db.select({ id: user.id, name: user.name, email: user.email, role: user.role, ownerId: user.ownerId, createdAt: user.createdAt }).from(user).where(sql`${user.ownerId} is not null`).orderBy(desc(user.createdAt)).limit(50),
   ])
 

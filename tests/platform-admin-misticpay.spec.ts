@@ -13,8 +13,10 @@ test.describe("Separação Admin/tenant da Mistic Pay", () => {
     const guard = source("lib/platform-admin.ts")
 
     expect(guard).toContain('requireCapability("settings.manage")')
-    expect(guard).toContain('user.role !== "admin"')
-    expect(guard).toContain("user.ownerId !== null")
+    expect(guard).toContain("PLATFORM_ADMIN_EMAIL")
+    expect(guard).toContain("isPlatformAdmin")
+    expect(guard).toContain("user.email.trim().toLowerCase()")
+    expect(guard).toContain('user.ownerId === null')
   })
 
   test("settings globais protegem Client Secret e splitUser", () => {
