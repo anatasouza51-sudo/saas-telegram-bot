@@ -19,7 +19,6 @@ import { PaymentBreakdown } from "@/components/payment-breakdown"
 import { DashboardActivity } from "@/components/dashboard-activity"
 import { SalesOverview } from "@/components/sales-overview"
 import { PaymentMetrics } from "@/components/payment-metrics"
-import { DashboardProfileSection } from "@/components/dashboard-profile-section"
 import { TopCustomers } from "@/components/top-customers"
 import { PaymentStatusBadge, DeliveryStatusBadge } from "@/components/status-badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
@@ -307,7 +306,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <DashboardProfileSection user={data.user} />
     </div>
   )
 }

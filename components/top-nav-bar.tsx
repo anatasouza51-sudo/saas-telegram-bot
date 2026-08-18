@@ -1,16 +1,11 @@
 "use client"
 
-import { memo, useState, useEffect } from "react"
+import { memo, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  Settings,
-  Bell
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Bell } from "lucide-react"
 import type { Role } from "@/lib/roles"
 import { NotificationsConnected } from "@/components/notifications-connected"
-import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AppSidebar } from "@/components/app-sidebar"
 import { cn } from "@/lib/utils"
@@ -22,8 +17,6 @@ export const TopNavBar = memo(({
   user: { name: string; email: string; role: Role; id: string; storeId: string; image?: string | null }
 }) => {
   const { mobileMenuOpen, setMobileMenuOpen } = useMobileMenu()
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
-
   // Mobile scroll lock
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -57,25 +50,9 @@ export const TopNavBar = memo(({
 
           <ThemeToggle />
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="dashboard-3d-control size-10 rounded-full border border-dashboard-border/60 bg-dashboard-surface/70 text-dashboard-text-muted hover:border-dashboard-accent/50 hover:bg-dashboard-surface hover:text-dashboard-text"
-            onClick={() => setProfileDialogOpen(true)}
-            aria-label="Configurações de perfil"
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
 
         </div>
       </header>
-
-      {/* Profile Settings Dialog */}
-      <ProfileSettingsDialog
-        open={profileDialogOpen}
-        onOpenChange={setProfileDialogOpen}
-        user={user}
-      />
 
       {/* Mobile Sidebar Drawer */}
       <div 
