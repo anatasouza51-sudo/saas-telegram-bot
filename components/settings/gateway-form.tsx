@@ -24,13 +24,16 @@ export function GatewayForm({
   provider: string
   providerName: string
   logoUrl: string
-  initial: { publicKey: string; hasSecretKey: boolean }
+  initial: { publicKey: string; hasSecretKey: boolean; hasProducerId?: boolean; hasWebhookToken?: boolean }
   maskedWebhookUrl: string
   configured: boolean
   enabled: boolean
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
+  const [producerId, setProducerId] = useState("")
+  const [webhookToken, setWebhookToken] = useState("")
+  const isOasyfy = provider === "oasyfy"
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const isCompact = !configured && !enabled
@@ -46,10 +49,14 @@ export function GatewayForm({
           provider,
           publicKey,
           secretKey: secretKey.trim() || undefined,
+          producerId: isOasyfy ? producerId.trim() || undefined : undefined,
+          webhookToken: isOasyfy ? webhookToken.trim() || undefined : undefined,
           enabled: nextEnabled,
         })
 
         setSecretKey("")
+        setProducerId("")
+        setWebhookToken("")
         setIsEnabled(nextEnabled)
         setConfirmDisableOpen(false)
         toast.success(nextEnabled ? `Gateway ${providerName} ativado` : `Gateway ${providerName} desativado`)
@@ -120,7 +127,7 @@ export function GatewayForm({
           <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
             <KeyRound className="h-4 w-4 text-dashboard-accent" />
             <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-white/35">Credenciais</p>
-            <p className="mt-1 text-sm font-semibold text-white/75">{initial.publicKey ? "Client ID salvo" : "Ainda não configurado"}</p>
+            <p className="mt-1 text-sm font-semibold text-white/75">{initial.publicKey ? (isOasyfy ? "Public Key salva" : "Client ID salvo") : "Ainda não configurado"}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
             <LockKeyhole className="h-4 w-4 text-emerald-300" />
@@ -143,14 +150,28 @@ export function GatewayForm({
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor={`${provider}-public`} className="text-xs font-bold uppercase tracking-wider text-white/50">Client ID</Label>
-              <Input id={`${provider}-public`} placeholder="seu_client_id" value={publicKey} onChange={(e) => setPublicKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
+              <Label htmlFor={`${provider}-public`} className="text-xs font-bold uppercase tracking-wider text-white/50">{isOasyfy ? "Public Key (x-public-key)" : "Client ID"}</Label>
+              <Input id={`${provider}-public`} placeholder={isOasyfy ? "sua_public_key" : "seu_client_id"} value={publicKey} onChange={(e) => setPublicKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`${provider}-secret`} className="text-xs font-bold uppercase tracking-wider text-white/50">Client Secret</Label>
-              <Input id={`${provider}-secret`} type="password" autoComplete="new-password" placeholder={initial.hasSecretKey ? "•••••••• (salvo — preencha para alterar)" : `seu client_secret da ${providerName}`} value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
-              <p className="text-xs leading-relaxed text-white/40">Gere as credenciais no painel oficial da {providerName}.{initial.hasSecretKey ? " Deixe em branco para manter o atual." : ""}</p>
+              <Label htmlFor={`${provider}-secret`} className="text-xs font-bold uppercase tracking-wider text-white/50">{isOasyfy ? "Secret Key (x-secret-key)" : "Client Secret"}</Label>
+              <Input id={`${provider}-secret`} type="password" autoComplete="new-password" placeholder={initial.hasSecretKey ? "•••••••• (salvo — preencha para alterar)" : isOasyfy ? "sua_secret_key" : `seu client_secret da ${providerName}`} value={secretKey} onChange={(e) => setSecretKey(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
+              <p className="text-xs leading-relaxed text-white/40">A chave é cifrada no servidor e nunca é devolvida ao navegador.{initial.hasSecretKey ? " Deixe em branco para manter a atual." : ""}</p>
             </div>
+            {isOasyfy && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor={`${provider}-producer`} className="text-xs font-bold uppercase tracking-wider text-white/50">producerId da plataforma</Label>
+                  <Input id={`${provider}-producer`} type="password" autoComplete="off" placeholder={initial.hasProducerId ? "•••••••• (salvo — preencha para alterar)" : "producerId que recebe R$ 0,75"} value={producerId} onChange={(e) => setProducerId(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
+                  <p className="text-xs leading-relaxed text-white/40">Identificador da conta recebedora do split fixo. Deixe em branco para manter o atual.</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={`${provider}-token`} className="text-xs font-bold uppercase tracking-wider text-white/50">Token do webhook da Oasy.fy <span className="normal-case font-normal text-white/30">(opcional)</span></Label>
+                  <Input id={`${provider}-token`} type="password" autoComplete="new-password" placeholder={initial.hasWebhookToken ? "•••••••• (salvo — preencha para alterar)" : "token configurado na Oasy.fy"} value={webhookToken} onChange={(e) => setWebhookToken(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
+                  <p className="text-xs leading-relaxed text-white/40">Quando informado, o callback exige também esse token antes de processar o evento.</p>
+                </div>
+              </>
+            )}
             <div className="grid gap-2 lg:col-span-2">
               <Label htmlFor={`${provider}-webhook`} className="text-xs font-bold uppercase tracking-wider text-white/50">Endpoint de webhook</Label>
               <div className="flex gap-2">
@@ -159,7 +180,7 @@ export function GatewayForm({
                   {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
-              <p className="text-xs leading-relaxed text-white/40">O segredo de autenticação é mantido no servidor e não é exibido no navegador.</p>
+              <p className="text-xs leading-relaxed text-white/40">O segredo interno do endpoint é mantido no servidor e não é exibido no navegador.</p>
             </div>
           </div>
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

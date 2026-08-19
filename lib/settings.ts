@@ -19,8 +19,12 @@ const SENSITIVE_SETTING_KEYS = new Set([
   "misticpay.webhookSecret",
   "misticpay.secretKey",
   "misticpay.splitUser",
+  "oasyfy.secretKey",
+  "oasyfy.producerId",
+  "oasyfy.webhookToken",
+  "oasyfy.webhookSecret",
 ])
-const SENSITIVE_SETTING_PATTERNS = [/^(veopag|misticpay|gateway2|gateway3|gateway4|gateway5)\.secretKey$/]
+const SENSITIVE_SETTING_PATTERNS = [/^(veopag|misticpay|oasyfy|gateway2|gateway3|gateway4|gateway5)\.secretKey$/]
 const PLATFORM_ONLY_SETTING_KEYS = new Set([
   "misticpay.clientId",
   "misticpay.clientSecret",

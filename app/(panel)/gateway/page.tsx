@@ -20,6 +20,7 @@ export default async function GatewayPage() {
   const gatewayProviders = [
     { id: "veopag", name: "VeoPag", logo: "/assets/logos/veopag-3d-transparent.png" },
     { id: "misticpay", name: "Mistic Pay", logo: "" },
+    { id: "oasyfy", name: "Oasy.fy", logo: "" },
   ]
 
   const futureGateways = [
@@ -33,6 +34,7 @@ export default async function GatewayPage() {
       `${provider.id}.publicKey`,
       `${provider.id}.secretKey`,
       `${provider.id}.enabled`,
+      ...(provider.id === "oasyfy" ? [`${provider.id}.producerId`, `${provider.id}.webhookToken`] : []),
     ]),
   ]
 
@@ -43,14 +45,13 @@ export default async function GatewayPage() {
   )
 
   const pixConfig = parsePixConfig(saved["pix.config"])
-  const configuredAndEnabled = gatewayProviders.filter((provider) => {
-    const configured = Boolean(saved[`${provider.id}.publicKey`])
-    return configured && saved[`${provider.id}.enabled`] !== "false"
-  })
+  const configuredAndEnabled = gatewayProviders.filter((provider) => providerState(provider).enabled)
   const inactiveProviders = gatewayProviders.filter((provider) => !configuredAndEnabled.some((active) => active.id === provider.id))
 
   function providerState(provider: (typeof gatewayProviders)[number]) {
-    const configured = Boolean(saved[`${provider.id}.publicKey`])
+    const configured = provider.id === "oasyfy"
+      ? Boolean(saved[`${provider.id}.publicKey`] && saved[`${provider.id}.secretKey`] && saved[`${provider.id}.producerId`])
+      : Boolean(saved[`${provider.id}.publicKey`])
     const enabled = configured && saved[`${provider.id}.enabled`] !== "false"
     return { configured, enabled }
   }
@@ -71,6 +72,8 @@ export default async function GatewayPage() {
         initial={{
           publicKey: saved[`${provider.id}.publicKey`] ?? "",
           hasSecretKey,
+          hasProducerId: provider.id === "oasyfy" ? Boolean(saved[`${provider.id}.producerId`]) : undefined,
+          hasWebhookToken: provider.id === "oasyfy" ? Boolean(saved[`${provider.id}.webhookToken`]) : undefined,
         }}
         maskedWebhookUrl={maskedWebhookUrl}
       />

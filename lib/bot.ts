@@ -18,6 +18,7 @@ import {
 } from "@/lib/telegram"
 import { createCharge, getDepositStatus, mapPaymentStatus, type VeoPagCredentials } from "@/lib/veopag"
 import { MisticPayAdapter, type MisticPayCredentials } from "@/lib/misticpay"
+import { OasyfyAdapter, type OasyfyCredentials } from "@/lib/oasyfy"
 import { amountToCents, centsToAmount, type PaymentProvider } from "@/lib/payment-provider"
 import {
   parsePixConfig,
@@ -70,6 +71,7 @@ type StoreContext = {
   adminIds: string[]
   veopag: VeoPagCredentials & { enabled: boolean }
   misticpay: MisticPayCredentials & { enabled: boolean }
+  oasyfy: OasyfyCredentials & { enabled: boolean }
   welcomeMessage: string
   welcomeImageUrl: string
   support: SupportConfig
@@ -78,11 +80,12 @@ type StoreContext = {
 }
 
 type GatewayChargeResult =
-  | { ok: true; gateway: "misticpay" | "veopag"; paymentId: string; pixCode: string }
+  | { ok: true; gateway: "misticpay" | "oasyfy" | "veopag"; paymentId: string; pixCode: string }
   | { ok: false; error: string }
 
-function activeGateway(ctx: StoreContext): "misticpay" | "veopag" | null {
+function activeGateway(ctx: StoreContext): "misticpay" | "oasyfy" | "veopag" | null {
   if (ctx.misticpay.enabled && ctx.misticpay.clientId && ctx.misticpay.clientSecret && ctx.misticpay.splitUser) return "misticpay"
+  if (ctx.oasyfy.enabled && ctx.oasyfy.publicKey && ctx.oasyfy.secretKey && ctx.oasyfy.producerId) return "oasyfy"
   if (ctx.veopag.enabled && ctx.veopag.publicKey && ctx.veopag.secretKey) return "veopag"
   return null
 }
@@ -102,12 +105,28 @@ async function createGatewayCharge(
   const webhookSecret = await getOrCreateWebhookSecret(ctx.storeId, gateway)
   const callbackUrl = gateway === "misticpay"
     ? `${getAppBaseUrl()}/api/misticpay/webhook/${ctx.storeId}/${webhookSecret}`
-    : `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`
+    : gateway === "oasyfy"
+      ? `${getAppBaseUrl()}/api/oasyfy/webhook/${ctx.storeId}/${webhookSecret}`
+      : `${getAppBaseUrl()}/api/veopag/webhook/${ctx.storeId}/${webhookSecret}`
 
   if (gateway === "misticpay") {
     const amountCents = amountToCents(input.amount)
     if (amountCents == null) return { ok: false, error: "Valor de pagamento inválido." }
     const charge = await new MisticPayAdapter(ctx.misticpay).createPayment({
+      amountCents,
+      externalId: input.externalId,
+      description: input.description,
+      customerName: input.customerName,
+      callbackUrl,
+      payer: input.payer,
+    })
+    return charge.ok ? { ok: true, gateway, paymentId: charge.paymentId, pixCode: charge.pixCode } : { ok: false, error: charge.error }
+  }
+
+  if (gateway === "oasyfy") {
+    const amountCents = amountToCents(input.amount)
+    if (amountCents == null) return { ok: false, error: "Valor de pagamento inválido." }
+    const charge = await new OasyfyAdapter(ctx.oasyfy).createPayment({
       amountCents,
       externalId: input.externalId,
       description: input.description,
@@ -137,6 +156,12 @@ async function checkGatewayPayment(ctx: StoreContext, order: { gateway: string |
   if (order.gateway === "misticpay") {
     if (!ctx.misticpay.clientId || !ctx.misticpay.clientSecret || !ctx.misticpay.splitUser) return { ok: false, error: "Mistic Pay não está configurada." }
     const result = await new MisticPayAdapter(ctx.misticpay).checkPayment(order.paymentId ?? order.id)
+    return result.ok ? { ok: true, status: result.status, amountCents: result.amountCents, paymentId: result.paymentId } : { ok: false, error: result.error }
+  }
+
+  if (order.gateway === "oasyfy") {
+    if (!ctx.oasyfy.publicKey || !ctx.oasyfy.secretKey || !ctx.oasyfy.producerId) return { ok: false, error: "Oasy.fy não está configurada." }
+    const result = await new OasyfyAdapter(ctx.oasyfy).checkPayment(order.paymentId ?? order.id, order.id)
     return result.ok ? { ok: true, status: result.status, amountCents: result.amountCents, paymentId: result.paymentId } : { ok: false, error: result.error }
   }
 
@@ -171,7 +196,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     .from(settings)
     .where(eq(settings.ownerId, storeId))
 
-  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "misticpay.secretKey", "pix.config"]
+  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "misticpay.secretKey", "oasyfy.secretKey", "oasyfy.producerId", "oasyfy.webhookToken", "pix.config"]
 
   const map: Record<string, string> = {}
   for (const r of rows) {
@@ -215,6 +240,13 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
       clientSecret: map["misticpay.secretKey"] ?? "",
       splitUser: platformMisticPay.splitUser,
       enabled: map["misticpay.enabled"] === "true",
+    },
+    oasyfy: {
+      publicKey: map["oasyfy.publicKey"] ?? "",
+      secretKey: map["oasyfy.secretKey"] ?? "",
+      producerId: map["oasyfy.producerId"] ?? "",
+      webhookToken: map["oasyfy.webhookToken"] ?? "",
+      enabled: map["oasyfy.enabled"] === "true",
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
     welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",

@@ -43,7 +43,7 @@ export type CheckPaymentResult =
 export interface PaymentProvider {
   readonly id: string
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>
-  checkPayment(paymentId: string): Promise<CheckPaymentResult>
+  checkPayment(paymentId: string, externalId?: string): Promise<CheckPaymentResult>
 }
 
 export const PAYMENT_COMMISSION_CENTS = 75

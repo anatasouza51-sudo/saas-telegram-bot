@@ -6,7 +6,7 @@ import { TelegramClient } from "@/lib/telegram"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { revalidatePath } from "next/cache"
-import { getSetting, saveSetting } from "@/lib/settings"
+import { getSetting, getSettings, saveSetting } from "@/lib/settings"
 import { serializePixConfig, type PixConfig } from "@/lib/pix-config"
 import { serializeCatalogConfig, type CatalogConfig } from "@/lib/catalog-config"
 import { validateAdminIds, sanitizeTelegramHtml, validateImageUrl, validateBotToken, validateGatewayKey, validateWelcomeMessage, validatePixText, validatePixButtonText } from "@/lib/validation"
@@ -100,16 +100,30 @@ export async function saveGatewaySettings(input: {
   provider: string
   publicKey: string
   secretKey?: string
+  producerId?: string
+  webhookToken?: string
   enabled?: boolean
 }) {
   const user = await requireCapability("gateway.manage")
   const provider = input.provider.toLowerCase()
   const isDisabling = input.enabled === false
+  const isOasyfy = provider === "oasyfy"
+
+  const currentOasyfy = isOasyfy
+    ? await getSettings(user.storeId, ["oasyfy.publicKey", "oasyfy.secretKey", "oasyfy.producerId", "oasyfy.webhookToken"], undefined, { revealSensitive: true })
+    : {}
+  const nextPublicKey = input.publicKey.trim() || currentOasyfy["oasyfy.publicKey"] || ""
+  const nextSecretKey = input.secretKey?.trim() || currentOasyfy["oasyfy.secretKey"] || ""
+  const nextProducerId = input.producerId?.trim() || currentOasyfy["oasyfy.producerId"] || ""
+
+  if (isOasyfy && !isDisabling && (!nextPublicKey || !nextSecretKey || !nextProducerId)) {
+    throw new Error("Informe a chave pública, a chave secreta e o producerId da plataforma para ativar a Oasy.fy.")
+  }
 
   // Desativar não deve exigir que o administrador redigite uma credencial.
   // Ao salvar ou reativar, a chave pública continua sendo validada normalmente.
   if (!isDisabling || input.publicKey.trim()) {
-    await saveSetting(user.storeId, `${provider}.publicKey`, validateGatewayKey(input.publicKey, "Chave pública"))
+    await saveSetting(user.storeId, `${provider}.publicKey`, validateGatewayKey(input.publicKey || nextPublicKey, "Chave pública"))
   }
 
   // Keep the stored secret when the field is left blank (never round-tripped
@@ -119,6 +133,14 @@ export async function saveGatewaySettings(input: {
     await saveSetting(user.storeId, `${provider}.secretKey`, secret)
   }
 
+  if (isOasyfy) {
+    if (input.producerId?.trim()) {
+      await saveSetting(user.storeId, "oasyfy.producerId", validateGatewayKey(input.producerId, "producerId da plataforma"))
+    }
+    if (input.webhookToken?.trim()) {
+      await saveSetting(user.storeId, "oasyfy.webhookToken", validateGatewayKey(input.webhookToken, "Token do webhook"))
+    }
+  }
 
   if (typeof input.enabled === "boolean") {
     await saveSetting(user.storeId, `${provider}.enabled`, String(input.enabled))
