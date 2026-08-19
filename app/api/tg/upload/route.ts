@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/session"
-import { can } from "@/lib/roles"
+import { getSessionUser, hasCapability } from "@/lib/session"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { db } from "@/lib/db"
 import { telegramMedia, telegramMediaFolders } from "@/lib/db/schema"
@@ -105,7 +104,7 @@ async function handleUpload(req: Request) {
   if (!user) {
     return jsonResponse({ error: "Não autenticado. Faça login novamente." }, 401)
   }
-  if (!can(user.role, "posts.manage")) {
+  if (!hasCapability(user, "posts.manage")) {
     return jsonResponse({ error: "Sem permissão" }, 403)
   }
 

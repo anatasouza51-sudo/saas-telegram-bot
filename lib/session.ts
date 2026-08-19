@@ -146,9 +146,18 @@ export async function requireUser(): Promise<SessionUser> {
 /**
  * Requires the given capability. Throws if the user lacks permission.
  */
+export function hasCapability(
+  user: Pick<SessionUser, "role" | "ownerId">,
+  capability: string,
+): boolean {
+  // O proprietário da loja administra o próprio tenant independentemente do
+  // papel operacional padrão. Membros vinculados continuam sujeitos à matriz.
+  return user.ownerId === null || can(user.role, capability)
+}
+
 export async function requireCapability(capability: string): Promise<SessionUser> {
   const user = await requireUser()
-  if (!can(user.role, capability)) {
+  if (!hasCapability(user, capability)) {
     throw new Error("Você não tem permissão para executar esta ação.")
   }
   return user

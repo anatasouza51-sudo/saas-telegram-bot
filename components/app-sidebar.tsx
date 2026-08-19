@@ -15,18 +15,20 @@ import { motion, AnimatePresence } from "framer-motion"
 
 interface SidebarProps {
   userRole: Role
+  isTenantOwner?: boolean
   className?: string
   onItemClick?: () => void
   alwaysExpanded?: boolean
 }
 
-export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpanded = false }: SidebarProps) => {
+export const AppSidebar = memo(({ userRole, isTenantOwner = false, className, onItemClick, alwaysExpanded = false }: SidebarProps) => {
   const pathname = usePathname()
+  const canSeeItem = (capability?: string) => isTenantOwner || canSee(userRole, capability)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
     MAIN_NAV.forEach((node) => {
       if (isSection(node)) {
-        const visible = node.children.filter((child) => canSee(userRole, child.capability))
+        const visible = node.children.filter((child) => canSeeItem(child.capability))
         const isActive = visible.some((child) => pathname.startsWith(child.href))
         initial[node.title] = isActive || visible.length > 0
       }
@@ -103,7 +105,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
             <div className="space-y-1">
               {MAIN_NAV.map((node, index) => {
                 if (isSection(node)) {
-                  const visibleChildren = node.children.filter((child) => canSee(userRole, child.capability))
+                  const visibleChildren = node.children.filter((child) => canSeeItem(child.capability))
                   if (visibleChildren.length === 0) return null
                   const sectionActive = visibleChildren.some((child) => isActive(child.href))
                   const isExpanded = expandedSections[node.title] ?? true
@@ -154,7 +156,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
                     </div>
                   )
                 }
-                if (!canSee(userRole, node.capability)) return null
+                if (!canSeeItem(node.capability)) return null
                 return <NavLink key={node.href || index} item={node} active={isActive(node.href)} />
               })}
             </div>
@@ -163,7 +165,7 @@ export const AppSidebar = memo(({ userRole, className, onItemClick, alwaysExpand
           <section aria-labelledby="sidebar-system-label" className="space-y-1 border-t border-dashboard-border/40 pt-4">
             <div id="sidebar-system-label"><SectionLabel>Sistema</SectionLabel></div>
             <div className="space-y-1">
-              {SYSTEM_NAV.map((item) => canSee(userRole, item.capability) && (
+              {SYSTEM_NAV.map((item) => canSeeItem(item.capability) && (
                 <NavLink key={item.href} item={item} active={isActive(item.href)} />
               ))}
             </div>

@@ -39,8 +39,9 @@ export default async function PanelLayout({
     <MobileMenuProvider>
       <div className="min-h-screen bg-dashboard-bg text-dashboard-text flex overflow-hidden">
       {/* Sidebar Fixa Desktop */}
-      <AppSidebar
+        <AppSidebar
         userRole={user.role}
+        isTenantOwner={user.ownerId === null}
         alwaysExpanded
         className="hidden lg:flex w-[260px] shrink-0 sticky top-0 h-screen"
       />

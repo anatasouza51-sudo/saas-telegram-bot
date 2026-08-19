@@ -50,7 +50,6 @@ export async function GET(request: Request) {
     if (salesDataResult.status === "rejected") console.error("[Dashboard API] Sales chart query failed:", salesDataResult.reason)
 
     return NextResponse.json({
-      user,
       period,
       stats,
       recentOrders,

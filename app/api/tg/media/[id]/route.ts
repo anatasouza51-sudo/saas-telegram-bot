@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/session"
-import { can } from "@/lib/roles"
+import { getSessionUser, hasCapability } from "@/lib/session"
 import { getStoreTelegram } from "@/lib/tg/config"
 import { getFileUrl } from "@/lib/tg/file-url-cache"
 import { db } from "@/lib/db"
@@ -21,7 +20,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getSessionUser()
-  if (!user || !can(user.role, "posts.manage")) {
+  if (!user || !hasCapability(user, "posts.manage")) {
     return new NextResponse("Não autorizado", { status: 401 })
   }
 

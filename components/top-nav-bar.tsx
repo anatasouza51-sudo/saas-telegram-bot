@@ -14,7 +14,7 @@ import { useMobileMenu } from "@/components/mobile-menu-context"
 export const TopNavBar = memo(({
   user,
 }: {
-  user: { name: string; email: string; role: Role; id: string; storeId: string; image?: string | null }
+  user: { name: string; email: string; role: Role; id: string; storeId: string; ownerId: string | null; image?: string | null }
 }) => {
   const { mobileMenuOpen, setMobileMenuOpen } = useMobileMenu()
   // Mobile scroll lock
@@ -81,6 +81,7 @@ export const TopNavBar = memo(({
           <div className="min-h-0 flex-1">
             <AppSidebar
               userRole={user.role}
+              isTenantOwner={user.ownerId === null}
               onItemClick={() => setMobileMenuOpen(false)}
               className="border-r-0"
             />

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/session"
-import { can } from "@/lib/roles"
+import { getSessionUser, hasCapability } from "@/lib/session"
 import { safeFetch, validateFetchUrl } from "@/lib/ssrf-protection"
 
 export const runtime = "nodejs"
@@ -11,7 +10,7 @@ export const runtime = "nodejs"
  */
 export async function GET(req: Request) {
   const user = await getSessionUser()
-  if (!user || !can(user.role, "telegram.manage")) {
+  if (!user || !hasCapability(user, "telegram.manage")) {
     return new NextResponse("Não autorizado", { status: 401 })
   }
 

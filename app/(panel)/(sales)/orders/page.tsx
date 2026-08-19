@@ -1,5 +1,4 @@
-import { requireCapability } from "@/lib/session"
-import { can } from "@/lib/roles"
+import { hasCapability, requireCapability } from "@/lib/session"
 import { OrdersView } from "@/components/orders/orders-view"
 import { getOrders } from "@/lib/queries/records"
 import { safeLoad } from "@/lib/safe-load"
@@ -14,7 +13,7 @@ export default async function OrdersPage() {
     return <ErrorView retryHref="/orders" />
   }
 
-  const canManage = can(user.role, "orders.manage")
+  const canManage = hasCapability(user, "orders.manage")
   const orders = await safeLoad("getOrders", () => getOrders(user.storeId), [])
 
   return (

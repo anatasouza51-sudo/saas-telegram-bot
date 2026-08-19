@@ -36,7 +36,6 @@ type DashboardPeriod = (typeof periodOptions)[number]["value"]
 
 export default function DashboardPage() {
   const [data, setData] = useState<{
-    user: any
     stats: any
     recentOrders: any[]
     salesData: any[]
