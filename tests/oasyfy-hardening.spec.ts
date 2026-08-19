@@ -69,6 +69,17 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(route).toContain("idempotent: true")
   })
 
+  test("validação de ativação retorna erro seguro e não dispara render de Server Components", () => {
+    const action = source("app/actions/platform-settings.ts")
+    const form = source("components/admin-oasyfy-form.tsx")
+
+    expect(action).toContain("Promise<{ ok: true } | { ok: false; error: string }>")
+    expect(action).toContain('return { ok: false, error: "Informe o producerId da plataforma antes de ativar a Oasy.fy." }')
+    expect(action).not.toContain('throw new Error("Informe o producerId da plataforma antes de ativar a Oasy.fy.")')
+    expect(form).toContain("if (!result.ok)")
+    expect(form).toContain("toast.error(result.error)")
+  })
+
   test("tenant recebe somente credenciais próprias e não recebe producerId ou regra de comissão", () => {
     const settings = source("lib/settings.ts")
     const action = source("app/actions/settings.ts")

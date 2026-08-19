@@ -72,13 +72,13 @@ export async function savePlatformMisticPaySettings(input: {
 export async function savePlatformOasyfySettings(input: {
   producerId?: string
   enabled: boolean
-}): Promise<{ ok: true }> {
+}): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = await requirePlatformAdmin()
   const producerId = input.producerId?.trim()
   const current = await getPlatformOasyfyConfig({ revealSensitive: true })
 
   if (input.enabled && !producerId && !current.producerId) {
-    throw new Error("Informe o producerId da plataforma antes de ativar a Oasy.fy.")
+    return { ok: false, error: "Informe o producerId da plataforma antes de ativar a Oasy.fy." }
   }
 
   if (producerId) {

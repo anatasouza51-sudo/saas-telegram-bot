@@ -28,10 +28,14 @@ export function AdminOasyfyForm({
   function submit() {
     startTransition(async () => {
       try {
-        await savePlatformOasyfySettings({
+        const result = await savePlatformOasyfySettings({
           producerId: producerId.trim() || undefined,
           enabled,
         })
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
         setProducerId("")
         toast.success("Configuração global Oasy.fy salva")
         router.refresh()
