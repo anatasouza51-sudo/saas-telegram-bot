@@ -50,8 +50,8 @@ test.describe("Separação Admin/tenant da Mistic Pay", () => {
   test("bot lê splitUser exclusivamente do control plane global", () => {
     const bot = source("lib/bot.ts")
 
-    expect(bot).toContain("getPlatformSetting")
-    expect(bot).toContain("PLATFORM_SETTING_KEYS.misticPaySplitUser")
+    expect(bot).toContain("getPlatformMisticPayConfig({ revealSensitive: true })")
+    expect(bot).toContain("platformMisticPay.splitUser")
     expect(bot).not.toContain('map["misticpay.splitUser"]')
   })
 

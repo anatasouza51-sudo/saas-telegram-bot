@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { requirePlatformAdmin } from "@/lib/platform-admin"
 import {
   getPlatformMisticPayConfig,
+  getPlatformOasyfyConfig,
   PLATFORM_SETTING_KEYS,
   savePlatformSetting,
 } from "@/lib/platform-settings"
@@ -66,6 +67,47 @@ export async function savePlatformMisticPaySettings(input: {
   revalidatePath("/admin/commission")
   revalidatePath("/gateway")
   return { ok: true }
+}
+
+export async function savePlatformOasyfySettings(input: {
+  producerId?: string
+  enabled: boolean
+}): Promise<{ ok: true }> {
+  const admin = await requirePlatformAdmin()
+  const producerId = input.producerId?.trim()
+  const current = await getPlatformOasyfyConfig({ revealSensitive: true })
+
+  if (input.enabled && !producerId && !current.producerId) {
+    throw new Error("Informe o producerId da plataforma antes de ativar a Oasy.fy.")
+  }
+
+  if (producerId) {
+    await savePlatformSetting(PLATFORM_SETTING_KEYS.oasyfyProducerId, validateGatewayKey(producerId, "producerId da plataforma"))
+  }
+  await savePlatformSetting(PLATFORM_SETTING_KEYS.oasyfyEnabled, String(input.enabled))
+
+  await logActivity({
+    storeId: admin.storeId,
+    action: input.enabled ? "Configuração global Oasy.fy atualizada" : "Oasy.fy global desativada",
+    category: "settings",
+    actor: admin,
+    details: "Nenhum producerId ou segredo foi registrado no log. Comissão fixa preservada em R$ 0,75.",
+  })
+
+  revalidatePath("/admin/gateways")
+  revalidatePath("/gateway")
+  return { ok: true }
+}
+
+export async function getPlatformOasyfyAdminState() {
+  await requirePlatformAdmin()
+  const config = await getPlatformOasyfyConfig()
+  return {
+    configured: Boolean(config.producerId),
+    enabled: config.enabled,
+    hasProducerId: Boolean(config.producerId),
+    commissionCents: config.commissionCents,
+  }
 }
 
 export async function getPlatformMisticPayAdminState() {

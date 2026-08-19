@@ -12,6 +12,8 @@ export const PLATFORM_SETTING_KEYS = {
   misticPayCommissionCents: "misticpay.commissionCents",
   misticPayCommissionPercent: "misticpay.commissionPercent",
   misticPayEnabled: "misticpay.enabled",
+  oasyfyProducerId: "oasyfy.platform.producerId",
+  oasyfyEnabled: "oasyfy.enabled",
 } as const
 
 export type PlatformSettingKey = (typeof PLATFORM_SETTING_KEYS)[keyof typeof PLATFORM_SETTING_KEYS]
@@ -19,6 +21,7 @@ export type PlatformSettingKey = (typeof PLATFORM_SETTING_KEYS)[keyof typeof PLA
 const SENSITIVE_KEYS = new Set<PlatformSettingKey>([
   PLATFORM_SETTING_KEYS.misticPayClientSecret,
   PLATFORM_SETTING_KEYS.misticPaySplitUser,
+  PLATFORM_SETTING_KEYS.oasyfyProducerId,
 ])
 
 function isPlatformSettingKey(key: string): key is PlatformSettingKey {
@@ -82,6 +85,12 @@ export async function savePlatformSetting(key: PlatformSettingKey, value: string
     })
 }
 
+export type PlatformOasyfyConfig = {
+  producerId: string
+  commissionCents: 75
+  enabled: boolean
+}
+
 export type PlatformMisticPayConfig = {
   clientId: string
   clientSecret: string
@@ -113,6 +122,26 @@ export async function getPlatformMisticPayConfig(
     commissionPercent: saved[PLATFORM_SETTING_KEYS.misticPayCommissionPercent] ?? "25",
     enabled: parseEnabled(saved[PLATFORM_SETTING_KEYS.misticPayEnabled]),
   }
+}
+
+export async function getPlatformOasyfyConfig(
+  options: { revealSensitive?: boolean } = {},
+): Promise<PlatformOasyfyConfig> {
+  const saved = await getPlatformSettings(
+    [PLATFORM_SETTING_KEYS.oasyfyProducerId, PLATFORM_SETTING_KEYS.oasyfyEnabled],
+    options,
+  )
+  return {
+    producerId: saved[PLATFORM_SETTING_KEYS.oasyfyProducerId] ?? "",
+    commissionCents: 75,
+    enabled: parseEnabled(saved[PLATFORM_SETTING_KEYS.oasyfyEnabled]),
+  }
+}
+
+export async function getPlatformOasyfyCredentials(): Promise<Pick<PlatformOasyfyConfig, "producerId"> | null> {
+  const config = await getPlatformOasyfyConfig({ revealSensitive: true })
+  if (!config.producerId || !config.enabled) return null
+  return { producerId: config.producerId }
 }
 
 export async function getPlatformMisticPayCredentials(): Promise<Pick<PlatformMisticPayConfig, "clientId" | "clientSecret" | "splitUser"> | null> {

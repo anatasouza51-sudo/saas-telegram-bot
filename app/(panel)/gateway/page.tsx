@@ -34,7 +34,7 @@ export default async function GatewayPage() {
       `${provider.id}.publicKey`,
       `${provider.id}.secretKey`,
       `${provider.id}.enabled`,
-      ...(provider.id === "oasyfy" ? [`${provider.id}.producerId`, `${provider.id}.webhookToken`] : []),
+      ...(provider.id === "oasyfy" ? [`${provider.id}.webhookToken`] : []),
     ]),
   ]
 
@@ -50,7 +50,7 @@ export default async function GatewayPage() {
 
   function providerState(provider: (typeof gatewayProviders)[number]) {
     const configured = provider.id === "oasyfy"
-      ? Boolean(saved[`${provider.id}.publicKey`] && saved[`${provider.id}.secretKey`] && saved[`${provider.id}.producerId`])
+      ? Boolean(saved[`${provider.id}.publicKey`] && saved[`${provider.id}.secretKey`])
       : Boolean(saved[`${provider.id}.publicKey`])
     const enabled = configured && saved[`${provider.id}.enabled`] !== "false"
     return { configured, enabled }
@@ -72,7 +72,6 @@ export default async function GatewayPage() {
         initial={{
           publicKey: saved[`${provider.id}.publicKey`] ?? "",
           hasSecretKey,
-          hasProducerId: provider.id === "oasyfy" ? Boolean(saved[`${provider.id}.producerId`]) : undefined,
           hasWebhookToken: provider.id === "oasyfy" ? Boolean(saved[`${provider.id}.webhookToken`]) : undefined,
         }}
         maskedWebhookUrl={maskedWebhookUrl}

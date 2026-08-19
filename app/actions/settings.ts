@@ -100,7 +100,6 @@ export async function saveGatewaySettings(input: {
   provider: string
   publicKey: string
   secretKey?: string
-  producerId?: string
   webhookToken?: string
   enabled?: boolean
 }) {
@@ -110,14 +109,13 @@ export async function saveGatewaySettings(input: {
   const isOasyfy = provider === "oasyfy"
 
   const currentOasyfy = isOasyfy
-    ? await getSettings(user.storeId, ["oasyfy.publicKey", "oasyfy.secretKey", "oasyfy.producerId", "oasyfy.webhookToken"], undefined, { revealSensitive: true })
+    ? await getSettings(user.storeId, ["oasyfy.publicKey", "oasyfy.secretKey"], undefined, { revealSensitive: true })
     : {}
   const nextPublicKey = input.publicKey.trim() || currentOasyfy["oasyfy.publicKey"] || ""
   const nextSecretKey = input.secretKey?.trim() || currentOasyfy["oasyfy.secretKey"] || ""
-  const nextProducerId = input.producerId?.trim() || currentOasyfy["oasyfy.producerId"] || ""
 
-  if (isOasyfy && !isDisabling && (!nextPublicKey || !nextSecretKey || !nextProducerId)) {
-    throw new Error("Informe a chave pública, a chave secreta e o producerId da plataforma para ativar a Oasy.fy.")
+  if (isOasyfy && !isDisabling && (!nextPublicKey || !nextSecretKey)) {
+    throw new Error("Informe a chave pública e a chave secreta da conta vendedora para ativar a Oasy.fy.")
   }
 
   // Desativar não deve exigir que o administrador redigite uma credencial.
@@ -133,13 +131,8 @@ export async function saveGatewaySettings(input: {
     await saveSetting(user.storeId, `${provider}.secretKey`, secret)
   }
 
-  if (isOasyfy) {
-    if (input.producerId?.trim()) {
-      await saveSetting(user.storeId, "oasyfy.producerId", validateGatewayKey(input.producerId, "producerId da plataforma"))
-    }
-    if (input.webhookToken?.trim()) {
-      await saveSetting(user.storeId, "oasyfy.webhookToken", validateGatewayKey(input.webhookToken, "Token do webhook"))
-    }
+  if (isOasyfy && input.webhookToken?.trim()) {
+    await saveSetting(user.storeId, "oasyfy.webhookToken", validateGatewayKey(input.webhookToken, "Token do webhook"))
   }
 
   if (typeof input.enabled === "boolean") {

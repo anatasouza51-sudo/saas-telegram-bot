@@ -31,6 +31,9 @@ const PLATFORM_ONLY_SETTING_KEYS = new Set([
   "misticpay.splitUser",
   "misticpay.commissionCents",
   "misticpay.commissionPercent",
+  "oasyfy.producerId",
+  "oasyfy.commissionCents",
+  "oasyfy.commissionPercent",
 ])
 
 export function isSensitiveSettingKey(key: string): boolean {

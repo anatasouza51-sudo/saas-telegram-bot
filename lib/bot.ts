@@ -42,7 +42,7 @@ import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
 import { validateCoupon, incrementCouponUsage } from "@/app/actions/coupons"
-import { getPlatformSetting, PLATFORM_SETTING_KEYS } from "@/lib/platform-settings"
+import { getPlatformMisticPayConfig, getPlatformOasyfyConfig } from "@/lib/platform-settings"
 
 // How many categories/products to show per screen. Inline keyboards can't hold
 // thousands of buttons, so every list is paginated. This keeps the bot fast
@@ -196,7 +196,7 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     .from(settings)
     .where(eq(settings.ownerId, storeId))
 
-  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "misticpay.secretKey", "oasyfy.secretKey", "oasyfy.producerId", "oasyfy.webhookToken", "pix.config"]
+  const SENSITIVE_KEYS = ["telegram.botToken", "veopag.secretKey", "misticpay.secretKey", "oasyfy.secretKey", "oasyfy.webhookToken", "pix.config"]
 
   const map: Record<string, string> = {}
   for (const r of rows) {
@@ -211,13 +211,18 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
   if (!token) return null
 
   let platformMisticPay = { splitUser: "" }
+  let platformOasyfy = { producerId: "", enabled: false }
   try {
-    const splitUser = await getPlatformSetting(PLATFORM_SETTING_KEYS.misticPaySplitUser, { revealSensitive: true })
-    platformMisticPay = { splitUser: splitUser ?? "" }
+    const [misticPayConfig, oasyfyConfig] = await Promise.all([
+      getPlatformMisticPayConfig({ revealSensitive: true }),
+      getPlatformOasyfyConfig({ revealSensitive: true }),
+    ])
+    platformMisticPay = { splitUser: misticPayConfig.splitUser }
+    platformOasyfy = { producerId: oasyfyConfig.producerId, enabled: oasyfyConfig.enabled }
   } catch (error) {
     // A missing/unapplied control-plane migration must not break VeoPag.
-    // Mistic Pay remains disabled until the global split configuration exists.
-    console.error("[bot] Configuração global Mistic Pay indisponível; gateway desativado para esta execução", error instanceof Error ? error.name : "unknown")
+    // Split-based gateways remain disabled until global configuration exists.
+    console.error("[bot] Configuração global de gateways indisponível; split gateways desativados para esta execução", error instanceof Error ? error.name : "unknown")
   }
 
   const adminIds = (map["telegram.adminIds"] ?? "")
@@ -244,9 +249,9 @@ async function loadStoreContext(storeId: string): Promise<StoreContext | null> {
     oasyfy: {
       publicKey: map["oasyfy.publicKey"] ?? "",
       secretKey: map["oasyfy.secretKey"] ?? "",
-      producerId: map["oasyfy.producerId"] ?? "",
+      producerId: platformOasyfy.producerId,
       webhookToken: map["oasyfy.webhookToken"] ?? "",
-      enabled: map["oasyfy.enabled"] === "true",
+      enabled: map["oasyfy.enabled"] === "true" && platformOasyfy.enabled,
     },
     welcomeMessage: map["store.welcomeMessage"] ?? "",
     welcomeImageUrl: map["store.welcomeImageUrl"] ?? "",

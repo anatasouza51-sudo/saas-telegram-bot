@@ -24,14 +24,13 @@ export function GatewayForm({
   provider: string
   providerName: string
   logoUrl: string
-  initial: { publicKey: string; hasSecretKey: boolean; hasProducerId?: boolean; hasWebhookToken?: boolean }
+  initial: { publicKey: string; hasSecretKey: boolean; hasWebhookToken?: boolean }
   maskedWebhookUrl: string
   configured: boolean
   enabled: boolean
 }) {
   const [publicKey, setPublicKey] = useState(initial.publicKey)
   const [secretKey, setSecretKey] = useState("")
-  const [producerId, setProducerId] = useState("")
   const [webhookToken, setWebhookToken] = useState("")
   const isOasyfy = provider === "oasyfy"
   const router = useRouter()
@@ -49,13 +48,11 @@ export function GatewayForm({
           provider,
           publicKey,
           secretKey: secretKey.trim() || undefined,
-          producerId: isOasyfy ? producerId.trim() || undefined : undefined,
           webhookToken: isOasyfy ? webhookToken.trim() || undefined : undefined,
           enabled: nextEnabled,
         })
 
         setSecretKey("")
-        setProducerId("")
         setWebhookToken("")
         setIsEnabled(nextEnabled)
         setConfirmDisableOpen(false)
@@ -160,11 +157,6 @@ export function GatewayForm({
             </div>
             {isOasyfy && (
               <>
-                <div className="grid gap-2">
-                  <Label htmlFor={`${provider}-producer`} className="text-xs font-bold uppercase tracking-wider text-white/50">producerId da plataforma</Label>
-                  <Input id={`${provider}-producer`} type="password" autoComplete="off" placeholder={initial.hasProducerId ? "•••••••• (salvo — preencha para alterar)" : "producerId que recebe R$ 0,75"} value={producerId} onChange={(e) => setProducerId(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
-                  <p className="text-xs leading-relaxed text-white/40">Identificador da conta recebedora do split fixo. Deixe em branco para manter o atual.</p>
-                </div>
                 <div className="grid gap-2">
                   <Label htmlFor={`${provider}-token`} className="text-xs font-bold uppercase tracking-wider text-white/50">Token do webhook da Oasy.fy <span className="normal-case font-normal text-white/30">(opcional)</span></Label>
                   <Input id={`${provider}-token`} type="password" autoComplete="new-password" placeholder={initial.hasWebhookToken ? "•••••••• (salvo — preencha para alterar)" : "token configurado na Oasy.fy"} value={webhookToken} onChange={(e) => setWebhookToken(e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25" />
