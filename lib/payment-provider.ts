@@ -3,6 +3,7 @@ import "server-only"
 export type PaymentPayer = {
   name?: string
   email?: string
+  phone?: string
   document?: string
 }
 

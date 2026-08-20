@@ -36,8 +36,13 @@ import { formatCurrency } from "@/lib/format"
 import { getAppBaseUrl } from "@/lib/urls"
 import { getOrCreateWebhookSecret } from "@/lib/webhook-secrets"
 import { escapeHtml } from "@/lib/security"
-import { isEncrypted, decrypt } from "@/lib/crypto"
-import { sanitizeDisplayName } from "@/lib/validation"
+import { isEncrypted, decrypt, encrypt } from "@/lib/crypto"
+import {
+  sanitizeDisplayName,
+  validateBrazilianDocument,
+  validateBrazilianPhone,
+  validateEmail,
+} from "@/lib/validation"
 import { handleMyChatMember, detectChatFromUpdate } from "@/lib/tg/discovery"
 import { recordTopicFromUpdate } from "@/lib/tg/topics"
 import { botIdFromToken } from "@/lib/tg/config"
@@ -97,7 +102,7 @@ async function createGatewayCharge(
     externalId: string
     description: string
     customerName?: string
-    payer?: { name?: string; email?: string; document?: string }
+    payer?: { name?: string; email?: string; phone?: string; document?: string }
   },
 ): Promise<GatewayChargeResult> {
   const gateway = activeGateway(ctx)
@@ -302,6 +307,151 @@ async function upsertCustomer(
     })
     .returning()
   return row
+}
+
+type PayerField = "email" | "phone" | "document"
+type PayerCollectionTarget =
+  | { kind: "product"; value: string }
+  | { kind: "recharge"; value: string }
+
+type CustomerPayerData = Pick<
+  typeof customers.$inferSelect,
+  "id" | "name" | "username" | "email" | "phone" | "document" | "paymentDataState"
+>
+
+function nextMissingPayerField(customer: CustomerPayerData): PayerField | null {
+  if (!customer.email) return "email"
+  if (!customer.phone) return "phone"
+  if (!customer.document) return "document"
+  return null
+}
+
+function payerCollectionState(target: PayerCollectionTarget, field: PayerField): string {
+  return `oasyfy:${target.kind}:${target.value}:${field}`
+}
+
+function parsePayerCollectionState(value: string | null | undefined):
+  | { target: PayerCollectionTarget; field: PayerField }
+  | null {
+  if (!value) return null
+  const match = /^oasyfy:(product|recharge):([^:]+):(email|phone|document)$/.exec(value)
+  if (!match) return null
+  return {
+    target: { kind: match[1] as PayerCollectionTarget["kind"], value: match[2] },
+    field: match[3] as PayerField,
+  }
+}
+
+function decryptCustomerPayerValue(value: string | null): string | undefined {
+  if (!value) return undefined
+  return isEncrypted(value) ? (decrypt(value) ?? undefined) : value
+}
+
+function payerFromCustomer(customer: CustomerPayerData) {
+  return {
+    name: customer.name ?? customer.username ?? "Cliente",
+    email: decryptCustomerPayerValue(customer.email),
+    phone: decryptCustomerPayerValue(customer.phone),
+    document: decryptCustomerPayerValue(customer.document),
+  }
+}
+
+async function ensureOasyfyPayerData(
+  ctx: StoreContext,
+  chatId: number,
+  customer: CustomerPayerData,
+  target: PayerCollectionTarget,
+): Promise<boolean> {
+  if (activeGateway(ctx) !== "oasyfy") return true
+  const field = nextMissingPayerField(customer)
+  if (!field) return true
+
+  await db
+    .update(customers)
+    .set({ paymentDataState: payerCollectionState(target, field) })
+    .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.id, customer.id)))
+
+  const messages: Record<PayerField, string> = {
+    email: "Para gerar o PIX, informe seu <b>e-mail</b>.",
+    phone: "Agora informe seu <b>telefone com DDD</b>. Exemplo: (11) 99999-9999.",
+    document: "Por fim, informe seu <b>CPF ou CNPJ</b>. Envie apenas um documento válido.",
+  }
+  await ctx.tg.sendMessage(
+    chatId,
+    [
+      "🔐 <b>Dados necessários para o PIX</b>",
+      "",
+      messages[field],
+      "",
+      "Esses dados são usados somente para identificar o pagador na Oasy.fy e ficam protegidos no sistema.",
+      "Envie /cancelar para interromper esta coleta.",
+    ].join("\\n"),
+  )
+  return false
+}
+
+async function handlePayerDataInput(
+  ctx: StoreContext,
+  chatId: number,
+  from: { id: number; username?: string; first_name?: string },
+  customer: CustomerPayerData,
+  text: string,
+): Promise<boolean> {
+  const state = parsePayerCollectionState(customer.paymentDataState)
+  if (!state) return false
+
+  if (text === "/cancelar" || text.toLowerCase() === "cancelar") {
+    await db
+      .update(customers)
+      .set({ paymentDataState: null })
+      .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.id, customer.id)))
+    await ctx.tg.sendMessage(chatId, "Coleta cancelada. Nenhum pagamento foi criado.")
+    return true
+  }
+
+  let normalized: string
+  try {
+    normalized = state.field === "email"
+      ? validateEmail(text)
+      : state.field === "phone"
+        ? validateBrazilianPhone(text)
+        : validateBrazilianDocument(text)
+  } catch (error) {
+    await ctx.tg.sendMessage(chatId, `❌ ${(error as Error).message}`)
+    return true
+  }
+
+  const encrypted = encrypt(normalized)
+  const payerUpdate = state.field === "email"
+    ? { email: encrypted }
+    : state.field === "phone"
+      ? { phone: encrypted }
+      : { document: encrypted }
+  try {
+    await db
+      .update(customers)
+      .set({ ...payerUpdate, paymentDataState: null })
+      .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.id, customer.id)))
+  } catch (error) {
+    console.error("[bot/payer-data] secure storage failed:", error instanceof Error ? error.name : "unknown")
+    await ctx.tg.sendMessage(chatId, "❌ Não foi possível proteger seus dados agora. Tente novamente mais tarde.")
+    return true
+  }
+
+  const updatedCustomer = { ...customer, ...payerUpdate, paymentDataState: null } as CustomerPayerData
+  const missing = nextMissingPayerField(updatedCustomer)
+  if (missing) {
+    await ensureOasyfyPayerData(ctx, chatId, updatedCustomer, state.target)
+    return true
+  }
+
+  await ctx.tg.sendMessage(chatId, "✅ Dados recebidos com segurança. Vou gerar o PIX agora.")
+  if (state.target.kind === "product") {
+    await startPurchase(ctx, chatId, Number(state.target.value), from)
+  } else {
+    await handleRecharge(ctx, chatId, Number(state.target.value), from)
+  }
+  return true
 }
 
 /* ---------------------------------------------------------------------------
@@ -817,6 +967,9 @@ async function handleRecharge(
 
   try {
     const customer = await upsertCustomer(ctx.storeId, from)
+    if (!(await ensureOasyfyPayerData(ctx, chatId, customer, { kind: "recharge", value: String(amount) }))) {
+      return
+    }
   
   const [order] = await db
     .insert(orders)
@@ -836,7 +989,9 @@ async function handleRecharge(
     amount,
     externalId: String(order.id),
     description: `Recarga de Saldo - ${customer.name || customer.username}`,
-    payer: { name: customer.name ?? customer.username ?? "Cliente" },
+    payer: activeGateway(ctx) === "oasyfy"
+      ? payerFromCustomer(customer)
+      : { name: customer.name ?? customer.username ?? "Cliente" },
   })
 
   if (!charge.ok) {
@@ -936,6 +1091,9 @@ async function startPurchase(
   }
 
   const customer = await upsertCustomer(ctx.storeId, from)
+  if (!(await ensureOasyfyPayerData(ctx, chatId, customer, { kind: "product", value: String(productId) }))) {
+    return
+  }
 
   // Apply active coupon if the customer has one set.
   const originalPrice = Number(product.price)
@@ -990,9 +1148,9 @@ async function startPurchase(
       ? `${product.name} (${discountPercent}% OFF com ${appliedCouponCode})`
       : product.name,
     customerName: customer.name ?? undefined,
-    payer: {
-      name: customer.name ?? customer.username ?? "Cliente",
-    },
+    payer: selectedGateway === "oasyfy"
+      ? payerFromCustomer(customer)
+      : { name: customer.name ?? customer.username ?? "Cliente" },
   })
 
   if (!charge.ok) {
@@ -1737,9 +1895,7 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
   // private-chat only. Group/supergroup messages already returned above; this
   // guard ensures nothing with a "/" ever triggers a reply outside private DMs.
   if (msg.chat.type !== "private") return
-  console.log(
-    `[v0] private handler: processing "${msg.text.trim()}" from user ${msg.from.id}`,
-  )
+  console.log(`[v0] private handler: received message from user ${msg.from.id}`)
   const chatId = msg.chat.id
   const text = msg.text.trim()
   const senderId = String(msg.from.id)
@@ -1756,9 +1912,22 @@ export async function handleUpdate(storeId: string, update: TelegramUpdate) {
 
   // Check if the customer is in the middle of a coupon-entry flow.
   const [customerRecord] = await db
-    .select({ id: customers.id, activeCoupon: customers.activeCoupon })
+    .select({
+      id: customers.id,
+      activeCoupon: customers.activeCoupon,
+      name: customers.name,
+      username: customers.username,
+      email: customers.email,
+      phone: customers.phone,
+      document: customers.document,
+      paymentDataState: customers.paymentDataState,
+    })
     .from(customers)
     .where(and(eq(customers.ownerId, ctx.storeId), eq(customers.telegramId, senderId)))
+
+  if (customerRecord && await handlePayerDataInput(ctx, chatId, msg.from, customerRecord, text)) {
+    return
+  }
 
   if (
     customerRecord?.activeCoupon?.startsWith("__awaiting:") &&

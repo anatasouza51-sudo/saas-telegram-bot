@@ -28,6 +28,28 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(adapter).toContain('code: "PAYMENT_SPLIT_UNREPRESENTABLE"')
   })
 
+  test("exige dados completos do pagador e coleta PII cifrada no fluxo Telegram", () => {
+    const adapter = source("lib/oasyfy.ts")
+    const bot = source("lib/bot.ts")
+    const schema = source("lib/db/schema.ts")
+    const migration = source("lib/db/migrations/0006_customer_payer_data.sql")
+    const records = source("lib/queries/records.ts")
+
+    expect(adapter).toContain("!payerName.trim() || !payerEmail || !payerPhone || !payerDocument")
+    expect(adapter).toContain("phone: payerPhone")
+    expect(bot).toContain("validateBrazilianDocument")
+    expect(bot).toContain("validateBrazilianPhone")
+    expect(bot).toContain("encrypt(normalized)")
+    expect(bot).toContain("paymentDataState")
+    expect(bot).not.toContain('processing \\"${msg.text.trim()}\\"')
+    expect(schema).toContain('email: text("email")')
+    expect(schema).toContain('phone: text("phone")')
+    expect(schema).toContain('document: text("document")')
+    expect(migration).toContain('ADD COLUMN IF NOT EXISTS "paymentDataState" text')
+    expect(records).toContain(".select({")
+    expect(records).not.toContain(".select()\n    .from(customers)")
+  })
+
   test("trata timeout como ambíguo e não faz retry automático", () => {
     const adapter = source("lib/oasyfy.ts")
     expect(adapter).toContain("REQUEST_TIMEOUT_MS")

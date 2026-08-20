@@ -111,11 +111,24 @@ export function buildOasyfyCreatePayload(
     return { ok: false, code: "PAYMENT_INVALID", error: "Identificador da transação inválido." }
   }
 
-  const client: JsonRecord = {
-    name: input.payer?.name ?? input.customerName ?? "Cliente",
+  const payerName = input.payer?.name ?? input.customerName ?? "Cliente"
+  const payerEmail = input.payer?.email?.trim()
+  const payerPhone = input.payer?.phone?.trim()
+  const payerDocument = input.payer?.document?.trim()
+  if (!payerName.trim() || !payerEmail || !payerPhone || !payerDocument) {
+    return {
+      ok: false,
+      code: "PAYMENT_INVALID",
+      error: "Para gerar o PIX Oasy.fy, informe nome, e-mail, telefone e CPF/CNPJ do pagador.",
+    }
   }
-  if (input.payer?.email) client.email = input.payer.email
-  if (input.payer?.document) client.document = input.payer.document
+
+  const client: JsonRecord = {
+    name: payerName.trim(),
+    email: payerEmail,
+    phone: payerPhone,
+    document: payerDocument,
+  }
 
   const payload: JsonRecord = {
     identifier: input.externalId,

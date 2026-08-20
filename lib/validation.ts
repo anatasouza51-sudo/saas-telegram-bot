@@ -176,6 +176,65 @@ export function validateEmail(email: unknown): string {
 /**
  * Validates a webhook URL, blocking private/loopback addresses.
  */
+/**
+ * Normalizes and validates a Brazilian phone number for payment providers.
+ * The Oasy.fy national format accepts 10 or 11 digits, with or without
+ * formatting. A Brazilian country-code prefix is accepted and removed.
+ */
+export function validateBrazilianPhone(phone: unknown): string {
+  if (typeof phone !== "string") throw new Error("Telefone inválido")
+  let digits = phone.replace(/\D/g, "")
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
+    digits = digits.slice(2)
+  }
+  if (!/^\d{10,11}$/.test(digits) || /^([0-9])\1+$/.test(digits)) {
+    throw new Error("Telefone inválido. Envie DDD e número, por exemplo (11) 99999-9999.")
+  }
+  return digits
+}
+
+function hasRepeatedDigits(digits: string): boolean {
+  return /^([0-9])\1+$/.test(digits)
+}
+
+function validateCpf(digits: string): boolean {
+  if (digits.length !== 11 || hasRepeatedDigits(digits)) return false
+  let sum = 0
+  for (let index = 0; index < 9; index += 1) sum += Number(digits[index]) * (10 - index)
+  let remainder = (sum * 10) % 11
+  if (remainder === 10) remainder = 0
+  if (remainder !== Number(digits[9])) return false
+  sum = 0
+  for (let index = 0; index < 10; index += 1) sum += Number(digits[index]) * (11 - index)
+  remainder = (sum * 10) % 11
+  if (remainder === 10) remainder = 0
+  return remainder === Number(digits[10])
+}
+
+function validateCnpj(digits: string): boolean {
+  if (digits.length !== 14 || hasRepeatedDigits(digits)) return false
+  const calculateDigit = (length: number): number => {
+    const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    const sum = digits
+      .slice(0, length)
+      .split("")
+      .reduce((total, value, index) => total + Number(value) * weights[index], 0)
+    const remainder = sum % 11
+    return remainder < 2 ? 0 : 11 - remainder
+  }
+  return calculateDigit(12) === Number(digits[12]) && calculateDigit(13) === Number(digits[13])
+}
+
+/** Normalizes and validates a CPF or CNPJ without logging or returning raw input. */
+export function validateBrazilianDocument(document: unknown): string {
+  if (typeof document !== "string") throw new Error("CPF/CNPJ inválido")
+  const digits = document.replace(/\D/g, "")
+  if (!validateCpf(digits) && !validateCnpj(digits)) {
+    throw new Error("CPF/CNPJ inválido. Confira os dígitos e tente novamente.")
+  }
+  return digits
+}
+
 export function validateWebhookUrl(url: unknown): string {
   if (typeof url !== "string") throw new Error("URL inválida")
   const trimmed = url.trim()

@@ -142,6 +142,12 @@ export const customers = pgTable(
     telegramId: text("telegramId").notNull(),
     username: text("username"),
     name: text("name"),
+    // Encrypted payer data collected only when a gateway requires it.
+    email: text("email"),
+    phone: text("phone"),
+    document: text("document"),
+    // email|phone|document while the bot collects Oasy.fy payer data.
+    paymentDataState: text("paymentDataState"),
     totalSpent: numeric("totalSpent", { precision: 12, scale: 2 })
       .notNull()
       .default("0"),

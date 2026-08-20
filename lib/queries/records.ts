@@ -39,11 +39,24 @@ export async function getOrders(storeId: string): Promise<OrderRow[]> {
   return rows
 }
 
-export type CustomerRow = typeof customers.$inferSelect
+export type CustomerRow = Pick<
+  typeof customers.$inferSelect,
+  "id" | "telegramId" | "username" | "name" | "totalSpent" | "purchaseCount" | "lastPurchaseAt" | "status" | "createdAt"
+>
 
 export async function getCustomers(storeId: string): Promise<CustomerRow[]> {
   return db
-    .select()
+    .select({
+      id: customers.id,
+      telegramId: customers.telegramId,
+      username: customers.username,
+      name: customers.name,
+      totalSpent: customers.totalSpent,
+      purchaseCount: customers.purchaseCount,
+      lastPurchaseAt: customers.lastPurchaseAt,
+      status: customers.status,
+      createdAt: customers.createdAt,
+    })
     .from(customers)
     .where(eq(customers.ownerId, storeId))
     .orderBy(desc(customers.createdAt))
