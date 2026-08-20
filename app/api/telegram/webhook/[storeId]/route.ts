@@ -26,7 +26,7 @@ async function claimReplay(storeId: string, updateId: number): Promise<ReplayCla
 
   const key = `${replayPrefix}${storeId}:${updateId}`
   try {
-    const resp = await fetch(`${redis.url}/set/${encodeURIComponent(key)}/1?NX=true&EX=86400`, {
+    const resp = await fetch(`${redis.url}/set/${encodeURIComponent(key)}/1/NX/EX/86400`, {
       headers: { Authorization: `Bearer ${redis.token}` },
       signal: AbortSignal.timeout(2_000),
     })
