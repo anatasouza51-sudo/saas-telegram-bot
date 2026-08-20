@@ -56,7 +56,11 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(adapter).toContain("data.errorDescription")
     expect(adapter).toContain("nested.details")
     expect(adapter).toContain("nested.errorDescription")
+    expect(adapter).toContain("Object.entries(value as JsonRecord)")
+    expect(adapter).toContain("depth > 3")
     expect(adapter).toContain("[redacted]")
+    expect(adapter).toContain("[email redacted]")
+    expect(adapter).toContain("[number redacted]")
     expect(adapter).toContain("return redacted.slice(0, 240)")
   })
 

@@ -39,17 +39,39 @@ function nestedRecord(record: JsonRecord, key: string): JsonRecord {
   return asRecord(record[key])
 }
 
-function sanitizeProviderDetail(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const normalized = value
+function sanitizeProviderDetail(value: unknown, depth = 0): string | undefined {
+  if (depth > 3 || value === null || value === undefined) return undefined
+
+  if (typeof value === "object") {
+    if (Array.isArray(value)) {
+      const items = value
+        .map((item) => sanitizeProviderDetail(item, depth + 1))
+        .filter((item): item is string => Boolean(item))
+      return items.length > 0 ? items.join("; ").slice(0, 240) : undefined
+    }
+
+    const fields = Object.entries(value as JsonRecord)
+      .filter(([key]) => !/(?:x[-_]?public[-_]?key|x[-_]?secret[-_]?key|authorization|api[-_]?key|token|secret)/i.test(key))
+      .map(([key, child]) => {
+        const detail = sanitizeProviderDetail(child, depth + 1)
+        return detail ? `${key}: ${detail}` : undefined
+      })
+      .filter((item): item is string => Boolean(item))
+    return fields.length > 0 ? fields.join("; ").slice(0, 240) : undefined
+  }
+
+  const normalized = String(value)
     .replace(/[\u0000-\u001F\u007F]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
   if (!normalized) return undefined
-  const redacted = normalized.replace(
-    /((?:x[-_]?public[-_]?key|x[-_]?secret[-_]?key|authorization|api[-_]?key|token|secret)\s*[:=]\s*)[^,; ]+/gi,
-    "$1[redacted]",
-  )
+  const redacted = normalized
+    .replace(
+      /((?:x[-_]?public[-_]?key|x[-_]?secret[-_]?key|authorization|api[-_]?key|token|secret)\s*[:=]\s*)[^,; ]+/gi,
+      "$1[redacted]",
+    )
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email redacted]")
+    .replace(/(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)/g, "[number redacted]")
   return redacted.slice(0, 240)
 }
 
