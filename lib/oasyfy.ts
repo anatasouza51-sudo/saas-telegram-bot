@@ -39,10 +39,35 @@ function nestedRecord(record: JsonRecord, key: string): JsonRecord {
   return asRecord(record[key])
 }
 
+function sanitizeProviderDetail(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const normalized = value
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!normalized) return undefined
+  const redacted = normalized.replace(
+    /((?:x[-_]?public[-_]?key|x[-_]?secret[-_]?key|authorization|api[-_]?key|token|secret)\s*[:=]\s*)[^,; ]+/gi,
+    "$1[redacted]",
+  )
+  return redacted.slice(0, 240)
+}
+
 function errorMessage(data: JsonRecord, fallback: string): string {
-  const candidates = [data.message, data.error, nestedRecord(data, "data").message]
-  const message = candidates.find((value): value is string => typeof value === "string" && value.trim().length > 0)
-  return message && message.length < 200 ? message : fallback
+  const nested = nestedRecord(data, "data")
+  const candidates = [
+    data.details,
+    data.errorDescription,
+    nested.details,
+    nested.errorDescription,
+    data.message,
+    data.error,
+    nested.message,
+  ]
+  const message = candidates
+    .map(sanitizeProviderDetail)
+    .find((value): value is string => Boolean(value))
+  return message ?? fallback
 }
 
 function providerAmountToCents(value: unknown): number | undefined {

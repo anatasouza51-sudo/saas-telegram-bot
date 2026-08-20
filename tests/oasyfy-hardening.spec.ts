@@ -50,6 +50,16 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(records).not.toContain(".select()\n    .from(customers)")
   })
 
+  test("preserva detalhes sanitizados de erros do provedor sem expor secrets", () => {
+    const adapter = source("lib/oasyfy.ts")
+    expect(adapter).toContain("data.details")
+    expect(adapter).toContain("data.errorDescription")
+    expect(adapter).toContain("nested.details")
+    expect(adapter).toContain("nested.errorDescription")
+    expect(adapter).toContain("[redacted]")
+    expect(adapter).toContain("return redacted.slice(0, 240)")
+  })
+
   test("trata timeout como ambíguo e não faz retry automático", () => {
     const adapter = source("lib/oasyfy.ts")
     expect(adapter).toContain("REQUEST_TIMEOUT_MS")
