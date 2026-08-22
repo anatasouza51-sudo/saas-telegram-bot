@@ -224,9 +224,20 @@ async function oasyfyRequest(
       },
       signal: controller.signal,
     })
-    const data = asRecord(await response.json().catch(() => ({})))
+    const rawBody = await response.text()
+    let parsed: unknown = {}
+    if (rawBody.trim()) {
+      try {
+        parsed = JSON.parse(rawBody)
+      } catch {
+        parsed = rawBody
+      }
+    }
+    const data = asRecord(parsed)
     if (!response.ok) {
-      return { ok: false, code: "PAYMENT_PROVIDER_ERROR", error: errorMessage(data, `Oasy.fy respondeu HTTP ${response.status}.`) }
+      const fallback = `Oasy.fy respondeu HTTP ${response.status}.`
+      const detail = errorMessage(data, "") || sanitizeProviderDetail(parsed)
+      return { ok: false, code: "PAYMENT_PROVIDER_ERROR", error: detail || fallback }
     }
     return { ok: true, status: response.status, data }
   } catch (error) {

@@ -57,6 +57,8 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(bot).toContain("filter(Boolean).join(\" \")")
     expect(bot).toContain("if (candidate.length < 3) return null")
     expect(bot).toContain("payerName: customers.payerName")
+    expect(bot).toContain('].join("\\n"),')
+    expect(bot).not.toContain('].join("\\\\n"),')
     expect(bot).not.toContain("@telegram.local")
     expect(bot).not.toContain("00000000000")
     expect(records).toContain(".select({")
@@ -75,6 +77,10 @@ test.describe("Integração Oasy.fy — contrato e hardening", () => {
     expect(adapter).toContain("[email redacted]")
     expect(adapter).toContain("[number redacted]")
     expect(adapter).toContain("return redacted.slice(0, 240)")
+    expect(adapter).toContain("const rawBody = await response.text()")
+    expect(adapter).toContain("parsed = rawBody")
+    expect(adapter).toContain("sanitizeProviderDetail(parsed)")
+    expect(adapter).not.toContain("response.json().catch")
   })
 
   test("trata timeout como ambíguo e não faz retry automático", () => {

@@ -429,7 +429,7 @@ async function ensureOasyfyPayerData(
       "",
       "Esses dados são usados somente para identificar o pagador na Oasy.fy e ficam protegidos no sistema.",
       "Envie /cancelar para interromper esta coleta.",
-    ].join("\\n"),
+    ].join("\n"),
   )
   return false
 }
