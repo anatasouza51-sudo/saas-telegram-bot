@@ -142,6 +142,8 @@ export const customers = pgTable(
     telegramId: text("telegramId").notNull(),
     username: text("username"),
     name: text("name"),
+    // Encrypted legal/display name collected for payment providers.
+    payerName: text("payerName"),
     // Encrypted payer data collected only when a gateway requires it.
     email: text("email"),
     phone: text("phone"),

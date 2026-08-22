@@ -162,16 +162,24 @@ export function buildOasyfyCreatePayload(
   const payerEmail = input.payer?.email?.trim()
   const payerPhone = input.payer?.phone?.trim()
   const payerDocument = input.payer?.document?.trim()
-  if (!payerName.trim() || !payerEmail || !payerPhone || !payerDocument) {
+  const normalizedPayerName = payerName.trim()
+  if (!normalizedPayerName || !payerEmail || !payerPhone || !payerDocument) {
     return {
       ok: false,
       code: "PAYMENT_INVALID",
       error: "Para gerar o PIX Oasy.fy, informe nome, e-mail, telefone e CPF/CNPJ do pagador.",
     }
   }
+  if (normalizedPayerName.length < 3) {
+    return {
+      ok: false,
+      code: "PAYMENT_INVALID",
+      error: "Para gerar o PIX Oasy.fy, informe um nome com pelo menos 3 caracteres.",
+    }
+  }
 
   const client: JsonRecord = {
-    name: payerName.trim(),
+    name: normalizedPayerName,
     email: payerEmail,
     phone: payerPhone,
     document: payerDocument,

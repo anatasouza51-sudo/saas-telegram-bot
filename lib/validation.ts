@@ -160,6 +160,22 @@ export function validateAdminIds(raw: unknown): string[] {
 /**
  * Validates an email string with a basic regex.
  */
+/** Normalizes and validates the payer name required by Oasy.fy. */
+export function validatePayerName(name: unknown): string {
+  if (typeof name !== "string") throw new Error("Nome do pagador inválido")
+  const trimmed = name
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (trimmed.length < 3) {
+    throw new Error("Nome do pagador deve ter pelo menos 3 caracteres.")
+  }
+  if (trimmed.length > MAX_NAME_LENGTH) {
+    throw new Error(`Nome do pagador deve ter no máximo ${MAX_NAME_LENGTH} caracteres`)
+  }
+  return trimmed
+}
+
 export function validateEmail(email: unknown): string {
   if (typeof email !== "string") throw new Error("Email inválido")
   const trimmed = email.trim().toLowerCase()

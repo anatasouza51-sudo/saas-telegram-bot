@@ -537,7 +537,7 @@ export type TelegramUpdateChat = {
 // A ChatMemberUpdated payload: how the bot's (or a user's) membership changed.
 export type TelegramChatMemberUpdated = {
   chat: TelegramUpdateChat
-  from: { id: number; username?: string; first_name?: string }
+  from: { id: number; username?: string; first_name?: string; last_name?: string }
   date: number
   old_chat_member: TelegramChatMember
   new_chat_member: TelegramChatMember
@@ -567,7 +567,7 @@ export type TelegramUpdate = {
   }
   callback_query?: {
     id: string
-    from: { id: number; username?: string; first_name?: string }
+    from: { id: number; username?: string; first_name?: string; last_name?: string }
     message?: { message_id: number; chat: { id: number } }
     data?: string
   }
@@ -596,6 +596,7 @@ export type TelegramUser = {
   id: number
   is_bot: boolean
   first_name: string
+  last_name?: string
   username?: string
 }
 
